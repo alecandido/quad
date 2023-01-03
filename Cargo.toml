@@ -1,0 +1,12 @@
+[package]
+name = "quad"
+version = "0.1.0"
+authors = ["Alessandro Candido <candido.ale@gmail.com>"]
+edition = "2021"
+license = "GPL-3.0-or-later"
+readme = "README.md"
+description = "Quadrature integration"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
