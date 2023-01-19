@@ -20,7 +20,14 @@ impl Function for PolynomialFunction {
     }
 }
 
-
+pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
+    let mut total : f32 = parameters[0] ;
+    for i in 1..parameters.len() {
+        let j : f32 = i as f32 ;
+        total += parameters[i] / ( j + 1.0 );
+    }
+    total
+}
 
 
 pub struct Sin{}
