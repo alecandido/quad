@@ -1,9 +1,16 @@
 pub trait Function {
-    fn evaluate(&self, x : &f32) -> f32;
+    fn evaluate(&self, x : &f32) -> f32 ;
+    fn constr_derivative(&self) -> Self ;
 }
 // PolynomialFunction : a + bx + cx^2 + dx^3 + ....
 pub struct PolynomialFunction {
     pub parameters : Vec<f32>,
+}
+
+impl PolynomialFunction {
+    pub fn new(parameters : Vec<f32>) -> Self {
+        Self{ parameters}
+    }
 }
 
 impl Function for PolynomialFunction {
@@ -18,6 +25,19 @@ impl Function for PolynomialFunction {
         }
         total
     }
+    fn constr_derivative(&self) -> Self {
+        let mut derivative_parameters : Vec<f32> = vec![0.0;self.parameters.len()-1] ;
+        for i in 0..self.parameters.len()-1 {
+            let j : f32 = i as f32 ;
+            derivative_parameters[i] = ( j + 1.0 ) * self.parameters[i+1] ;
+        }
+        Self{
+            parameters : derivative_parameters,
+        }
+    }
+
+
+
 }
 
 pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
@@ -29,18 +49,29 @@ pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
     total
 }
 
-
+/*
 pub struct Sin{}
+pub struct Cos{}
 
 impl Function for Sin{
     fn evaluate(&self, x : &f32) -> f32 {
         x.sin()
     }
+    fn constr_derivative(&self) -> Self {
+        Cos{}
+    }
 }
 
+impl Function for Cos{
+    fn evaluate(&self, x : &f32) -> f32 {
+        x.cos()
+    }
+    fn constr_derivative(&self) -> Self {
+        Sin{}
+    }
+}
 
-
-
+*/
 
 /*
 pub struct Line{
