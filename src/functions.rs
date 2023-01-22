@@ -1,6 +1,7 @@
 pub trait Function {
     fn evaluate(&self, x : &f32) -> f32 ;
     fn constr_derivative(&self) -> Self ;
+    fn abs_max(&self, number_of_points : i32) -> f32 ;
 }
 // PolynomialFunction : a + bx + cx^2 + dx^3 + ....
 pub struct PolynomialFunction {
@@ -36,6 +37,17 @@ impl Function for PolynomialFunction {
         }
     }
 
+    fn abs_max(&self, number_of_points : i32) -> f32 {
+        let mut max: f32 = self.evaluate(&0.0).abs();
+        let number_of_points_float = number_of_points as f32;
+        for i in 1..number_of_points {
+            let j: f32 = i as f32;
+            if self.evaluate(&(j / number_of_points_float)).abs() > max {
+                max = self.evaluate(&(j / number_of_points_float)).abs();
+            }
+        }
+        max
+    }
 
 
 }

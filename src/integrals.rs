@@ -4,7 +4,7 @@ use crate::functions::*;
 
 pub trait Integrator {
     fn integrate(&self,funct : &impl Function, number_of_point : i32) -> f32 ;
-    // fn error(&self, funct: &impl Function, number_of_point : i32) -> f32 ;
+    fn error(&self, funct: &impl Function, number_of_point : i32) -> f32 ;
 }
 
 pub struct Rectangular {}
@@ -22,6 +22,14 @@ impl Integrator for Rectangular {
         }
         tot / m
     }
+
+    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+        let derivative = funct.constr_derivative() ;
+        let number_of_points_float = number_of_points as f32;
+        let max: f32 = derivative.abs_max(number_of_points);
+        let error: f32 = max / (2.0 * number_of_points_float);
+        error
+    }
 }
 
 impl Integrator for Trapezoiadal {
@@ -33,6 +41,15 @@ impl Integrator for Trapezoiadal {
             tot += funct.evaluate( &(j/m) ) ;
         }
         tot / m
+    }
+
+    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+        let derivative = funct.constr_derivative() ;
+        let second_derivative = derivative.constr_derivative() ;
+        let number_of_points_float = number_of_points as f32;
+        let max: f32 = second_derivative.abs_max(number_of_points);
+        let error: f32 = max / (12.0 * number_of_points_float.powi(2));
+        error
     }
 }
 
@@ -46,13 +63,25 @@ impl Integrator for Simpson1 {
         }
         tot / ( 3.0 * m )
     }
+
+    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+        let derivative = funct.constr_derivative() ;
+        let second_derivative = derivative.constr_derivative() ;
+        let third_derivative = second_derivative.constr_derivative() ;
+        let fourth_derivative = third_derivative.constr_derivative() ;
+        let number_of_points_float = number_of_points as f32;
+        let max: f32 = fourth_derivative.abs_max(number_of_points);
+        let error: f32 = max / (180.0 * number_of_points_float.powi(4));
+        error
+    }
 }
 
+// Simpson2 ( 3/8 ) : number_of_points has to be multiple of 3 !!
 impl Integrator for Simpson2 {
-    fn integrate(&self,funct: &impl Function, number_of_point: i32) -> f32 {
+    fn integrate(&self,funct: &impl Function, number_of_points: i32) -> f32 {
         let mut tot : f32 = funct.evaluate(&0.0) + funct.evaluate(&1.0) ;
-        let m = number_of_point as f32 ;
-        for i in 1..(number_of_point ) {
+        let m = number_of_points as f32 ;
+        for i in 1..(number_of_points) {
             let j =  i as f32 ;
             if i % 3 == 0 {
                 tot += 2.0 * funct.evaluate(&(j/m)) ;
@@ -62,6 +91,17 @@ impl Integrator for Simpson2 {
             }
         }
         3.0 * tot / ( 8.0 * m )
+    }
+
+    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+        let derivative = funct.constr_derivative() ;
+        let second_derivative = derivative.constr_derivative() ;
+        let third_derivative = second_derivative.constr_derivative() ;
+        let fourth_derivative = third_derivative.constr_derivative() ;
+        let number_of_points_float = number_of_points as f32;
+        let max: f32 = fourth_derivative.abs_max(number_of_points);
+        let error: f32 = max / (6480.0 * number_of_points_float.powi(4));
+        error
     }
 }
 
