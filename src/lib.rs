@@ -20,48 +20,49 @@ mod tests {
 
     #[test] // test if rectangular_integral is in [ ( 1 - precision) exact_polynom_integral), (1 + precision) exact_polynom_integral]
     fn rectangular_on_polynomial() {
-        let parameters = &vec![7.6, 1.9, 9.1, 11.2];
+        let number_of_points = 100;
+        let parameters = random_vector() ;
         let precision: f32 = 0.1;
-        let number_of_point = 100;
+
         let integral = Rectangular{} ;
         let polynomial = PolynomialFunction::new(parameters.to_vec());
-        assert!(!((1.0 - precision) * exact_polynom_integral(parameters) >= integral.integrate(&polynomial, number_of_point)
-            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(parameters) ))
+        assert!(!((1.0 - precision) * exact_polynom_integral(&parameters) >= integral.integrate(&polynomial, number_of_points)
+            || integral.integrate(&polynomial, number_of_points) >= (1.0 + precision) * exact_polynom_integral(&parameters) ))
     }
 
 
     #[test]
     fn trapezoidal_on_polynomial() {
-        let parameters = &vec![7.6, 1.9, 9.1, 11.2];
+        let parameters = random_vector();
         let precision: f32 = 0.1;
         let number_of_point = 100;
         let integral = Trapezoiadal{} ;
         let polynomial = PolynomialFunction::new(parameters.to_vec());
-        assert!(!((1.0 - precision) * exact_polynom_integral(parameters) >= integral.integrate(&polynomial, number_of_point)
-            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(parameters) ))
+        assert!(!((1.0 - precision) * exact_polynom_integral(&parameters) >= integral.integrate(&polynomial, number_of_point)
+            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(&parameters) ))
     }
 
     #[test]
     fn simpson1_on_polynomial() {
-        let parameters = &vec![7.6, 1.9, 9.1, 11.2];
+        let parameters = random_vector();
         let precision: f32 = 0.1;
         let number_of_point = 100;
         let integral = Simpson1{} ;
         let polynomial = PolynomialFunction::new(parameters.to_vec());
-        assert!(!((1.0 - precision) * exact_polynom_integral(parameters) >= integral.integrate(&polynomial, number_of_point)
-            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(parameters) ))
+        assert!(!((1.0 - precision) * exact_polynom_integral(&parameters) >= integral.integrate(&polynomial, number_of_point)
+            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(&parameters) ))
     }
 
 
     #[test]
     fn simpson2_on_polynomial() {
-        let parameters = &vec![7.6, 1.9, 9.1, 11.2];
+        let parameters = random_vector();
         let precision: f32 = 0.1;
-        let number_of_point = 100;
+        let number_of_point = 300; // number_of_points has to be multiple of 3 !!
         let integral = Simpson2{} ;
         let polynomial = PolynomialFunction::new(parameters.to_vec());
-        assert!(!((1.0 - precision) * exact_polynom_integral(parameters) >= integral.integrate(&polynomial, number_of_point)
-            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(parameters) ))
+        assert!(!((1.0 - precision) * exact_polynom_integral(&parameters) >= integral.integrate(&polynomial, number_of_point)
+            || integral.integrate(&polynomial, number_of_point) >= (1.0 + precision) * exact_polynom_integral(&parameters) ))
     }
 
     #[test]
@@ -81,8 +82,19 @@ mod tests {
         let error: f32 = max / (2.0 * number_of_points_float);
         println!("The error_bound is {error}");
     }
+/*
+    #[test]
+    fn random_vec() {
+        let random_vector : Vec<f32> = random_vector() ;
+        println!("{}", random_vector.len()) ;
+        for i in random_vector {
+            println!("{i}")
+        }
 
 
+    }
 
+
+ */
 
 }

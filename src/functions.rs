@@ -1,3 +1,6 @@
+use rand::{thread_rng, Rng};
+use rand::distributions::Standard;
+
 pub trait Function {
     fn evaluate(&self, x : &f32) -> f32 ;
     fn constr_derivative(&self) -> Self ;
@@ -60,6 +63,14 @@ pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
     }
     total
 }
+
+pub fn random_vector() -> Vec<f32> {
+    let mut rng = thread_rng();
+    let capacity : usize = rng.gen_range(1..20) ;
+    let v: Vec<f32> = (&mut rng).sample_iter(Standard).take(capacity).collect();
+    v
+}
+
 
 /*
 pub struct Sin{}
