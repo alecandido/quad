@@ -1,10 +1,11 @@
 use crate::functions::*;
 
 // all the integrals are computed on the range [0,1]
+// !? What is the optimal number_of_points for the abs_max function !?
 
 pub trait Integrator {
     fn integrate(&self,funct : &impl Function, number_of_point : i32) -> f32 ;
-    fn error(&self, funct: &impl Function, number_of_point : i32) -> f32 ;
+    fn error(&self, funct: &impl Function, number_of_ponts : i32) -> f32 ;
 }
 
 pub struct Rectangular {}
@@ -23,10 +24,10 @@ impl Integrator for Rectangular {
         tot / m
     }
 
-    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+    fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
         let derivative = funct.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = derivative.abs_max(number_of_points);
+        let max: f32 = derivative.abs_max(1000);
         let error: f32 = max / (2.0 * number_of_points_float);
         error
     }
@@ -43,11 +44,11 @@ impl Integrator for Trapezoiadal {
         tot / m
     }
 
-    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+    fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
         let derivative = funct.constr_derivative() ;
         let second_derivative = derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = second_derivative.abs_max(number_of_points);
+        let max: f32 = second_derivative.abs_max(1000);
         let error: f32 = max / (12.0 * number_of_points_float.powi(2));
         error
     }
@@ -64,13 +65,13 @@ impl Integrator for Simpson1 {
         tot / ( 3.0 * m )
     }
 
-    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+    fn error(&self, funct: &impl Function , number_of_points : i32) -> f32 {
         let derivative = funct.constr_derivative() ;
         let second_derivative = derivative.constr_derivative() ;
         let third_derivative = second_derivative.constr_derivative() ;
         let fourth_derivative = third_derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = fourth_derivative.abs_max(number_of_points);
+        let max: f32 = fourth_derivative.abs_max(1000);
         let error: f32 = max / (180.0 * number_of_points_float.powi(4));
         error
     }
@@ -93,14 +94,14 @@ impl Integrator for Simpson2 {
         3.0 * tot / ( 8.0 * m )
     }
 
-    fn error(&self, funct: &impl Function, number_of_points: i32) -> f32 {
+    fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
         let derivative = funct.constr_derivative() ;
         let second_derivative = derivative.constr_derivative() ;
         let third_derivative = second_derivative.constr_derivative() ;
         let fourth_derivative = third_derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = fourth_derivative.abs_max(number_of_points);
-        let error: f32 = max / (6480.0 * number_of_points_float.powi(4));
+        let max: f32 = fourth_derivative.abs_max(1000);
+        let error: f32 =  max / (80.0 * number_of_points_float.powi(4));
         error
     }
 }

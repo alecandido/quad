@@ -64,9 +64,10 @@ pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
     total
 }
 
+// minimum lenght 5 to be able to use the error function of the simpson method
 pub fn random_vector() -> Vec<f32> {
     let mut rng = thread_rng();
-    let capacity : usize = rng.gen_range(1..20) ;
+    let capacity : usize = rng.gen_range(5..15) ;
     let v: Vec<f32> = (&mut rng).sample_iter(Standard).take(capacity).collect();
     v
 }
