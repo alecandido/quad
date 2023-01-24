@@ -1,8 +1,10 @@
 pub mod functions;
-pub mod integrals;
+pub mod integral_method;
+pub mod integrator;
 
 use functions::*;
-use integrals::*;
+use integral_method::*;
+use integrator::*;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -10,6 +12,7 @@ pub fn add(left: usize, right: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use crate::integrator::FixedPrecision;
     use super::*;
 
     #[test]
@@ -79,49 +82,47 @@ mod tests {
     #[test]
     fn error_comparison() {
         let parameters = random_vector();
-        let precision : f32 = 0.001 ;
+        let precision : f32 = 0.01 ;
         let mut number_of_points_rec = 2;
         let mut number_of_points_trap = 2;
         let mut number_of_points_simp1 = 2;
         let mut number_of_points_simp2 = 3;
         let polynomial = PolynomialFunction::new(parameters.to_vec());
+        //let polynomial = Sin{i : 0} ;
+
+        let integral_precision = FixedPrecision{ precision};
+
 
         let rectangular = Rectangular{};
         let trapezoidal = Trapezoiadal{};
         let simpson1 = Simpson1{};
         let simpson2 = Simpson2{};
         let exact_integral = exact_polynom_integral(&parameters) ;
+        //let exact_integral = - 1.0_f32.cos() + 1.0 ;
 
-        let mut error_bound_rec: f32 = rectangular.error(&polynomial, number_of_points_rec);
-        let mut error_bound_trap: f32 = trapezoidal.error(&polynomial, number_of_points_trap);
-        let mut error_bound_simp1: f32 = simpson1.error(&polynomial, number_of_points_simp1);
-        let mut error_bound_simp2: f32 = simpson2.error(&polynomial, number_of_points_simp2);
 
-        let mut rel_error_bound_rec: f32 = error_bound_rec / exact_integral.abs();
-        let mut rel_error_bound_trap: f32 = error_bound_trap / exact_integral.abs();
-        let mut rel_error_bound_simp1: f32 = error_bound_simp1 / exact_integral.abs();
-        let mut rel_error_bound_simp2: f32 = error_bound_simp2 / exact_integral.abs();
+        let mut rel_error_bound_rec: f32 = rectangular.relative_error(&polynomial, number_of_points_rec);
+        let mut rel_error_bound_trap: f32 = trapezoidal.relative_error(&polynomial, number_of_points_trap);
+        let mut rel_error_bound_simp1: f32 = simpson1.relative_error(&polynomial, number_of_points_simp1);
+        let mut rel_error_bound_simp2: f32 = simpson2.relative_error(&polynomial, number_of_points_simp2);
+
 
         println!("Exact integral : {}", exact_integral);
         while rel_error_bound_rec > precision {
             number_of_points_rec += 2 ;
-            error_bound_rec = rectangular.error(&polynomial, number_of_points_rec);
-            rel_error_bound_rec = error_bound_rec / exact_integral.abs();
+            rel_error_bound_rec = rectangular.relative_error(&polynomial,number_of_points_rec);
         }
         while rel_error_bound_trap > precision {
             number_of_points_trap += 2 ;
-            error_bound_trap = trapezoidal.error(&polynomial, number_of_points_trap);
-            rel_error_bound_trap = error_bound_trap / exact_integral.abs();
+            rel_error_bound_trap = trapezoidal.relative_error(&polynomial,number_of_points_trap);
         }
         while rel_error_bound_simp1 > precision {
             number_of_points_simp1 += 2 ;
-            error_bound_simp1 = simpson1.error(&polynomial, number_of_points_simp1);
-            rel_error_bound_simp1 = error_bound_simp1 / exact_integral.abs();
+            rel_error_bound_simp1 = simpson1.relative_error(&polynomial,number_of_points_simp1);
         }
         while rel_error_bound_simp2 > precision {
             number_of_points_simp2 += 3 ;
-            error_bound_simp2 = simpson2.error(&polynomial, number_of_points_simp2);
-            rel_error_bound_simp2 = error_bound_simp2 / exact_integral.abs();
+            rel_error_bound_simp2 = simpson2.relative_error(&polynomial,number_of_points_simp2);
         }
 
 
@@ -136,13 +137,17 @@ mod tests {
         let rel_error_real_simpson2 = (simpson2_integral - exact_integral).abs() / exact_integral ;
 
         println!("The random polynomial function has order : {}", parameters.len());
-        println!("Rectangular: {} , with {} points ( relative error bound : {} ; real error : {})",
+        println!("Rectangular: {} and {} , with {} points ( relative error bound : {} ; real error : {})",
+                 integral_precision.integrate(&rectangular,&polynomial),
                  rectangular_integral, number_of_points_rec, rel_error_bound_rec, rel_error_real_rectangular);
-        println!("Trapezoidal: {} , with {} points ( relative error bound : {} ; real error : {})",
+        println!("Trapezoidal: {} and {} , with {} points ( relative error bound : {} ; real error : {})",
+                 integral_precision.integrate(&trapezoidal,&polynomial),
                  trapezoidal_integral, number_of_points_trap, rel_error_bound_trap, rel_error_real_trapezoidal);
-        println!("Simpson1: {} , with {} points ( relative error bound: {} ; real error : {})",
+        println!("Simpson1: {} and {} , with {} points ( relative error bound: {} ; real error : {})",
+                 integral_precision.integrate(&simpson1,&polynomial),
                  simpson1_integral, number_of_points_simp1, rel_error_bound_simp1, rel_error_real_simpson1);
-        println!("Simpson2: {} , with {} points ( relative error bound: {} ; real error : {})",
+        println!("Simpson2: {} and {} , with {} points ( relative error bound: {} ; real error : {})",
+                 integral_precision.integrate(&simpson2,&polynomial),
                  simpson2_integral, number_of_points_simp2, rel_error_bound_simp2, rel_error_real_simpson2);
 
 

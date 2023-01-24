@@ -20,17 +20,25 @@ impl PolynomialFunction {
 impl Function for PolynomialFunction {
     fn evaluate(&self, x: &f32) -> f32 {
         let mut total : f32 = self.parameters[0] ;
-        for i in 1..self.parameters.len(){
-            let mut contr = self.parameters[i] ;
-            for _n in 1..i+1 {
-                contr = contr * x ;
-            }
-            total += contr ;
+        for i  in 1..self.parameters.len() {
+            // let mut contr = self.parameters[i] ;
+            // for _n in 1..i+1 {
+            //    contr = contr * x ;
+            // }
+            let n : i32 = i as i32 ;
+            total += self.parameters[i] * x.powi(n) ;
         }
         total
     }
+
     fn constr_derivative(&self) -> Self {
-        let mut derivative_parameters : Vec<f32> = vec![0.0;self.parameters.len()-1] ;
+        let mut derivative_parameters : Vec<f32>;
+        if self.parameters.len() == 1 {
+            derivative_parameters = vec![0.0];
+        }
+        else {
+            derivative_parameters = vec![0.0;self.parameters.len()-1];
+        }
         for i in 0..self.parameters.len()-1 {
             let j : f32 = i as f32 ;
             derivative_parameters[i] = ( j + 1.0 ) * self.parameters[i+1] ;
@@ -52,7 +60,6 @@ impl Function for PolynomialFunction {
         max
     }
 
-
 }
 
 pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
@@ -64,75 +71,48 @@ pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
     total
 }
 
-// minimum lenght 5 to be able to use the error function of the simpson method
 pub fn random_vector() -> Vec<f32> {
     let mut rng = thread_rng();
-    let capacity : usize = rng.gen_range(5..15) ;
+    let capacity : usize = rng.gen_range(1..15) ;
     let v: Vec<f32> = (&mut rng).sample_iter(Standard).take(capacity).collect();
     v
 }
 
 
-/*
-pub struct Sin{}
-pub struct Cos{}
+
+pub struct Sin {
+    pub i: i32,
+}
 
 impl Function for Sin{
     fn evaluate(&self, x : &f32) -> f32 {
-        x.sin()
+        match self.i%4{
+            0 => x.sin(),
+            1 => x.cos(),
+            2 => - x.sin(),
+            3 => - x.cos(),
+            _ => 0.0,
+        }
     }
     fn constr_derivative(&self) -> Self {
-        Cos{}
+        Self{ i : self.i + 1}
     }
+
+    fn abs_max(&self, _number_of_points: i32) -> f32 {
+        if self.i % 2 == 1 { 1.0 }
+        else { 1.0_f32.sin() }
+    }
+
+
 }
 
+/*
 impl Function for Cos{
     fn evaluate(&self, x : &f32) -> f32 {
         x.cos()
     }
     fn constr_derivative(&self) -> Self {
         Sin{}
-    }
-}
-
-*/
-
-/*
-pub struct Line{
-    pub a : f32,
-    pub b : f32,
-}
-
-
-
-impl Function for Line {
-    fn evaluate(&self, x : &f32) -> f32 {
-        self.a + self.b * x
-    }
-}
-
-pub struct Parabola{
-    pub a : f32,
-    pub b : f32,
-    pub c : f32,
-}
-
-impl Function for Parabola{
-    fn evaluate(&self, x : &f32) -> f32 {
-        self.a + self.b * x + self.c * x * x
-    }
-}
-
-pub struct Cubic{
-    pub a : f32,
-    pub b : f32,
-    pub c : f32,
-    pub d : f32,
-}
-
-impl Function for Cubic{
-    fn evaluate(&self, x : &f32) -> f32 {
-        self.a + self.b * x + self.c * x * x + self.d * x * x * x
     }
 }
 

@@ -1,11 +1,15 @@
-use crate::functions::*;
+use crate::*;
 
 // all the integrals are computed on the range [0,1]
 // !? What is the optimal number_of_points for the abs_max function !?
 
-pub trait Integrator {
+pub trait IntegralMethod {
     fn integrate(&self,funct : &impl Function, number_of_point : i32) -> f32 ;
     fn error(&self, funct: &impl Function, number_of_ponts : i32) -> f32 ;
+    fn relative_error(&self, funct : &impl Function , number_of_points : i32) -> f32 {
+        self.error(funct,number_of_points) / self.integrate(funct, number_of_points).abs()
+    }
+    fn even_interval(&self) -> bool ; // necessary for Integrator::FixedPrecision.integrate
 }
 
 pub struct Rectangular {}
@@ -13,7 +17,7 @@ pub struct Trapezoiadal {}
 pub struct Simpson1 {}
 pub struct Simpson2 {}
 
-impl Integrator for Rectangular {
+impl IntegralMethod for Rectangular {
     fn integrate(&self,funct: &impl Function, number_of_point: i32) -> f32 {
         let mut tot : f32 = funct.evaluate(&0.0) ;
         let m = number_of_point as f32 ;
@@ -31,9 +35,13 @@ impl Integrator for Rectangular {
         let error: f32 = max / (2.0 * number_of_points_float);
         error
     }
+
+    fn even_interval(&self) -> bool {
+        true
+    }
 }
 
-impl Integrator for Trapezoiadal {
+impl IntegralMethod for Trapezoiadal {
     fn integrate(&self,funct: &impl Function, number_of_point: i32) -> f32 {
         let mut tot : f32 = 0.5 * (funct.evaluate(&0.0) + funct.evaluate(&1.0)) ;
         let m = number_of_point as f32 ;
@@ -52,9 +60,17 @@ impl Integrator for Trapezoiadal {
         let error: f32 = max / (12.0 * number_of_points_float.powi(2));
         error
     }
+    fn even_interval(&self) -> bool {
+        true
+    }
 }
 
-impl Integrator for Simpson1 {
+
+
+// number_of_point == number of sub intervals
+
+// Simpson1 ( 1/3 ) : number_of_point has to be even
+impl IntegralMethod for Simpson1 {
     fn integrate(&self,funct: &impl Function, number_of_point: i32) -> f32 {
         let mut tot : f32 =  funct.evaluate(&0.0) - funct.evaluate(&1.0) ;
         let m = number_of_point as f32 ;
@@ -75,10 +91,13 @@ impl Integrator for Simpson1 {
         let error: f32 = max / (180.0 * number_of_points_float.powi(4));
         error
     }
+    fn even_interval(&self) -> bool {
+        true
+    }
 }
 
 // Simpson2 ( 3/8 ) : number_of_points has to be multiple of 3 !!
-impl Integrator for Simpson2 {
+impl IntegralMethod for Simpson2 {
     fn integrate(&self,funct: &impl Function, number_of_points: i32) -> f32 {
         let mut tot : f32 = funct.evaluate(&0.0) + funct.evaluate(&1.0) ;
         let m = number_of_points as f32 ;
@@ -103,6 +122,10 @@ impl Integrator for Simpson2 {
         let max: f32 = fourth_derivative.abs_max(1000);
         let error: f32 =  max / (80.0 * number_of_points_float.powi(4));
         error
+    }
+
+    fn even_interval(&self) -> bool {
+        false
     }
 }
 
