@@ -1,10 +1,12 @@
 pub mod functions;
 pub mod integral_method;
 pub mod integrator;
+pub mod funct_vector;
 
 use functions::*;
 use integral_method::*;
 use integrator::*;
+use funct_vector::*;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -92,7 +94,6 @@ mod tests {
 
         let integral_precision = FixedPrecision{ precision};
 
-
         let rectangular = Rectangular{};
         let trapezoidal = Trapezoiadal{};
         let simpson1 = Simpson1{};
@@ -100,6 +101,9 @@ mod tests {
         let exact_integral = exact_polynom_integral(&parameters) ;
         //let exact_integral = - 1.0_f32.cos() + 1.0 ;
 
+
+        //let vector: Vec<Box<dyn IntegralMethod>> = vec![Box::new(rectangular), Box::new(trapezoidal),
+        //                                                Box::new(simpson1), Box::new(simpson2)];
 
         let mut rel_error_bound_rec: f32 = rectangular.relative_error(&polynomial, number_of_points_rec);
         let mut rel_error_bound_trap: f32 = trapezoidal.relative_error(&polynomial, number_of_points_trap);
@@ -154,21 +158,27 @@ mod tests {
 
     }
 
+//----------------------- TEST OF FUNCTVECTORS
+
+    /*
+        #[test]
+        fn func_vector() {
+            let parameters1 = random_vector();
+            let parameters2 = random_vector();
+            let parameters3 = random_vector();
+
+            let polynomial1 = PolynomialFunction::new(parameters1.to_vec());
+            let polynomial2 = PolynomialFunction::new(parameters2.to_vec());
+            let polynomial3 = PolynomialFunction::new(parameters3.to_vec());
 
 
-/*
-    #[test]
-    fn random_vec() {
-        let random_vector : Vec<f32> = random_vector() ;
-        println!("{}", random_vector.len()) ;
-        for i in random_vector {
-            println!("{i}")
-        }
+            let collection : FunctVector = FunctVector{ components : vec![Box::new(polynomial1),Box::new(polynomial2),Box::new(polynomial3)]};
 
 
     }
 
+     */
 
- */
+
 
 }

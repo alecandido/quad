@@ -29,9 +29,8 @@ impl IntegralMethod for Rectangular {
     }
 
     fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
-        let derivative = funct.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = derivative.abs_max(1000);
+        let max: f32 = funct.first_derivative_abs_max();
         let error: f32 = max / (2.0 * number_of_points_float);
         error
     }
@@ -53,10 +52,8 @@ impl IntegralMethod for Trapezoiadal {
     }
 
     fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
-        let derivative = funct.constr_derivative() ;
-        let second_derivative = derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = second_derivative.abs_max(1000);
+        let max: f32 = funct.second_derivative_abs_max();
         let error: f32 = max / (12.0 * number_of_points_float.powi(2));
         error
     }
@@ -82,12 +79,8 @@ impl IntegralMethod for Simpson1 {
     }
 
     fn error(&self, funct: &impl Function , number_of_points : i32) -> f32 {
-        let derivative = funct.constr_derivative() ;
-        let second_derivative = derivative.constr_derivative() ;
-        let third_derivative = second_derivative.constr_derivative() ;
-        let fourth_derivative = third_derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = fourth_derivative.abs_max(1000);
+        let max: f32 = funct.fourth_derivative_abs_max();
         let error: f32 = max / (180.0 * number_of_points_float.powi(4));
         error
     }
@@ -114,12 +107,8 @@ impl IntegralMethod for Simpson2 {
     }
 
     fn error(&self, funct: &impl Function, number_of_points : i32) -> f32 {
-        let derivative = funct.constr_derivative() ;
-        let second_derivative = derivative.constr_derivative() ;
-        let third_derivative = second_derivative.constr_derivative() ;
-        let fourth_derivative = third_derivative.constr_derivative() ;
         let number_of_points_float = number_of_points as f32;
-        let max: f32 = fourth_derivative.abs_max(1000);
+        let max: f32 = funct.fourth_derivative_abs_max();
         let error: f32 =  max / (80.0 * number_of_points_float.powi(4));
         error
     }
@@ -128,4 +117,3 @@ impl IntegralMethod for Simpson2 {
         false
     }
 }
-
