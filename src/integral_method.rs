@@ -117,3 +117,4 @@ impl IntegralMethod for Simpson2 {
         false
     }
 }
+
