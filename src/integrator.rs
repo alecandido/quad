@@ -3,7 +3,7 @@ use crate::*;
 pub trait Integrator{
     fn integrate(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f32 ;
     fn number_of_points(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> i32;
-    fn relitive_error(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f32 {
+    fn relative_error(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f32 {
         integral_method.relative_error(funct,self.number_of_points(integral_method,funct))
     }
 }

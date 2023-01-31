@@ -9,7 +9,7 @@ pub trait IntegralMethod {
     fn relative_error(&self, funct : &impl Function , number_of_points : i32) -> f32 {
         self.error(funct,number_of_points) / self.integrate(funct, number_of_points).abs()
     }
-    fn even_interval(&self) -> bool ; // necessary for Integrator::FixedPrecision.integrate
+    fn even_interval(&self) -> bool ; // necessary for Integrator::FixedPrecision.integrate_uniform
 }
 
 pub struct Rectangular {}

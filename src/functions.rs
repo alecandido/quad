@@ -3,7 +3,6 @@ use rand::distributions::Standard;
 
 pub trait Function {
     fn evaluate(&self, x : &f32) -> f32;
-    //fn constr_derivative(&self) -> Self;
     fn abs_max(&self, number_of_points : i32) -> f32;
     fn first_derivative_abs_max(&self) -> f32;
     fn second_derivative_abs_max(&self) -> f32;
