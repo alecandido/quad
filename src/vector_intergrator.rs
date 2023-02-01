@@ -5,9 +5,14 @@ pub trait VecIntegrator{
     fn integrate_non_uniform(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> Vec<f32> ;
     fn number_of_points_uniform(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> i32;
     fn number_of_points_non_uniform(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> Vec<i32>;
-    fn relative_errors(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> Vec<f32> {
-        integral_method.relative_error(funct,self.number_of_points_uniform(integral_method,funct))
+    fn relative_errors_uniform(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> Vec<f32> {
+        integral_method.relative_error_uniform(funct, self.number_of_points_uniform(integral_method, funct))
     }
+    fn relative_errors_non_uniform(&self, integral_method : &impl VecIntegralMethod, funct : & FunctVector) -> Vec<f32> {
+        integral_method.relative_error_non_uniform(funct,self.number_of_points_non_uniform(integral_method,funct))
+    }
+
+
 }
 
 pub struct VecFixedPrecision {
@@ -26,7 +31,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 2;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {condition[i] = true;}
@@ -39,7 +44,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 3;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {condition[i] = true;}
@@ -60,7 +65,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 2;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {condition[i] = true;}
@@ -73,7 +78,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 3;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {condition[i] = true;}
@@ -95,7 +100,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 2;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {
@@ -112,7 +117,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 3;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {
@@ -137,13 +142,14 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 2;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
-                    else {
+                    else if number_of_points_vec[i] == 1{
                         condition[i] = true;
                         number_of_points_vec[i] = number_of_points;
                     }
+                    else{}
                 }
             }
         }
@@ -153,7 +159,7 @@ impl VecIntegrator for VecFixedPrecision {
             while condition != check {
                 number_of_points += 3;
                 for i in 0..dimension {
-                    if integral_method.relative_error(funct, number_of_points)[i] > self.precision {
+                    if integral_method.relative_error_uniform(funct, number_of_points)[i] > self.precision {
                         condition[i] = false;
                     }
                     else {

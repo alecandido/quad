@@ -6,12 +6,21 @@ use crate::*;
 pub trait VecIntegralMethod {
     fn integrate_uniform(&self, funct : & FunctVector, number_of_points : i32) -> Vec<f32> ;
     fn integrate_non_uniform(&self, funct : & FunctVector, number_of_points : Vec<i32>) -> Vec<f32>;
-    fn error(&self, funct: & FunctVector, number_of_ponts : i32) -> Vec<f32> ;
-    fn relative_error(&self, funct : & FunctVector , number_of_points : i32) -> Vec<f32> {
+    fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> ;
+    fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32> ;
+    fn relative_error_uniform(&self, funct : & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut relative_errors :Vec<f32> = vec![0.0;dimension];
         for k in 0..dimension {
-            relative_errors[k] = (self.error(funct,number_of_points)[k] / self.integrate_uniform(funct, number_of_points)[k]).abs();
+            relative_errors[k] = (self.errors_uniform(funct, number_of_points)[k] / self.integrate_uniform(funct, number_of_points)[k]).abs();
+        }
+        relative_errors
+    }
+    fn relative_error_non_uniform(&self, funct : & FunctVector, number_of_points : Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut relative_errors :Vec<f32> = vec![0.0;dimension];
+        for k in 0..dimension {
+            relative_errors[k] = (self.errors_non_uniform(funct, number_of_points.to_vec())[k] / self.integrate_non_uniform(funct, number_of_points.to_vec())[k]).abs();
         }
         relative_errors
     }
@@ -60,11 +69,23 @@ impl VecIntegralMethod for VecRectangular {
 
 
 
-    fn error(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
+    fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut errors :Vec<f32> = vec![0.0;dimension];
         for k in 0..dimension {
             let number_of_points_float = number_of_points as f32;
+            let max: f32 = funct.components[k].first_derivative_abs_max();
+            errors[k] = max / (2.0 * number_of_points_float);
+        }
+        errors
+
+    }
+
+    fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32>{
+        let dimension = funct.components.len();
+        let mut errors :Vec<f32> = vec![0.0;dimension];
+        for k in 0..dimension {
+            let number_of_points_float = number_of_points[k] as f32;
             let max: f32 = funct.components[k].first_derivative_abs_max();
             errors[k] = max / (2.0 * number_of_points_float);
         }
@@ -110,7 +131,7 @@ impl VecIntegralMethod for VecTrapezoiadal {
         results
     }
 
-    fn error(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
+    fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut errors :Vec<f32> = vec![0.0;dimension];
         for k in 0..dimension {
@@ -120,6 +141,18 @@ impl VecIntegralMethod for VecTrapezoiadal {
         }
         errors
     }
+
+    fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32>{
+        let dimension = funct.components.len();
+        let mut errors :Vec<f32> = vec![0.0;dimension];
+        for k in 0..dimension {
+            let number_of_points_float = number_of_points[k] as f32;
+            let max: f32 = funct.components[k].second_derivative_abs_max();
+            errors[k] = max / (12.0 * number_of_points_float.powi(2));
+        }
+        errors
+    }
+
     fn even_interval(&self) -> bool {
         true
     }
@@ -162,7 +195,7 @@ impl VecIntegralMethod for VecSimpson1 {
         results
     }
 
-    fn error(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
+    fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut errors :Vec<f32> = vec![0.0;dimension];
         for k in 0..dimension {
@@ -172,6 +205,18 @@ impl VecIntegralMethod for VecSimpson1 {
         }
         errors
     }
+
+    fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut errors :Vec<f32> = vec![0.0;dimension];
+        for k in 0..dimension {
+            let number_of_points_float = number_of_points[k] as f32;
+            let max: f32 = funct.components[k].fourth_derivative_abs_max();
+            errors[k] = max / (180.0 * number_of_points_float.powi(4));
+        }
+        errors
+    }
+
     fn even_interval(&self) -> bool {
         true
     }
@@ -218,11 +263,22 @@ impl VecIntegralMethod for VecSimpson2 {
         results
     }
 
-    fn error(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
+    fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut errors :Vec<f32> = vec![0.0;dimension];
         for k in 0..dimension {
             let number_of_points_float = number_of_points as f32;
+            let max: f32 = funct.components[k].fourth_derivative_abs_max();
+            errors[k] =  max / (80.0 * number_of_points_float.powi(4));
+        }
+        errors
+    }
+
+    fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut errors :Vec<f32> = vec![0.0;dimension];
+        for k in 0..dimension {
+            let number_of_points_float = number_of_points[k] as f32;
             let max: f32 = funct.components[k].fourth_derivative_abs_max();
             errors[k] =  max / (80.0 * number_of_points_float.powi(4));
         }
