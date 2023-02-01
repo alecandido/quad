@@ -8,13 +8,14 @@ pub trait Function {
     fn second_derivative_abs_max(&self) -> f32;
     fn fourth_derivative_abs_max(&self) -> f32;
 }
-// PolynomialFunction : a + bx + cx^2 + dx^3 + ....
-#[derive(Debug)]
+// PolynomialFunction : a + bx + cx^2 + dx^3 + .... ; parameters = [a,b,c,d,...]
+#[derive(Debug,Clone)]
 pub struct PolynomialFunction {
     pub parameters : Vec<f32>,
 }
 
 impl PolynomialFunction {
+
     pub fn new(parameters : Vec<f32>) -> Self {
         Self{ parameters}
     }
@@ -95,13 +96,14 @@ pub fn exact_polynom_integral( parameters : &Vec<f32>) -> f32 {
     total
 }
 
+// constructs a vector of random size (between 1 and 15) with random component
 pub fn random_vector() -> Vec<f32> {
     let mut rng = thread_rng();
     let capacity : usize = rng.gen_range(1..15) ;
     let v: Vec<f32> = (&mut rng).sample_iter(Standard).take(capacity).collect();
     v
 }
-/*
+
 
 // i = 0 : sin ;
 // i = 1 : cos ;
@@ -134,8 +136,64 @@ impl Function for Sin{
         else { 1.0_f32.sin() }
     }
 
+    fn first_derivative_abs_max(&self) -> f32 {
+        let derivative = self.constr_derivative();
+        derivative.abs_max(1000)
+    }
+
+    fn second_derivative_abs_max(&self) -> f32 {
+        let derivative = self.constr_derivative();
+        let second_derivative = derivative.constr_derivative();
+        second_derivative.abs_max(1000)
+    }
+
+    fn fourth_derivative_abs_max(&self) -> f32 {
+        let derivative = self.constr_derivative();
+        let second_derivative = derivative.constr_derivative();
+        let third_derivative = second_derivative.constr_derivative();
+        let fourth_derivative = third_derivative.constr_derivative();
+        fourth_derivative.abs_max(1000)
+    }
 
 }
 
+pub fn exact_sin_integral() -> f32 { - 1.0_f32.cos() + 1.0 }
 
- */
+// e^(ax)
+pub struct Exp {
+    pub exponent : f32,
+}
+
+impl Function for Exp{
+    fn evaluate(&self, x : &f32) -> f32 {
+        ( self.exponent * x ).exp()
+    }
+
+
+    fn abs_max(&self, _number_of_points: i32) -> f32 {
+        let result: f32;
+
+        if self.exponent > 0.0 { result = self.exponent.exp(); } else { result = 1.0; }
+        result
+    }
+
+    fn first_derivative_abs_max(&self) -> f32 {
+        self.abs_max(1000) * self.exponent
+    }
+
+    fn second_derivative_abs_max(&self) -> f32 {
+        self.abs_max(1000) * self.exponent.powi(2)
+    }
+
+    fn fourth_derivative_abs_max(&self) -> f32 {
+        self.abs_max(1000) * self.exponent.powi(4)
+    }
+
+}
+
+pub fn exact_exp_integral(exponential : f32) -> f32{
+    if exponential != 0.0 { (exponential.exp() - 1.0)/exponential }
+    else {0.0}
+}
+
+
