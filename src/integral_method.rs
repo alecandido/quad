@@ -1,4 +1,7 @@
 use crate::*;
+use std::thread;
+//use std::sync::{Arc, Mutex};
+
 
 // all the integrals are computed on the range [0,1]
 // !? What is the optimal number_of_points for the abs_max function !?
@@ -17,12 +20,46 @@ pub struct Trapezoiadal {}
 pub struct Simpson1 {}
 pub struct Simpson2 {}
 
+// defined for testing purposes only
+impl Rectangular{
+    pub fn integrate_parallel(&self,funct: &(impl Function + Send + Sync + Clone + 'static ), number_of_point : i32) -> f32 {
+        let mut result : f32 = 0.0 ;
+        let number_of_thread = 10 ;
+        let mut handles = vec![];
+        for k in 0..number_of_thread{
+            let function = funct.clone();
+            let handle = thread::spawn( move || {
+                let m = number_of_point as f32;
+                let mut tot: f32 = function.evaluate(&(0.0 + k as f32/number_of_thread as f32));
+                let start = k as f32 / number_of_thread as f32;
+                for i in 1..number_of_point/number_of_thread {
+                    tot += function.evaluate(&(start + i as f32 / m));
+                }
+                tot / m
+                });
+            handles.push(handle);
+        }
+        for handle in handles {
+            result += handle.join().unwrap();
+        }
+        result
+    }
+}
+
+
+
+
+
+
 impl IntegralMethod for Rectangular {
     fn integrate(&self,funct: &impl Function, number_of_point: i32) -> f32 {
         let mut tot : f32 = funct.evaluate(&0.0) ;
         let m = number_of_point as f32 ;
         for i in 1..number_of_point {
             let j =  i as f32 ;
+            if i == 200 || i == 400 || i == 600 || i == 800 {
+                //println!("{}",tot/m);
+            }
             tot += funct.evaluate( &(j/m) ) ;
         }
         tot / m

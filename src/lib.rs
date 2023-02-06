@@ -11,6 +11,8 @@ use integrator::*;
 use funct_vector::*;
 use vector_integral_method::*;
 use vector_intergrator::*;
+use std::time::Instant;
+use std::sync::{Arc, Mutex};
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
@@ -30,9 +32,79 @@ mod tests {
     //-------------------   RELATIVE ERRORS   -----------------
 
     #[test]
+    fn parallel() {
+        /* test for integrate_parallel ( in integral_method.rs )
+        let parameters = random_vector();
+        let polynomial = PolynomialFunction::new(parameters.to_vec());
+        let rectangular = Rectangular{};
+        let integration_method = VecRectangular{};
+        let now = Instant::now();
+
+
+        let res_parall = rectangular.integrate_parallel(&polynomial,1000000);
+        let time1 = Instant::now();
+        let res = rectangular.integrate(&polynomial,1000000);
+        let time2 = Instant::now();
+        let exact = exact_polynom_integral(&parameters);
+
+        println!("{res},{res_parall},{exact}");
+        println!("{:?},{:?},{:?} , {:?}, {:?}",now,time1,time2, (time1 - now), time2-time1);
+         */
+        let test : bool = true; // set to true if you want to have the results printed out
+        let integration_method = VecSimpson2{};
+        let number_of_points = vec![10000;9];
+        let number_of_points2 = vec![10000;9];
+
+        let parameters1 = [random_vector(),random_vector(),random_vector()];
+        let parameters2 = [random_vector(),random_vector(),random_vector()];
+        let parameters3 = [random_vector(),random_vector(),random_vector()];
+        let (polynomial1, polynomial2,polynomial3) =
+            (PolynomialFunction::new(parameters1[0].to_vec()),
+             PolynomialFunction::new(parameters1[1].to_vec()),
+             PolynomialFunction::new(parameters1[2].to_vec()) );
+        let (polynomial4, polynomial5,polynomial6) =
+            (PolynomialFunction::new(parameters2[0].to_vec()),
+             PolynomialFunction::new(parameters2[1].to_vec()),
+             PolynomialFunction::new(parameters2[2].to_vec()) );
+        let (polynomial7, polynomial8,polynomial9) =
+            (PolynomialFunction::new(parameters3[0].to_vec()),
+             PolynomialFunction::new(parameters3[1].to_vec()),
+             PolynomialFunction::new(parameters3[2].to_vec()) );
+        let collection : FunVector = FunVector{ components : vec![Arc::new(Mutex::new(polynomial1.clone())),
+                                                                  Arc::new(Mutex::new(polynomial2.clone())),
+                                                                  Arc::new(Mutex::new(polynomial3.clone())),
+                                                                  Arc::new(Mutex::new(polynomial4.clone())),
+                                                                  Arc::new(Mutex::new(polynomial5.clone())),
+                                                                  Arc::new(Mutex::new(polynomial6.clone())),
+                                                                  Arc::new(Mutex::new(polynomial7.clone())),
+                                                                  Arc::new(Mutex::new(polynomial8.clone())),
+                                                                  Arc::new(Mutex::new(polynomial9.clone()))]};
+        let collection2 : FunctVector = FunctVector{ components : vec![Box::new(polynomial1),Box::new(polynomial2),Box::new(polynomial3),
+                                                                       Box::new(polynomial4),Box::new(polynomial5),Box::new(polynomial6),
+                                                                       Box::new(polynomial7),Box::new(polynomial8),Box::new(polynomial9)]};
+
+        let time3 = Instant::now();
+        let res_parall = integration_method.integrate_non_uniform_parallel(&collection, number_of_points);
+        let time4 = Instant::now();
+        let res = integration_method.integrate_non_uniform(&collection2, number_of_points2);
+        let time5 = Instant::now();
+        let parallel_time = time4 - time3;
+        let non_parallel_time = time5 - time4;
+        let proportion = parallel_time.as_secs_f32()/non_parallel_time.as_secs_f32();
+        assert!(res == res_parall && parallel_time < non_parallel_time );
+
+        if test {
+            println!("{:?},{:?}", res, res_parall);
+            println!("Parallel function duration :{:?},\nNon parallel function duration :{:?}\n{:?}", parallel_time, non_parallel_time,proportion);
+        }
+
+    }
+
+
+    #[test]
     fn error_comparison() {
         let test : bool = false; // set to true if you want to have the results printed out
-        let precision : f32 = 0.1 ; // set the relative errors required
+        let precision : f32 = 0.5 ; // set the relative errors required
 
         let parameters = random_vector();
         let polynomial = PolynomialFunction::new(parameters.to_vec());
@@ -76,8 +148,8 @@ mod tests {
                      rel_error_real_simpson2);
         }
 
-        assert!(rel_error_real_rectangular < precision || rel_error_real_trapezoidal < precision
-                || rel_error_real_simpson1 < precision || rel_error_real_simpson2 < precision)
+        assert!(rel_error_real_rectangular < precision && rel_error_real_trapezoidal < precision
+                && rel_error_real_simpson1 < precision && rel_error_real_simpson2 < precision)
 
     }
 
@@ -87,7 +159,7 @@ mod tests {
     #[test]
     fn funct_vector() {
         let test : bool = false; // set to true if you want to have the results printed out
-        let precision :f32 = 0.1; // set the relative errors required
+        let precision :f32 = 0.5; // set the relative errors required
 
         let parameters = [random_vector(),random_vector(),random_vector()];
         let functions_order = [ parameters[0].len(),parameters[1].len(),parameters[2].len()];
@@ -158,40 +230,32 @@ mod tests {
                 ((result_nu[3][2] - exact_integral[2]).abs() / exact_integral[2]).abs()]];
 
         if test {
-            println!("UNIFORM:");
-            println!("The random polynomial functions have order : {:?}", functions_order);
-            println!("Notation : [Rectangular, Trapezoidal, Simpson1, Simpson2");
-            println!("Number of point used : {:?} ", number_of_points);
-            println!("Integral result: [first function, second function, third function]");
-            println!("{:?}", result);
-            println!("Relative errors bound:");
-            println!("{:?}", relative_errors);
-
-            println!("NON-UNIFORM:");
-            println!("The random polynomial functions have order : {:?}", functions_order);
-            println!("Notation : [Rectangular, Trapezoidal, Simpson1, Simpson2");
-            println!("Number of point used : {:?} ", number_of_points_nu);
-            println!("Integral result: [first function, second function, third function]");
-            println!("{:?}", result_nu);
-            println!("Relative errors bound:");
-            println!("{:?}", relative_errors_nu);
+            println!("UNIFORM:\nThe random polynomial functions have order : {:?}", functions_order);
+            println!("Notation : [Rectangular, Trapezoidal, Simpson1, Simpson2]\nNumber of point used : {:?} ", number_of_points);
+            println!("Integral result: [first function, second function, third function]\n{:?}", result);
+            //println!("{:?}", rectangular.integrate_uniform_parallel(&collection,number_of_points[0]));
+            println!("Relative errors bound:\n{:?}", relative_errors);
+            println!("NON-UNIFORM:\nThe random polynomial functions have order : {:?}", functions_order);
+            println!("Notation : [Rectangular, Trapezoidal, Simpson1, Simpson2]\nNumber of point used : {:?} ", number_of_points_nu);
+            println!("Integral result: [first function, second function, third function]\n{:?}", result_nu);
+            println!("Relative errors bound:\n{:?}", relative_errors_nu);
         }
 
-        assert!(rel_error_real[0][0] < precision || rel_error_real[0][1] < precision ||
-            rel_error_real[0][2] < precision ||
-            rel_error_real[1][0] < precision || rel_error_real[1][1] < precision ||
-            rel_error_real[1][2] < precision ||
-            rel_error_real[2][0] < precision || rel_error_real[2][1] < precision ||
-            rel_error_real[2][2] < precision ||
-            rel_error_real[3][0] < precision || rel_error_real[3][1] < precision ||
-            rel_error_real[3][2] < precision ||
-            rel_error_real_nu[0][0] < precision || rel_error_real_nu[0][1] < precision ||
-            rel_error_real_nu[0][2] < precision ||
-            rel_error_real_nu[1][0] < precision || rel_error_real_nu[1][1] < precision ||
-            rel_error_real_nu[1][2] < precision ||
-            rel_error_real_nu[2][0] < precision || rel_error_real_nu[2][1] < precision ||
-            rel_error_real_nu[2][2] < precision ||
-            rel_error_real_nu[3][0] < precision || rel_error_real_nu[3][1] < precision ||
+        assert!(rel_error_real[0][0] < precision && rel_error_real[0][1] < precision &&
+            rel_error_real[0][2] < precision &&
+            rel_error_real[1][0] < precision && rel_error_real[1][1] < precision &&
+            rel_error_real[1][2] < precision &&
+            rel_error_real[2][0] < precision && rel_error_real[2][1] < precision &&
+            rel_error_real[2][2] < precision &&
+            rel_error_real[3][0] < precision && rel_error_real[3][1] < precision &&
+            rel_error_real[3][2] < precision &&
+            rel_error_real_nu[0][0] < precision && rel_error_real_nu[0][1] < precision &&
+            rel_error_real_nu[0][2] < precision &&
+            rel_error_real_nu[1][0] < precision && rel_error_real_nu[1][1] < precision &&
+            rel_error_real_nu[1][2] < precision &&
+            rel_error_real_nu[2][0] < precision && rel_error_real_nu[2][1] < precision &&
+            rel_error_real_nu[2][2] < precision &&
+            rel_error_real_nu[3][0] < precision && rel_error_real_nu[3][1] < precision &&
             rel_error_real_nu[3][2] < precision)
         }
 

@@ -1,11 +1,15 @@
 use crate::*;
+use std::thread;
+//use std::sync::{Arc, Mutex};
 
 // all the integrals are computed on the range [0,1]
 // !? What is the optimal number_of_points for the abs_max function !?
 
 pub trait VecIntegralMethod {
     fn integrate_uniform(&self, funct : & FunctVector, number_of_points : i32) -> Vec<f32> ;
+    fn integrate_uniform_parallel(&self, funct: & FunVector , number_of_points: i32) -> Vec<f32>;
     fn integrate_non_uniform(&self, funct : & FunctVector, number_of_points : Vec<i32>) -> Vec<f32>;
+    fn integrate_non_uniform_parallel(&self, funct: & FunVector , number_of_points_vec: Vec<i32>) -> Vec<f32>;
     fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> ;
     fn errors_non_uniform(&self, funct: & FunctVector, number_of_points : Vec<i32>) -> Vec<f32> ;
     fn relative_error_uniform(&self, funct : & FunctVector, number_of_points : i32) -> Vec<f32> {
@@ -33,7 +37,6 @@ pub struct VecTrapezoiadal {}
 pub struct VecSimpson1 {}
 pub struct VecSimpson2 {}
 
-
 impl VecIntegralMethod for VecRectangular {
     fn integrate_uniform(&self, funct: & FunctVector, number_of_points: i32) -> Vec<f32> {
         let dimension = funct.components.len();
@@ -46,6 +49,34 @@ impl VecIntegralMethod for VecRectangular {
                 tot += funct.components[k].evaluate( &(j/m) ) ;
             }
             results[k] = tot / m;
+        }
+        results
+
+    }
+
+    fn integrate_uniform_parallel(&self, funct: & FunVector , number_of_points: i32) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        //let res = Arc::new(Mutex::new(results.to_vec()));
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0);
+                let m = number_of_points as f32;
+                for i in 1..number_of_points {
+                    let j = i as f32;
+                    tot += function.evaluate(&(j / m));
+                }
+                tot / m
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
         }
         results
 
@@ -67,6 +98,35 @@ impl VecIntegralMethod for VecRectangular {
 
     }
 
+
+    fn integrate_non_uniform_parallel(&self, funct: & FunVector , number_of_points_vec: Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        //let res = Arc::new(Mutex::new(results.to_vec()));
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let number_of_points= number_of_points_vec[k];
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0);
+                let m = number_of_points as f32;
+                for i in 1..number_of_points {
+                    let j = i as f32;
+                    tot += function.evaluate(&(j / m));
+                }
+                tot / m
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
+    }
 
 
     fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
@@ -116,6 +176,33 @@ impl VecIntegralMethod for VecTrapezoiadal {
         results
     }
 
+    fn integrate_uniform_parallel(&self, funct: & FunVector , number_of_points: i32) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = 0.5 * ( function.evaluate(&0.0) + function.evaluate(&1.0) );
+                let m = number_of_points as f32;
+                for i in 1..number_of_points {
+                    let j = i as f32;
+                    tot += function.evaluate(&(j / m));
+                }
+                tot / m
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
+    }
+
     fn integrate_non_uniform(&self, funct: & FunctVector, number_of_points: Vec<i32>) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut results :Vec<f32> = vec![0.0;dimension];
@@ -130,6 +217,37 @@ impl VecIntegralMethod for VecTrapezoiadal {
         }
         results
     }
+
+
+    fn integrate_non_uniform_parallel(&self, funct: & FunVector , number_of_points_vec: Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let number_of_points= number_of_points_vec[k];
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = 0.5 * ( function.evaluate(&0.0) + function.evaluate(&1.0) );
+                let m = number_of_points as f32;
+                for i in 1..number_of_points {
+                    let j = i as f32;
+                    tot += function.evaluate(&(j / m));
+                }
+                tot / m
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
+    }
+
+
 
     fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
         let dimension = funct.components.len();
@@ -180,6 +298,33 @@ impl VecIntegralMethod for VecSimpson1 {
         results
     }
 
+    fn integrate_uniform_parallel(&self, funct: & FunVector , number_of_points: i32) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0) - function.evaluate(&1.0);
+                let m = number_of_points as f32;
+                for i in 1..(number_of_points/2 + 1) {
+                    let j = i as f32;
+                    tot += 4.0 * function.evaluate(&((2.0 * j - 1.0) / m)) + 2.0 * function.evaluate(&((2.0 * j) / m));
+                }
+                tot / (3.0 * m)
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
+    }
+
     fn integrate_non_uniform(&self, funct: & FunctVector, number_of_points: Vec<i32>) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut results :Vec<f32> = vec![0.0;dimension];
@@ -193,6 +338,34 @@ impl VecIntegralMethod for VecSimpson1 {
             results[k] = tot / (3.0 * m);
         }
         results
+    }
+
+    fn integrate_non_uniform_parallel(&self, funct: & FunVector , number_of_points_vec: Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let number_of_points = number_of_points_vec[k] ;
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0) - function.evaluate(&1.0);
+                let m = number_of_points as f32;
+                for i in 1..(number_of_points/2 + 1) {
+                    let j = i as f32;
+                    tot += 4.0 * function.evaluate(&((2.0 * j - 1.0) / m)) + 2.0 * function.evaluate(&((2.0 * j) / m));
+                }
+                tot / (3.0 * m)
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
     }
 
     fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
@@ -244,6 +417,37 @@ impl VecIntegralMethod for VecSimpson2 {
         results
     }
 
+    fn integrate_uniform_parallel(&self, funct: & FunVector , number_of_points: i32) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0) + function.evaluate(&1.0);
+                let m = number_of_points as f32;
+                for i in 1..(number_of_points) {
+                    let j = i as f32;
+                    if i % 3 == 0 {
+                        tot += 2.0 * function.evaluate(&(j / m));
+                    } else {
+                        tot += 3.0 * function.evaluate(&(j / m));
+                    }
+                }
+                3.0 * tot / (8.0 * m)
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
+    }
+
     fn integrate_non_uniform(&self, funct: & FunctVector, number_of_points: Vec<i32>) -> Vec<f32> {
         let dimension = funct.components.len();
         let mut results :Vec<f32> = vec![0.0;dimension];
@@ -261,6 +465,38 @@ impl VecIntegralMethod for VecSimpson2 {
             results[k] = 3.0 * tot / (8.0 * m);
         }
         results
+    }
+
+    fn integrate_non_uniform_parallel(&self, funct: & FunVector , number_of_points_vec: Vec<i32>) -> Vec<f32> {
+        let dimension = funct.components.len();
+        let mut results: Vec<f32> = vec![];
+        let mut handles = vec![];
+        for k in 0..dimension {
+            let pointer = funct.components[k].clone();
+            let number_of_points= number_of_points_vec[k];
+            let handle = thread::spawn( move || {
+                let function = pointer.lock().unwrap();
+                let mut tot: f32 = function.evaluate(&0.0) + function.evaluate(&1.0);
+                let m = number_of_points as f32;
+                for i in 1..(number_of_points) {
+                    let j = i as f32;
+                    if i % 3 == 0 {
+                        tot += 2.0 * function.evaluate(&(j / m));
+                    } else {
+                        tot += 3.0 * function.evaluate(&(j / m));
+                    }
+                }
+                3.0 * tot / (8.0 * m)
+            });
+            handles.push(handle);
+        }
+
+
+        for handle in handles {
+            results.push(handle.join().unwrap());
+        }
+        results
+
     }
 
     fn errors_uniform(&self, funct: & FunctVector, number_of_points : i32) -> Vec<f32> {
