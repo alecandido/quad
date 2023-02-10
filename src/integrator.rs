@@ -1,19 +1,19 @@
 use crate::*;
 
 pub trait Integrator{
-    fn integrate(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f32 ;
+    fn integrate(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f64 ;
     fn number_of_points(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> i32;
-    fn relative_error(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f32 {
+    fn relative_error(&self, integral_method : &impl IntegralMethod, funct : &impl Function) -> f64 {
         integral_method.relative_error(funct,self.number_of_points(integral_method,funct))
     }
 }
 
 pub struct FixedPrecision {
-    pub precision : f32 ,
+    pub precision : f64 ,
 }
 
 impl Integrator for FixedPrecision {
-    fn integrate(&self, integral_method: &impl IntegralMethod, funct: &impl Function) -> f32 {
+    fn integrate(&self, integral_method: &impl IntegralMethod, funct: &impl Function) -> f64 {
         let mut number_of_points: i32 ;
 
         if  integral_method.even_interval() {

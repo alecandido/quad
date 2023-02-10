@@ -1,9 +1,12 @@
+extern crate nalgebra as na;
+
 pub mod functions;
 pub mod integral_method;
 pub mod integrator;
 pub mod funct_vector;
 pub mod vector_integral_method;
 pub mod vector_intergrator;
+pub mod gauss_legendre;
 
 use functions::*;
 use integral_method::*;
@@ -14,12 +17,14 @@ use vector_intergrator::*;
 use std::time::Instant;
 use std::sync::{Arc, Mutex};
 
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::gauss_legendre::{Gauss, GaussLegendre};
     use super::*;
 
     #[test]
@@ -29,28 +34,31 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn gauss_legendre(){
+        let precision : f64 = 0.001 ; // set the relative errors required
+        let parameters = random_vector();
+        let polynomial = PolynomialFunction::new(parameters.to_vec());
+        //let polynomial = Sin{i : 0} ;
+        let simpson2 = Simpson2{};
+        let integral_precision = FixedPrecision{precision};
+        let exact_integral = exact_polynom_integral(&parameters);
+        //let exact_integral = - 1.0_f64.cos() + 1.0 ;
+
+        let gauss = GaussLegendre::new( 8);
+        println!("{}\n{:?}\n{:?}\n{:?}", parameters.len(), integral_precision.integrate(&simpson2,&polynomial),
+                exact_integral, gauss.integrate(&polynomial));
+
+    }
+
+
+
     //-------------------   RELATIVE ERRORS   -----------------
 
     #[test]
     fn parallel() {
-        /* test for integrate_parallel ( in integral_method.rs )
-        let parameters = random_vector();
-        let polynomial = PolynomialFunction::new(parameters.to_vec());
-        let rectangular = Rectangular{};
-        let integration_method = VecRectangular{};
-        let now = Instant::now();
-
-
-        let res_parall = rectangular.integrate_parallel(&polynomial,1000000);
-        let time1 = Instant::now();
-        let res = rectangular.integrate(&polynomial,1000000);
-        let time2 = Instant::now();
-        let exact = exact_polynom_integral(&parameters);
-
-        println!("{res},{res_parall},{exact}");
-        println!("{:?},{:?},{:?} , {:?}, {:?}",now,time1,time2, (time1 - now), time2-time1);
-         */
-        let test : bool = true; // set to true if you want to have the results printed out
+        let test : bool = false; // set to true if you want to have the results printed out
         let integration_method = VecSimpson2{};
         let number_of_points = vec![10000;9];
         let number_of_points2 = vec![10000;9];
@@ -90,7 +98,7 @@ mod tests {
         let time5 = Instant::now();
         let parallel_time = time4 - time3;
         let non_parallel_time = time5 - time4;
-        let proportion = parallel_time.as_secs_f32()/non_parallel_time.as_secs_f32();
+        let proportion = parallel_time.as_secs_f64()/non_parallel_time.as_secs_f64();
         assert!(res == res_parall && parallel_time < non_parallel_time );
 
         if test {
@@ -104,7 +112,7 @@ mod tests {
     #[test]
     fn error_comparison() {
         let test : bool = false; // set to true if you want to have the results printed out
-        let precision : f32 = 0.5 ; // set the relative errors required
+        let precision : f64 = 0.5 ; // set the relative errors required
 
         let parameters = random_vector();
         let polynomial = PolynomialFunction::new(parameters.to_vec());
@@ -115,7 +123,7 @@ mod tests {
         let simpson1 = Simpson1{};
         let simpson2 = Simpson2{};
         let exact_integral = exact_polynom_integral(&parameters) ;
-        //let exact_integral = - 1.0_f32.cos() + 1.0 ;
+        //let exact_integral = - 1.0_f64.cos() + 1.0 ;
 
 
         let rel_error_real_rectangular = ((integral_precision.integrate(&rectangular,&polynomial) - exact_integral).abs() / exact_integral).abs() ;
@@ -159,7 +167,7 @@ mod tests {
     #[test]
     fn funct_vector() {
         let test : bool = false; // set to true if you want to have the results printed out
-        let precision :f32 = 0.5; // set the relative errors required
+        let precision :f64 = 0.5; // set the relative errors required
 
         let parameters = [random_vector(),random_vector(),random_vector()];
         let functions_order = [ parameters[0].len(),parameters[1].len(),parameters[2].len()];
@@ -264,3 +272,37 @@ mod tests {
 
 
 }
+
+
+
+
+/* test for integrate_parallel ( in integral_method.rs )
+        let parameters = random_vector();
+        let polynomial = PolynomialFunction::new(parameters.to_vec());
+        let rectangular = Rectangular{};
+        let integration_method = VecRectangular{};
+        let now = Instant::now();
+
+
+        let res_parall = rectangular.integrate_parallel(&polynomial,1000000);
+        let time1 = Instant::now();
+        let res = rectangular.integrate(&polynomial,1000000);
+        let time2 = Instant::now();
+        let exact = exact_polynom_integral(&parameters);
+
+        println!("{res},{res_parall},{exact}");
+        println!("{:?},{:?},{:?} , {:?}, {:?}",now,time1,time2, (time1 - now), time2-time1);
+         */
+
+/*
+fn gauss() {
+    let n = 3;
+    let f = |x:f32|   x.powi(n) ;
+    fn square<F>(f : F, x : f32) -> f32
+        where F: Fn(f32)->f32{
+        f(x).powi(2)
+    }
+    println!("{},{}", f(3.0), square(f,3.0));
+}
+
+ */

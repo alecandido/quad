@@ -11,3 +11,4 @@ description = "Quadrature integration"
 
 [dependencies]
 rand="0.8.5"
+nalgebra = "0.32.1"
