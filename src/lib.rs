@@ -7,6 +7,7 @@ pub mod funct_vector;
 pub mod vector_integral_method;
 pub mod vector_intergrator;
 pub mod gauss_legendre;
+pub mod qng;
 
 use functions::*;
 use integral_method::*;
@@ -16,6 +17,7 @@ use vector_integral_method::*;
 use vector_intergrator::*;
 use std::time::Instant;
 use std::sync::{Arc, Mutex};
+use qng::*;
 
 
 pub fn add(left: usize, right: usize) -> usize {
@@ -33,7 +35,13 @@ mod tests {
         assert_eq!(result, 4);
     }
 
-
+    #[test]
+    fn qng_test(){
+        let (a,b) = (0.0,1.0);
+        let f = |x:f64|  (x*x.sin()).powf(1.5);
+        let res = qng(f, a, b, 2.2436292642488107e-15, 0.0);
+        println!("{:?}",res);
+    }
 
     #[test]
     fn gauss_legendre(){
