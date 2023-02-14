@@ -8,6 +8,17 @@ pub struct FunVector {
     pub components : Vec<Arc<Mutex<dyn Function + Send + Sync>>>,
 }
 
+pub struct FnVec {
+    pub components : Vec<Box<dyn Fn(f64)->f64 + Send + Sync >>,
+}
+
+pub struct FnVecP {
+    pub components : Vec<Arc<Mutex<dyn Fn(f64)->f64 + Send + Sync>>>,
+}
+
+pub struct IntVec{
+    pub components : Vec<Arc<Mutex<dyn QuadIntegralMethod + Send + Sync>>>
+}
 
 
 pub fn random_polynomials3() -> FunctVector{

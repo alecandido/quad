@@ -8,6 +8,7 @@ pub mod vector_integral_method;
 pub mod vector_intergrator;
 pub mod gauss_legendre;
 pub mod qng;
+pub mod quad_integrator;
 
 use functions::*;
 use integral_method::*;
@@ -18,6 +19,7 @@ use vector_intergrator::*;
 use std::time::Instant;
 use std::sync::{Arc, Mutex};
 use qng::*;
+use quad_integrator::*;
 
 
 pub fn add(left: usize, right: usize) -> usize {
@@ -39,8 +41,46 @@ mod tests {
     fn qng_test(){
         let (a,b) = (0.0,1.0);
         let f = |x:f64|  (x*x.sin()).powf(1.5);
-        let res = qng(f, a, b, 2.2436292642488107e-15, 0.0);
+        let integral_method = Qng{};
+        let res = integral_method.integrate(&f, a, b, 2.2436292642488107e-15, 0.0);
         println!("{:?}",res);
+        let f1 = |x:f64|  (x*x.sin()).powf(1.5);
+        let f2 = |x:f64|  (x.powi(3)*x.cos()).powf(2.5);
+        let f3 = |x:f64|  (x.powi(5)*x.tan()).powf(2.5);
+        let f4 = |x:f64|  (x.powi(7)*x.atan()).powf(2.5);
+        let fun = FnVec  {
+            components : vec![Box::new(f1),Box::new(f2),Box::new(f3),Box::new(f4)],
+        };
+        let fun2 = FnVecP{
+            components : vec![Arc::new(Mutex::new(f1)),Arc::new(Mutex::new(f2)),
+                            Arc::new(Mutex::new(f3)),Arc::new(Mutex::new(f4))],
+        };
+
+        let int = QngIntegrator{
+            a : vec![0.0,0.0,0.0,0.0],
+            b : vec![1.0,1.0,1.0,1.0],
+            epsabs : vec![0.0,0.0,0.0,0.0],
+            epsrel : vec![1.0,1.0,1.0,1.0],
+        };
+        let qng = Qng{};
+        let qngg1 = Qng{};
+        let qngg2 = Qng{};
+        let qngg3 = Qng{};
+        let qngg4 = Qng{};
+        let qng2 = IntVec{
+            components : vec![Arc::new(Mutex::new(qngg1)),Arc::new(Mutex::new(qngg2)),
+                              Arc::new(Mutex::new(qngg3)),Arc::new(Mutex::new(qngg4))],
+        };
+
+        //let time1 = Instant::now();
+        let res1 =int.integrate(&qng,&fun);
+        //let time2 = Instant::now();
+        let res2 = int.integrate_p(&qng2,&fun2);
+        //let time3 = Instant::now();
+
+        //println!("{:?}\n{:?}\n{:?},{:?}", res1,res2,time2-time1,time3-time2 );
+
+
     }
 
     #[test]
