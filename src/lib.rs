@@ -9,6 +9,13 @@ pub mod vector_intergrator;
 pub mod gauss_legendre;
 pub mod qng;
 pub mod quad_integrator;
+pub mod qk15;
+pub mod qk21;
+pub mod qk31;
+pub mod qk41;
+pub mod qk51;
+pub mod qk61;
+pub mod qk;
 
 use functions::*;
 use integral_method::*;
@@ -192,6 +199,27 @@ mod tests {
         }
 
 
+
+        let int = QngIntegrator{
+            a : 0.0,
+            b : 1.0,
+            epsabs : 4.082750315991389e-16,
+            epsrel : 0.0,
+        };
+
+        let time1 = Instant::now();
+        let res1 =int.integrate(&qng,&fun);
+        let time2 = Instant::now();
+        let res2 = int.integrate_rayon(&qng2,&fun2);
+        let time3 = Instant::now();
+        let res3 = int.integrate_p2(&qng2,&fun2);
+        let time4 = Instant::now();
+        let res4 = int.integrate_p3(&qng3,&fun2);
+        let time5 = Instant::now();
+
+        if test{
+            println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?},{:?},{:?},{:?}", res1,res2,res3,res4,time2-time1,time3-time2,time4-time3,time5-time4 );
+        }
 
     }
 

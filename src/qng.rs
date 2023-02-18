@@ -294,9 +294,11 @@ impl QuadIntegralMethod for Qng{
         let mut neval :i32 = 0;
         let mut ier : i32 = 6;
 
+
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * epmach) {
             return (result,abserr,neval,ier)
         }
+
 
         let hlgth : f64 = 0.5*(b-a);
         let dhlgth : f64 = hlgth.abs();
