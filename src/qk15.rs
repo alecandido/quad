@@ -17,8 +17,6 @@ const WG : [f64;4] = [0.129484966168869693270611432679082, 0.2797053914892766679
 
 impl Qk for Qk15{
     fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64,) -> (f64, f64, f64, f64){
-        let epmach : f64 = f64::EPSILON;
-        let uflow : f64 = f64::MIN_POSITIVE;
         let hlgth : f64 = 0.5*(b-a);
         let dhlgth : f64 = hlgth.abs();
         let centr : f64 = 0.5 * (b+a);
@@ -72,8 +70,8 @@ impl Qk for Qk15{
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min( (200.0 * abserr/resasc).powf(1.5));
         }
-        if resabs > uflow/(50.0 * epmach ) {
-            abserr = abserr.max((epmach * 50.0) * resabs);
+        if resabs > UFLOW /(50.0 * EPMACH) {
+            abserr = abserr.max((EPMACH * 50.0) * resabs);
         }
 
         (result,abserr,resabs,resasc)

@@ -16,6 +16,8 @@ pub mod qk41;
 pub mod qk51;
 pub mod qk61;
 pub mod qk;
+pub mod qage;
+pub mod qpsrt;
 
 use functions::*;
 use integral_method::*;
@@ -27,6 +29,7 @@ use std::time::Instant;
 use std::sync::{Arc, Mutex};
 use qng::*;
 use quad_integrator::*;
+use qage::*;
 
 
 pub fn add(left: usize, right: usize) -> usize {
@@ -45,9 +48,30 @@ mod tests {
         assert_eq!(result, 4);
     }
 
+
+    #[test]
+    fn qna_test(){
+        let sigma : f64 = 200.0;
+        let pi : f64 = std::f64::consts::PI;
+        let norm = (2.0 * pi).sqrt();
+        let f = |x:f64|  1.0 / (sigma * norm ) * (-0.5 * ( x / sigma).powi(2) ).exp();
+        let a = -1000.0;
+        let b = 1000.0;
+        let epsabs = 1.1001823666197583e-14;
+        let epsrel = 0.0;
+        let key = 2; // 3 e 6 are bugged ( qk31/qk61)
+        let limit = 5;
+        let qna = Qna{};
+
+        let res = qna.integrate(&f,a,b,epsabs,epsrel,key,limit);
+        println!("{:?}",res);
+
+
+    }
+
     #[test]
     fn qng_test(){
-        let test : bool = true; // set to true if you want to have the results printed out
+        let test : bool = false; // set to true if you want to have the results printed out
         let f1 = |x:f64|  (x*x.sin()).powf(1.5);
         let f2 = |x:f64|  (x.powi(3)*x.cos()).powf(2.5);
         let f3 = |x:f64|  (x.powi(5)*x.tan()).powf(2.5);

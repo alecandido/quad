@@ -48,14 +48,12 @@ const WG : [f64;15] = [0.007968192496166605615465883474674, 0.018466468311090959
 
 impl Qk for Qk61 {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
-        let epmach: f64 = f64::EPSILON;
-        let uflow: f64 = f64::MIN_POSITIVE;
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
 
-        let mut fv1: Vec<f64> = vec![0.0; 20];
-        let mut fv2: Vec<f64> = vec![0.0; 20];
+        let mut fv1: Vec<f64> = vec![0.0; 30];
+        let mut fv2: Vec<f64> = vec![0.0; 30];
 
         //compute the 61-point kronrod approximation to
         //the integral, and estimate the absolute error.
@@ -104,8 +102,8 @@ impl Qk for Qk61 {
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
         }
-        if resabs > uflow / (50.0 * epmach) {
-            abserr = abserr.max((epmach * 50.0) * resabs);
+        if resabs > UFLOW / (50.0 * EPMACH) {
+            abserr = abserr.max((EPMACH * 50.0) * resabs);
         }
 
         (result, abserr, resabs, resasc)

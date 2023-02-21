@@ -34,8 +34,6 @@ const WG : [f64;10] = [0.017614007139152118311861962351853, 0.040601429800386941
 
 impl Qk for Qk41 {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
-        let epmach: f64 = f64::EPSILON;
-        let uflow: f64 = f64::MIN_POSITIVE;
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
@@ -90,8 +88,8 @@ impl Qk for Qk41 {
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
         }
-        if resabs > uflow / (50.0 * epmach) {
-            abserr = abserr.max((epmach * 50.0) * resabs);
+        if resabs > UFLOW / (50.0 * EPMACH) {
+            abserr = abserr.max((EPMACH * 50.0) * resabs);
         }
 
         (result, abserr, resabs, resasc)
