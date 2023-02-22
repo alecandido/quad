@@ -22,7 +22,7 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     {
         iord[i_nrmax] = iord[i_nrmax - 1] ;
         i_nrmax -= 1;
-        println!("difficult integrand, subdivision increased the error estimate.");
+        //  println!("difficult integrand, subdivision increased the error estimate.");
     }
 
 //           compute the number of elements in the list to be maintained
@@ -45,7 +45,6 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
 
     if ibeg > jbnd {
         iord[jbnd-1] = *maxerr;
-        //  iord[jupbn-1] = last;
         iord.push(last);
         *maxerr = iord[*nrmax-1];
         *ermax = elist[*maxerr-1];
@@ -54,7 +53,6 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     }
 
     let mut ii : usize = ibeg;
-    // do 40 i=ibeg,jbnd
     let mut i_break = 0; // go to work-around
     for i in ibeg..jbnd+1{
         ii = i;
@@ -75,7 +73,6 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
 
     if i_break == 0 {
         iord[jbnd-1] = *maxerr;
-        //  iord[jupbn-1] = last;
         iord.push(last);
         *maxerr = iord[*nrmax-1];
         *ermax = elist[*maxerr-1];
@@ -92,7 +89,7 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
         iord[ii-2] = *maxerr;
     }
     let mut k = jbnd;
-    //do 70 j=i,jbnd
+
     for _j in ii..jbnd+1{
         let isucc = iord[k-1];
         if errmin < elist[isucc-1] {
@@ -129,54 +126,3 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     *ermax = elist[*maxerr-1];
 }
 
-
-
-
-/*
-    if last < (limit/2 + 2)
-    {
-        jupbn = last ;
-    }
-    else
-    {
-        jupbn = limit - last + 1;
-    }
-
-    /* Insert ermax by traversing the list top-down, starting
-   comparison from the element elist(order(i_nrmax+1)). */
-
-    let mut i = i_nrmax + 1 ;
-
-    /* The order of the tests in the following line is important to
-       prevent a segmentation fault */
-
-    while i < jupbn && errmax < elist[iord[i]]
-    {
-        iord[i-1] = iord[i] ;
-        i += 1 ;
-    }
-
-    iord[i-1] = *maxerr ;
-
-    /* Insert errmin by traversing the list bottom-up */
-
-    let errmin = elist[last-1] ;
-
-    let mut k = jupbn - 1 ;
-
-    while k > i - 2 && errmin >= elist[iord[k]]
-    {
-        iord[k+1] = iord[k] ;
-        k -= 1;
-    }
-
-    iord[k+1] = last ;
-
-    /* Set i_max and e_max */
-
-    *maxerr = iord[i_nrmax] ;
-
-    *nrmax = i_nrmax ;
-
-
-     */

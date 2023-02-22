@@ -18,6 +18,8 @@ pub mod qk61;
 pub mod qk;
 pub mod qage;
 pub mod qpsrt;
+pub mod qag_integration_result;
+pub mod qag_integrator_result;
 
 use functions::*;
 use integral_method::*;
@@ -55,15 +57,15 @@ mod tests {
         let pi : f64 = std::f64::consts::PI;
         let norm = (2.0 * pi).sqrt();
         let f = |x:f64|  1.0 / (sigma * norm ) * (-0.5 * ( x / sigma).powi(2) ).exp();
-        let a = -1000.0;
-        let b = 1000.0;
-        let epsabs = 1.1001823666197583e-14;
+        let a = 0.0;
+        let b = 1.0;
+        let epsabs = 1.0;
         let epsrel = 0.0;
-        let key = 2; // 3 e 6 are bugged ( qk31/qk61)
-        let limit = 5;
+        let key = 3;
+        let limit = 100;
         let qna = Qna{};
 
-        let res = qna.integrate(&f,a,b,epsabs,epsrel,key,limit);
+        let res = qna.integrate(&f,a,b,epsabs,epsrel,key,limit).unwrap();
         println!("{:?}",res);
 
 
