@@ -1,5 +1,6 @@
 use crate::*;
 use std::sync::{Arc, Mutex};
+use crate::quad_integral_method::*;
 
 
 pub struct FunctVector {
@@ -28,17 +29,50 @@ pub struct IntVec{
     pub components : Vec<Arc<Mutex<dyn QuadIntegralMethod + Send + Sync>>>
 }
 
-pub fn random_polynomials(number : i32) -> FunVector{
 
-        let mut comp : Vec<Arc<Mutex<(dyn Function + Send + Sync )>>> = vec![];
+
+pub fn random_polynomials(number : i32) -> (FnVec,FnVecP){
+
+        let mut comp : Vec<Box<dyn Fn(f64)->f64 + Send + Sync >> = vec![];
+        let mut comp2 : Vec<Arc<Mutex<dyn Fn(f64)->f64 + Send + Sync>>> = vec![];
         for _i in 0..number{
-            comp.push(Arc::new(Mutex::new(PolynomialFunction::new(random_vector()))));
+            let f = |x:f64| PolynomialFunction::new(random_vector()).evaluate(&x);
+            comp2.push(Arc::new(Mutex::new(f)));
+            comp.push(Box::new(f));
         }
-    FunVector{
-        components : comp.clone(),
-    }
+    let fun = FnVec{
+        components : comp,
+    };
+    let fun2 = FnVecP{
+        components : comp2,
+    };
+    (fun,fun2)
 }
 
+pub fn random_polynomials2(number : i32) -> (FnVec,FnVecP){
+
+    let mut comp : Vec<Box<dyn Fn(f64)->f64 + Send + Sync >> = vec![];
+    let mut comp2 : Vec<Arc<Mutex<dyn Fn(f64)->f64 + Send + Sync>>> = vec![];
+    for _i in 0..number {
+        let parameters = random_vector();
+        let closure = move |x: f64| {
+            let mut res = 0.0;
+            for n in 0..parameters.len() {
+                res += parameters[n] * x.powi(n as i32);
+            }
+            res
+        };
+        comp2.push(Arc::new(Mutex::new(closure.clone())));
+        comp.push(Box::new(closure));
+    }
+        let fun = FnVec {
+            components: comp,
+        };
+        let fun2 = FnVecP {
+            components: comp2,
+        };
+    (fun,fun2)
+}
 
 pub fn random_polynomials3() -> FunctVector{
         FunctVector{

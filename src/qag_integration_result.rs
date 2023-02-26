@@ -1,24 +1,14 @@
 #[derive(Debug,Clone)]
 pub struct QagIntegrationResult {
-    result : f64,
-    abserr : f64,
-    neval : i32,
-    alist : Vec<f64>,
-    blist : Vec<f64>,
-    rlist : Vec<f64>,
-    elist : Vec<f64>,
-    iord : Vec<usize>,
-    last : usize,
-}
-#[derive(Clone,Debug)]
-pub enum ResultState{
-    Success,
-    Failure,
-    Invalid,
-    MaxIteration,
-    BadTolerance,
-    BadFunction,
-
+    pub result : f64,
+    pub abserr : f64,
+    pub neval : i32,
+    pub alist : Vec<f64>,
+    pub blist : Vec<f64>,
+    pub rlist : Vec<f64>,
+    pub elist : Vec<f64>,
+    pub iord : Vec<usize>,
+    pub last : usize,
 }
 
 impl QagIntegrationResult {

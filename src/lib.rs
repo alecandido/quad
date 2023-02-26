@@ -20,6 +20,13 @@ pub mod qage;
 pub mod qpsrt;
 pub mod qag_integration_result;
 pub mod qag_integrator_result;
+pub mod qng_integration_result;
+pub mod result_state;
+pub mod qng_integrator_result;
+pub mod quad_integral_method;
+pub mod quad_integration_result;
+pub mod quad_integrator_result;
+pub mod special_function;
 
 use functions::*;
 use integral_method::*;
@@ -32,6 +39,7 @@ use std::sync::{Arc, Mutex};
 use qng::*;
 use quad_integrator::*;
 use qage::*;
+use special_function::*;
 
 
 pub fn add(left: usize, right: usize) -> usize {
@@ -42,6 +50,7 @@ pub fn add(left: usize, right: usize) -> usize {
 mod tests {
     //  use std::io::IntoInnerError;
     use crate::gauss_legendre::{Gauss,GaussLegendre};
+    use crate::qk::EPMACH;
     use super::*;
 
     #[test]
@@ -53,20 +62,193 @@ mod tests {
 
     #[test]
     fn qna_test(){
-        let sigma : f64 = 200.0;
+        let test : bool = false; // set to true if you want to have the results printed out
+        let sigma : f64 = 2000.0;
         let pi : f64 = std::f64::consts::PI;
         let norm = (2.0 * pi).sqrt();
         let f = |x:f64|  1.0 / (sigma * norm ) * (-0.5 * ( x / sigma).powi(2) ).exp();
+        let f1 = |x:f64| (-x.powi(2)).exp();
+        let f2 = |x:f64| 10.0 + x.powi(2) - 10.0 * ( 2.0 * pi * x ).cos();
         let a = 0.0;
-        let b = 1.0;
-        let epsabs = 1.0;
-        let epsrel = 0.0;
-        let key = 3;
+        let b = 1000.0;
+        let epsabs = 0.0;
+        let epsrel = 2.0 * 0.5e-28_f64.max(50.0 * EPMACH);
+        let key = 1;
         let limit = 100;
-        let qna = Qna{};
+        let qag = Qag {key,limit};
 
-        let res = qna.integrate(&f,a,b,epsabs,epsrel,key,limit).unwrap();
-        println!("{:?}",res);
+        let res = qag.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
+        if test {
+            println!("{:?}",res);
+        }
+
+
+    }
+
+
+    #[test]
+    fn qngg_test(){
+        let test : bool = false; // set to true if you want to have the results printed out
+
+
+        let (fun,fun2) = random_polynomials2(10);
+
+        let qng = Qng{};
+
+        let s_int = SIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : Box::new(qng.clone()),
+        };
+
+
+        let qng2 = IntVec{
+            components : vec![Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
+                              Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone()))],
+        };
+
+        let qng3 = IntVec{
+            components : vec![Arc::new(Mutex::new(qng.clone()))],
+        };
+
+        let p_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng2,
+        };
+
+        let p2_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng3,
+        };
+        let (mut p1,mut p2,mut p3) = (0,0,0);
+        let (mut t1, mut t2, mut t3) = (0.0,0.0,0.0);
+        let mut i = 0;
+        let total = 1000;
+        for _k in 0..total{
+            let time1 = Instant::now();
+            let res1 = s_int.integrate( &fun);
+            let time2 = Instant::now();
+            let res2 = p_int.integrate_rayon(&fun2);
+            let time3 = Instant::now();
+            let res3 = p_int.integrate_handles(&fun2);
+            let time4 = Instant::now();
+            let res4 = p_int.integrate_pool(&fun2);
+            let time5 = Instant::now();
+            if time3-time2 < time2-time1 {
+                p1 += 1;
+                t1 += (time3-time2).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time4-time3 < time2-time1 {
+                p2 += 1;
+                t2 += (time4-time3).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time5-time4 < time2-time1 {
+                p3 += 1;
+                t3 += (time5-time4).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time3-time2 < time2-time1 || time4-time3 < time2-time1 || time5-time4 < time2-time1 {
+                i += 1;
+            }
+            if test{
+                println!("{:?},{:?},{:?},{:?}",time2-time1,time3-time2,time4-time3,time5-time4 );
+            }
+        }
+        println!("out of a total of {total} integration {i} time one of the parallel one was faster.\n \
+        rayon : {p1}, on avg. {} of time\n handles: {p2}, on avg. {} of time \n \
+        threadpool: {p3}, on avg. {} of time",t1/p1 as f64,t2/p2 as f64,t3/p3 as f64);
+
+        let qag = Qag{key:6,limit:10};
+
+        let s_int = SIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : Box::new(qag.clone()),
+        };
+
+
+        let qng2 = IntVec{
+            components : vec![Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone()))],
+        };
+
+        let qng3 = IntVec{
+            components : vec![Arc::new(Mutex::new(qag.clone()))],
+        };
+
+        let p_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng2,
+        };
+
+        let p2_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng3,
+        };
+        (p1,p2,p3) = (0,0,0);
+        (t1,t2,t3) = (0.0,0.0,0.0);
+        let mut i = 0;
+        let total = 1000;
+        for _k in 0..total{
+            let time1 = Instant::now();
+            let res1 = s_int.integrate( &fun);
+            let time2 = Instant::now();
+            let res2 = p_int.integrate_rayon(&fun2);
+            let time3 = Instant::now();
+            let res3 = p_int.integrate_handles(&fun2);
+            let time4 = Instant::now();
+            let res4 = p_int.integrate_pool(&fun2);
+            let time5 = Instant::now();
+            if time3-time2 < time2-time1 {
+                p1 += 1;
+                t1 += (time3-time2).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time4-time3 < time2-time1 {
+                p2 += 1;
+                t2 += (time4-time3).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time5-time4 < time2-time1 {
+                p3 += 1;
+                t3 += (time5-time4).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time3-time2 < time2-time1 || time4-time3 < time2-time1 || time5-time4 < time2-time1 {
+                i += 1;
+            }
+        }
+        println!("out of a total of {total} integration {i} time one of the parallel one was faster.\n \
+        rayon : {p1}, on avg. {} of time\n handles: {p2}, on avg. {} of time \n \
+        threadpool: {p3}, on avg. {} of time",t1/p1 as f64,t2/p2 as f64,t3/p3 as f64);
+
+
+
 
 
     }
@@ -74,9 +256,19 @@ mod tests {
     #[test]
     fn qng_test(){
         let test : bool = false; // set to true if you want to have the results printed out
-        let f1 = |x:f64|  (x*x.sin()).powf(1.5);
-        let f2 = |x:f64|  (x.powi(3)*x.cos()).powf(2.5);
-        let f3 = |x:f64|  (x.powi(5)*x.tan()).powf(2.5);
+        let f1 = |x:f64|  (x*x.sin().abs()).powf(1.5);
+        let f2 = |x:f64|  (x.powi(3)*x.cos().abs()).powf(2.5);
+        let f3 = |x:f64|  rastrigin(x);
+        /*
+        let f4 = |x:f64|  (x.powi(7)*x.sin()).powf(3.5);
+        let f5 = |x:f64|  (x+5.0).ln() * x.sin().powf(3.3);
+        let f6 = |x:f64|  x.exp();
+        let f7 = |x:f64|  1.0 / (10.0 * (2.0 * std::f64::consts::PI).sqrt() ) * (-0.5 * ( x / 10.0).powi(2) ).exp();
+        let f8 = |x:f64|  1.0 / (50.0 * (2.0 * std::f64::consts::PI).sqrt() ) * (-0.5 * ( x / 50.0).powi(2) ).exp();
+        let f9 = |x:f64|  1.0 / (200.0 * (2.0 * std::f64::consts::PI).sqrt() ) * (-0.5 * ( x / 200.0).powi(2) ).exp();
+
+
+         */
         let parameters4 = random_vector();
         let parameters4p = parameters4.clone();
         let parameters5 = random_vector();
@@ -178,6 +370,7 @@ mod tests {
 
 
 
+
         let fun = FnVec  {
             components : vec![Box::new(f1),Box::new(f2),Box::new(f3),Box::new(f4),
                               Box::new(f5),Box::new(f6),Box::new(f7),Box::new(f8),
@@ -191,13 +384,17 @@ mod tests {
                               Arc::new(Mutex::new(f9p))],
         };
 
-        let int = QngIntegrator{
-            a : 0.0,
-            b : 1.0,
-            epsabs : 0.0,
-            epsrel : 1.0,
-        };
+
         let qng = Qng{};
+
+        let s_int = SIntegrator {
+            a : 0.0,
+            b : 1000.0,
+            epsabs : 0.0,
+            epsrel : 2.0 * 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : Box::new(qng.clone()),
+        };
+
 
         let qng2 = IntVec{
             components : vec![Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
@@ -206,46 +403,138 @@ mod tests {
                               Arc::new(Mutex::new(qng.clone())),Arc::new(Mutex::new(qng.clone())),
                               Arc::new(Mutex::new(qng.clone()))],
         };
+
         let qng3 = IntVec{
             components : vec![Arc::new(Mutex::new(qng.clone()))],
         };
 
-        let time1 = Instant::now();
-        let res1 =int.integrate(&qng,&fun);
-        let time2 = Instant::now();
-        let res2 = int.integrate_rayon(&qng2,&fun2);
-        let time3 = Instant::now();
-        let res3 = int.integrate_p2(&qng2,&fun2);
-        let time4 = Instant::now();
-        let res4 = int.integrate_p3(&qng3,&fun2);
-        let time5 = Instant::now();
-
-        if test{
-            println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?},{:?},{:?},{:?}", res1,res2,res3,res4,time2-time1,time3-time2,time4-time3,time5-time4 );
-        }
-
-
-
-        let int = QngIntegrator{
+        let p_int = PIntegrator {
             a : 0.0,
-            b : 1.0,
-            epsabs : 4.082750315991389e-16,
-            epsrel : 0.0,
+            b : 1000.0,
+            epsabs : 0.0,
+            epsrel : 2.0 * 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng2,
         };
 
-        let time1 = Instant::now();
-        let res1 =int.integrate(&qng,&fun);
-        let time2 = Instant::now();
-        let res2 = int.integrate_rayon(&qng2,&fun2);
-        let time3 = Instant::now();
-        let res3 = int.integrate_p2(&qng2,&fun2);
-        let time4 = Instant::now();
-        let res4 = int.integrate_p3(&qng3,&fun2);
-        let time5 = Instant::now();
-
-        if test{
-            println!("{:?}\n{:?}\n{:?}\n{:?}\n{:?},{:?},{:?},{:?}", res1,res2,res3,res4,time2-time1,time3-time2,time4-time3,time5-time4 );
+        let p2_int = PIntegrator {
+            a : 0.0,
+            b : 1000.0,
+            epsabs : 0.0,
+            epsrel : 2.0 * 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng3,
+        };
+        let (mut p1,mut p2,mut p3) = (0,0,0);
+        let (mut t1, mut t2, mut t3) = (0.0,0.0,0.0);
+        let mut i = 0;
+        let total = 1000;
+        for _k in 0..total{
+            let time1 = Instant::now();
+            let res1 = s_int.integrate( &fun);
+            let time2 = Instant::now();
+            let res2 = p_int.integrate_rayon(&fun2);
+            let time3 = Instant::now();
+            let res3 = p_int.integrate_handles(&fun2);
+            let time4 = Instant::now();
+            let res4 = p_int.integrate_pool(&fun2);
+            let time5 = Instant::now();
+            if time3-time2 < time2-time1 {
+                p1 += 1;
+                t1 += (time3-time2).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time4-time3 < time2-time1 {
+                p2 += 1;
+                t2 += (time4-time3).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time5-time4 < time2-time1 {
+                p3 += 1;
+                t3 += (time5-time4).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time3-time2 < time2-time1 || time4-time3 < time2-time1 || time5-time4 < time2-time1 {
+                i += 1;
+            }
+            if test{
+                println!("{:?},{:?},{:?},{:?}",time2-time1,time3-time2,time4-time3,time5-time4 );
+            }
         }
+        println!("out of a total of {total} integration {i} time one of the parallel one was faster.\n \
+        rayon : {p1}, on avg. {} of time\n handles: {p2}, on avg. {} of time \n \
+        threadpool: {p3}, on avg. {} of time",t1/p1 as f64,t2/p2 as f64,t3/p3 as f64);
+
+
+
+        let qag = Qag{key:6,limit:10};
+
+        let s_int = SIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : Box::new(qag.clone()),
+        };
+
+
+        let qng2 = IntVec{
+            components : vec![Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone())), Arc::new(Mutex::new(qag.clone())),
+                              Arc::new(Mutex::new(qag.clone()))],
+        };
+
+        let qng3 = IntVec{
+            components : vec![Arc::new(Mutex::new(qag.clone()))],
+        };
+
+        let p_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng2,
+        };
+
+        let p2_int = PIntegrator {
+            a : 0.0,
+            b : 1.0,
+            epsabs : 0.0,
+            epsrel : 0.5e-28_f64.max(50.0 * EPMACH),
+            integral_method : qng3,
+        };
+        (p1,p2,p3) = (0,0,0);
+        (t1,t2,t3) = (0.0,0.0,0.0);
+        let mut i = 0;
+        let total = 1000;
+        for _k in 0..total{
+            let time1 = Instant::now();
+            let res1 = s_int.integrate( &fun);
+            let time2 = Instant::now();
+            let res2 = p_int.integrate_rayon(&fun2);
+            let time3 = Instant::now();
+            let res3 = p_int.integrate_handles(&fun2);
+            let time4 = Instant::now();
+            let res4 = p_int.integrate_pool(&fun2);
+            let time5 = Instant::now();
+            if time3-time2 < time2-time1 {
+                p1 += 1;
+                t1 += (time3-time2).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time4-time3 < time2-time1 {
+                p2 += 1;
+                t2 += (time4-time3).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time5-time4 < time2-time1 {
+                p3 += 1;
+                t3 += (time5-time4).as_secs_f64()/(time2-time1).as_secs_f64();
+            }
+            if time3-time2 < time2-time1 || time4-time3 < time2-time1 || time5-time4 < time2-time1 {
+                i += 1;
+            }
+        }
+        println!("out of a total of {total} integration {i} time one of the parallel one was faster.\n \
+        rayon : {p1}, on avg. {} of time\n handles: {p2}, on avg. {} of time \n \
+        threadpool: {p3}, on avg. {} of time",t1/p1 as f64,t2/p2 as f64,t3/p3 as f64);
+
+
 
     }
 
@@ -496,33 +785,3 @@ mod tests {
 
 
 
-/* test for integrate_parallel ( in integral_method.rs )
-        let parameters = random_vector();
-        let polynomial = PolynomialFunction::new(parameters.to_vec());
-        let rectangular = Rectangular{};
-        let integration_method = VecRectangular{};
-        let now = Instant::now();
-
-
-        let res_parall = rectangular.integrate_parallel(&polynomial,1000000);
-        let time1 = Instant::now();
-        let res = rectangular.integrate(&polynomial,1000000);
-        let time2 = Instant::now();
-        let exact = exact_polynom_integral(&parameters);
-
-        println!("{res},{res_parall},{exact}");
-        println!("{:?},{:?},{:?} , {:?}, {:?}",now,time1,time2, (time1 - now), time2-time1);
-         */
-
-/*
-fn gauss() {
-    let n = 3;
-    let f = |x:f32|   x.powi(n) ;
-    fn square<F>(f : F, x : f32) -> f32
-        where F: Fn(f32)->f32{
-        f(x).powi(2)
-    }
-    println!("{},{}", f(3.0), square(f,3.0));
-}
-
- */

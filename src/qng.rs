@@ -1,11 +1,87 @@
+use crate::qk::{EPMACH, UFLOW};
 //  use std::time::Instant;
 //  use std::{thread,time};
+use crate::qng_integrator_result::*;
+use crate::result_state::*;
+use crate::quad_integral_method::*;
+use crate::quad_integrator_result::QuadIntegratorResult;
 
-pub trait QuadIntegralMethod{
-    fn integrate(&self, fun : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs: f64, epsrel : f64) -> (f64, f64, i32, i32);
-}
 #[derive(Clone)]
 pub struct Qng{}
+
+
+
+//           f      : f64
+//                     function
+//
+//           a      : f64
+//                    lower limit of integration
+//
+//           b      : f64
+//                    upper limit of integration
+//
+//           epsabs : f64
+//                    absolute accuracy requested
+//
+//           epsrel : f64
+//                    relative accuracy requested
+//                    if  epsabs <= 0 && epsrel <= max(50*rel.mach.acc.,0.5d-28),
+//                    the fn will return with result_state = Invalid.
+//
+//
+//         On return : QagIntegratorResult :
+//
+//           QngIntegrationResult:
+//           result : f64
+//                    approximation to the integral i
+//                    result is obtained by applying the 21-point
+//                    gauss-kronrod rule (res21) obtained by optimal
+//                    addition of abscissae to the 10-point gauss rule
+//                    (res10), or by applying the 43-point rule (res43)
+//                    obtained by optimal addition of abscissae to the
+//                    21-point gauss-kronrod rule, or by applying the
+//                    87-point rule (res87) obtained by optimal addition
+//                    of abscissae to the 43-point rule.
+//
+//           abserr : f64
+//                    estimate of the modulus of the absolute error,
+//                    which should equal or exceed abs(i-result)
+//
+//           neval  : i32
+//                    number of integrand evaluations
+//
+//           ResultState =
+//           Success :
+//                    normal and reliable termination of the routine. it is assumed that the
+//                    requested accuracy has been achieved.
+//           MaxIteration :
+//                    the maximum number of steps has been executed. the integral is probably too
+//                    difficult to be calculated by dqng.
+//           Invalid :
+//                     the input is invalid, because epsabs <= 0 &&
+//                     epsrel < max(50 * rel.mach.acc.,0.5e-28).
+//           If ResultState != Succes =>  QngIntegration.{result, abserr,neval} are set to zero.
+//
+//           the following are the abscissae and weights of the integration rules used.
+//
+//           x1 :      abscissae common to the 10, 21, 43 and 87 point rule
+//           x2 :      abscissae common to the 21, 43 and 87 point rule
+//           x3 :      abscissae common to the 43 and 87 point rule
+//           x4 :      abscissae of the 87 point rule
+//           w10 :     weights of the 10 point formula
+//           w21a :    weights of the 21 point formula for abscissae x1
+//           w21b :    weights of the 21 point formula for abscissae x2
+//           w43a :    weights of the 43 point formula for abscissae x1, x3
+//           w43b :    weights of the 43 point formula for abscissae x3
+//           w87a :    weights of the 87 point formula for abscissae x1, x2, x3
+//           w87b :    weights of the 87 point formula for abscissae x4
+//
+//
+//         These coefficients were calculated with 101 decimal digit arithmetic by l. w. fullerton,
+//         bell labs, nov 1981.
+//
+//
+//
 
 
 const X1: [f64;5] = [0.973906528517171720077964012084452,
@@ -144,19 +220,16 @@ const W87B: [f64;23] = [0.000274145563762072350016527092881,
                          0.037334228751935040321235449094698,
                          0.037361073762679023410321241766599];
 
-impl QuadIntegralMethod for Qng{
-    fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> (f64, f64, i32, i32)
+impl Qng{
+    pub fn qintegrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QngIntegratorResult
     {
-        let epmach : f64 = f64::EPSILON;
-        let uflow : f64 = f64::MIN_POSITIVE;
-        let mut result : f64 = 0.0;
-        let mut abserr : f64= 0.0;
-        let mut neval :i32 = 0;
-        let mut ier : i32 = 6;
+        let mut result : f64 ;
+        let mut abserr : f64;
+        let mut neval :i32;
 
 
-        if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * epmach) {
-            return (result,abserr,neval,ier)
+        if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
+            return QngIntegratorResult::new_error(ResultState::Invalid)
         }
 
 
@@ -165,7 +238,6 @@ impl QuadIntegralMethod for Qng{
         let centr : f64 = 0.5 * (b+a);
         let fcentr : f64= f(centr);
         neval = 21;
-        ier = 1;
 
 //       compute the integral using the 10- and 21-point formula.
 
@@ -219,14 +291,13 @@ impl QuadIntegralMethod for Qng{
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min((200.0 * abserr/resasc).powf(1.5));
         }
-        if resabs >= uflow/(50.0 * epmach)  {
-            abserr = abserr.max( epmach * 50.0 * resabs);
+        if resabs >= UFLOW/(50.0 * EPMACH)  {
+            abserr = abserr.max( EPMACH * 50.0 * resabs);
         }
         if abserr <= epsabs.max(epsrel * result.abs()) {
-            ier = 0;
             //  let ten_millis = time::Duration::from_micros(10000);
             //  thread::sleep(ten_millis);
-            return (result,abserr,neval,ier)
+            return QngIntegratorResult::new(result,abserr,neval)
         }
 
 
@@ -252,13 +323,12 @@ impl QuadIntegralMethod for Qng{
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min((200.0 * abserr/resasc).powf(1.5));
         }
-        if resabs >= uflow/(50.0 * epmach)  {
-            abserr = abserr.max( epmach * 50.0 * resabs);
+        if resabs >= UFLOW/(50.0 * EPMACH)  {
+            abserr = abserr.max( EPMACH * 50.0 * resabs);
         }
 
         if abserr <= epsabs.max(epsrel * result.abs()) {
-            ier = 0;
-            return (result,abserr,neval,ier)
+            return QngIntegratorResult::new(result,abserr,neval)
         }
 
 
@@ -283,18 +353,23 @@ impl QuadIntegralMethod for Qng{
         if resasc != 0.0 && abserr != 0.0 {
             abserr = resasc * 1.0_f64.min((200.0 * abserr/resasc).powf(1.5));
         }
-        if resabs >= uflow/(50.0 * epmach)  {
-            abserr = abserr.max( epmach * 50.0 * resabs);
+        if resabs >= UFLOW/(50.0 * EPMACH)  {
+            abserr = abserr.max( EPMACH * 50.0 * resabs);
         }
 
         if abserr <= epsabs.max(epsrel * result.abs()) {
-            ier = 0;
-            return (result,abserr,neval,ier)
+            return QngIntegratorResult::new(result,abserr,neval)
         }
 
 
 
-        (result,abserr,neval,ier)
+        return QngIntegratorResult::new_error(ResultState::Invalid)
+    }
+}
+
+impl QuadIntegralMethod for Qng{
+    fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
+        QuadIntegratorResult::new_qng( self.qintegrate(f,a,b,epsabs,epsrel))
     }
 }
 

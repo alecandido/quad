@@ -1,33 +1,28 @@
-use crate::qag_integration_result::*;
+use crate::qng_integration_result::*;
 use crate::result_state::*;
 
 #[derive(Clone,Debug)]
-pub struct QagIntegratorResult{
+pub struct QngIntegratorResult{
     pub result_state : ResultState,
-    pub integration_result : QagIntegrationResult,
+    pub integration_result : QngIntegrationResult,
 }
 
-
-
-impl QagIntegratorResult{
-    pub fn new(result : f64, abserr : f64, neval : i32, alist : Vec<f64>,
-               blist : Vec<f64>, rlist : Vec<f64>, elist : Vec<f64>, iord : Vec<usize>,
-               last : usize) -> Self {
+impl QngIntegratorResult{
+    pub fn new(result : f64, abserr : f64, neval : i32) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagIntegrationResult::new(result , abserr , neval , alist ,
-                                                           blist , rlist , elist , iord , last ),
+            integration_result : QngIntegrationResult::new(result , abserr , neval),
         }
     }
     pub fn new_error(result_state : ResultState) -> Self{
         Self{
             result_state,
-            integration_result : QagIntegrationResult::new_error(),
+            integration_result : QngIntegrationResult::new_error(),
         }
     }
 
 
-    pub fn unwrap(&self) -> QagIntegrationResult {
+    pub fn unwrap(&self) -> QngIntegrationResult {
         match self.result_state{
             ResultState::Success => self.integration_result.clone(),
             ResultState::Failure => panic!("Generic Fail"),

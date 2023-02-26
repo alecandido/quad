@@ -99,7 +99,7 @@ pub fn exact_polynom_integral( parameters : &Vec<f64>) -> f64 {
 // constructs a vector of random size (between 1 and 15) with random component
 pub fn random_vector() -> Vec<f64> {
     let mut rng = thread_rng();
-    let capacity : usize = rng.gen_range(9..15) ;
+    let capacity : usize = rng.gen_range(20..25) ;
     let v: Vec<f64> = (&mut rng).sample_iter(Standard).take(capacity).collect();
     v
 }

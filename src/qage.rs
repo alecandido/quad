@@ -6,16 +6,126 @@ use crate::qk41::*;
 use crate::qk51::*;
 use crate::qk61::*;
 use crate::qpsrt::*;
-use crate::qag_integration_result::*;
-use crate::qag_integrator_result::QagIntegratorResult;
+use crate::qag_integrator_result::*;
+use crate::quad_integral_method::QuadIntegralMethod;
+use crate::quad_integrator_result::QuadIntegratorResult;
+use crate::result_state::*;
 
 
 #[derive(Clone)]
-pub struct Qna{}
+pub struct Qag {
+    pub key : i32,
+    pub limit : usize,
+}
 
-impl Qna{
-    pub fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64, key : i32,
-                 limit : usize) -> QagIntegratorResult {
+//           f      : f64
+//                     function
+//
+//           a      : f64
+//                    lower limit of integration
+//
+//           b      : f64
+//                    upper limit of integration
+//
+//           epsabs : f64
+//                    absolute accuracy requested
+//
+//           epsrel : f64
+//                    relative accuracy requested
+//                    if  epsabs <= 0 && epsrel <= max(50*rel.mach.acc.,0.5d-28),
+//                    the fn will return with result_state = Invalid.
+//
+//            key   : i32
+//                    key for choice of local integration rule. A gauss-kronrod pair is used with:
+//                          7 - 15 points if key < 2,
+//                         10 - 21 points if key = 2,
+//                         15 - 31 points if key = 3,
+//                         20 - 41 points if key = 4,
+//                         25 - 51 points if key = 5,
+//                         30 - 61 points if key > 5.
+//
+//            limit : i32
+//                    gives an upperbound on the number of subintervals in the partition
+//                    of (a,b), limit >= 1.
+//
+//
+//
+//         On return : QagIntegratorResult :
+//
+//           QagIntegrationResult:
+//           result : f64
+//                    Approximation to the integral.
+//
+//           abserr : f64
+//                    Estimate of the modulus of the absolute error,
+//                    which should equal or exceed abs(i-result).
+//
+//           neval  : i32
+//                    Number of integrand evaluations.
+//
+//           alist  : Vec<f64>
+//                      Vector of dimension at least limit, the elements of which are the left
+//                      end points of the subintervals in the partition of the given integration
+//                      range (a,b).
+//
+//           blist  : Vec<f64>
+//                      Vector of dimension at least limit, the elements of which are the right
+//                      end points of the subintervals in the partition of the given integration
+//                      range (a,b).
+//
+//           rlist  : Vec<f64>
+//                      Vector of dimension at least limit, the elements of which are the integral
+//                      approximations on the subintervals.
+//
+//            rlist  : Vec<f64>
+//                      Vector of dimension at least limit, the elements of which are the moduli
+//                      of the absolute error estimates on the subintervals.
+//
+//            iord   : Vec<usize>
+//                      Vector of dimension at least limit, the elements of which are pointers to
+//                      the error estimates over the subintervals, such that
+//                      elist(iord(1)), ...,elist(iord(k)) form a decreasing sequence,
+//                      with k = last if last <= (limit/2+2), and
+//                      k = limit+1-last otherwise.
+//
+//            last    : usize
+//                      number of subintervals actually produced in the
+//                      subdivision process
+//
+//
+//
+//
+//           ResultState =
+//           Success :
+//                    Normal and reliable termination of the routine. it is assumed that the
+//                    requested accuracy has been achieved.
+//           MaxIteration :
+//                    The maximum number of steps has been executed. the integral is probably too
+//                    difficult to be calculated by dqng.
+//           Invalid :
+//                     The input is invalid, because epsabs <= 0 &&
+//                     epsrel < max(50 * rel.mach.acc.,0.5e-28).
+//           BadTolerance :
+//                     The occurrence of roundoff error is detected, which prevents the requested
+//                     tolerance from being achieved.
+//           BadFunction :
+//                     Extremely bad integrand behaviour occurs at some points of the integration
+//                     interval.
+//
+//
+//           If ResultState != Succes =>    It is assumed that the requested accuracy has not
+//           been achieved.
+//
+//
+//
+
+
+
+
+
+impl Qag {
+    pub fn qintegrate(&self, f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64)
+                      -> QagIntegratorResult {
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return QagIntegratorResult::new_error(ResultState::Invalid)
@@ -43,10 +153,10 @@ impl Qna{
         let qk51 = Qk51 {};
         let qk61 = Qk61 {};
 
-        let mut keyf = key;
-        if key <= 0 { keyf = 1; }
-        if key >= 7 { keyf = 6; }
-        match key {
+        let mut keyf = self.key;
+        if self.key <= 0 { keyf = 1; }
+        if self.key >= 7 { keyf = 6; }
+        match keyf {
             1 => (result, abserr, defabs, resabs) = qk15.integrate(f, a, b),
             2 => (result, abserr, defabs, resabs) = qk21.integrate(f, a, b),
             3 => (result, abserr, defabs, resabs) = qk31.integrate(f, a, b),
@@ -67,7 +177,7 @@ impl Qna{
         if abserr <= 50.0 * EPMACH * defabs && abserr > errbnd {
             return QagIntegratorResult::new_error(ResultState::BadTolerance)
         }
-        if limit == 1 {
+        if self.limit == 1 {
             return QagIntegratorResult::new_error(ResultState::MaxIteration)
         }
         if (abserr <= errbnd && abserr != resabs) || abserr == 0.0 {
@@ -87,7 +197,7 @@ impl Qna{
         //          main do-loop
         //           bisect the subinterval with the largest error estimate.
 
-        for last  in 2..limit + 1 {
+        for last  in 2..self.limit + 1 {
             //  println!("{last},alist : {:?}, blist:{:?}",alist,blist);
             let a1 = alist[maxerr - 1];
             let b1 = 0.5 * (alist[maxerr - 1] + blist[maxerr - 1]);
@@ -165,7 +275,7 @@ impl Qna{
                 //           set error flag in the case that the number of subintervals
                 //           equals limit.
 
-                if last == limit {
+                if last == self.limit {
                     return QagIntegratorResult::new_error(ResultState::MaxIteration)
                 }
 
@@ -209,7 +319,7 @@ impl Qna{
 
             //  println!("Entering qpsrt with : limit={limit},last={last},maxerr={maxerr},errmax={errmax},\
             //  elist={:?},iord={:?},nrmax={nrmax}",elist,iord);
-            qpsrt(limit, last, &mut maxerr, &mut errmax, &elist, &mut iord, &mut nrmax);
+            qpsrt(self.limit, last, &mut maxerr, &mut errmax, &elist, &mut iord, &mut nrmax);
             //  println!("Exiting qpsrt with : limit={limit},last={last},maxerr={maxerr},errmax={errmax},\
             //  elist={:?},iord={:?},nrmax={nrmax}",elist,iord);
             if errsum <= errbnd {
@@ -233,4 +343,10 @@ impl Qna{
     }
 }
 
+
+impl QuadIntegralMethod for Qag{
+    fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
+        QuadIntegratorResult::new_qag( self.qintegrate(f,a,b,epsabs,epsrel))
+    }
+}
 

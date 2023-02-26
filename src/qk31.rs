@@ -2,6 +2,54 @@ use crate::qk::*;
 
 pub struct Qk31{}
 
+//           f      : f64
+//                     function
+//
+//           a      : f64
+//                    lower limit of integration
+//
+//           b      : f64
+//                    upper limit of integration
+//
+//         on return
+//              result : f64
+//                       approximation to the integral i result is computed by applying
+//                       the 31-point kronrod rule (resk) obtained by optimal addition
+//                       of abscissae to the 15-point gauss rule(resg).
+//
+//              abserr : f64
+//                       estimate of the modulus of the absolute error, which should not
+//                       exceed abs(i-result)
+//
+//              resabs : f64
+//                       approximation to the integral j
+//
+//              resasc : f64
+//                       approximation to the integral of abs(f-i/(b-a)) over (a,b)
+//
+//           The abscissae and weights are given for the interval (-1,1).
+//           Because of symmetry only the positive abscissae and their
+//           corresponding weights are given.
+//
+//           xgk    : abscissae of the 31-point kronrod rule
+//                    xgk(2), xgk(4), ...  abscissae of the 15-point
+//                    gauss rule
+//                    xgk(1), xgk(3), ...  abscissae which are optimally
+//                    added to the 15-point gauss rule
+//
+//           wgk    : weights of the 31-point kronrod rule
+//
+//           wg     : weights of the 15-point gauss rule
+//
+//
+//           Gauss quadrature weights and kronrod quadrature abscissae and weights
+//           as evaluated with 80 decimal digit arithmetic by l. w. fullerton,
+//           bell labs, nov. 1981.
+//
+//
+//
+
+
 const XGK : [f64;16] = [0.998002298693397060285172840152271, 0.987992518020485428489565718586613,
                         0.967739075679139134257347978784337, 0.937273392400705904307758947710209,
                         0.897264532344081900882509656454496, 0.848206583410427216200648320774217,
