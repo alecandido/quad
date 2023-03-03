@@ -11,77 +11,77 @@ pub struct Qng{}
 
 
 
-//           f      : f64
-//                     function
-//
-//           a      : f64
-//                    lower limit of integration
-//
-//           b      : f64
-//                    upper limit of integration
-//
-//           epsabs : f64
-//                    absolute accuracy requested
-//
-//           epsrel : f64
-//                    relative accuracy requested
-//                    if  epsabs <= 0 && epsrel <= max(50*rel.mach.acc.,0.5d-28),
-//                    the fn will return with result_state = Invalid.
-//
-//
-//         On return : QagIntegratorResult :
-//
-//           QngIntegrationResult:
-//           result : f64
-//                    approximation to the integral i
-//                    result is obtained by applying the 21-point
-//                    gauss-kronrod rule (res21) obtained by optimal
-//                    addition of abscissae to the 10-point gauss rule
-//                    (res10), or by applying the 43-point rule (res43)
-//                    obtained by optimal addition of abscissae to the
-//                    21-point gauss-kronrod rule, or by applying the
-//                    87-point rule (res87) obtained by optimal addition
-//                    of abscissae to the 43-point rule.
-//
-//           abserr : f64
-//                    estimate of the modulus of the absolute error,
-//                    which should equal or exceed abs(i-result)
-//
-//           neval  : i32
-//                    number of integrand evaluations
-//
-//           ResultState =
-//           Success :
-//                    normal and reliable termination of the routine. it is assumed that the
-//                    requested accuracy has been achieved.
-//           MaxIteration :
-//                    the maximum number of steps has been executed. the integral is probably too
-//                    difficult to be calculated by dqng.
-//           Invalid :
-//                     the input is invalid, because epsabs <= 0 &&
-//                     epsrel < max(50 * rel.mach.acc.,0.5e-28).
-//           If ResultState != Succes =>  QngIntegration.{result, abserr,neval} are set to zero.
-//
-//           the following are the abscissae and weights of the integration rules used.
-//
-//           x1 :      abscissae common to the 10, 21, 43 and 87 point rule
-//           x2 :      abscissae common to the 21, 43 and 87 point rule
-//           x3 :      abscissae common to the 43 and 87 point rule
-//           x4 :      abscissae of the 87 point rule
-//           w10 :     weights of the 10 point formula
-//           w21a :    weights of the 21 point formula for abscissae x1
-//           w21b :    weights of the 21 point formula for abscissae x2
-//           w43a :    weights of the 43 point formula for abscissae x1, x3
-//           w43b :    weights of the 43 point formula for abscissae x3
-//           w87a :    weights of the 87 point formula for abscissae x1, x2, x3
-//           w87b :    weights of the 87 point formula for abscissae x4
-//
-//
-//         These coefficients were calculated with 101 decimal digit arithmetic by l. w. fullerton,
-//         bell labs, nov 1981.
-//
-//
-//
+///           f      : f64
+///                     function
+///
+///           a      : f64
+///                    lower limit of integration
+///
+///           b      : f64
+///                    upper limit of integration
+///
+///           epsabs : f64
+///                    absolute accuracy requested
+///
+///           epsrel : f64
+///                    relative accuracy requested
+///                    if  epsabs <= 0 && epsrel <= max(50*rel.mach.acc.,0.5d-28),
+///                    the fn will return with result_state = Invalid.
+///
+///
+///         On return : QagIntegratorResult :
+///
+///           QngIntegrationResult:
+///           result : f64
+///                    approximation to the integral i
+///                    result is obtained by applying the 21-point
+///                    gauss-kronrod rule (res21) obtained by optimal
+///                    addition of abscissae to the 10-point gauss rule
+///                    (res10), or by applying the 43-point rule (res43)
+///                    obtained by optimal addition of abscissae to the
+///                    21-point gauss-kronrod rule, or by applying the
+///                    87-point rule (res87) obtained by optimal addition
+///                    of abscissae to the 43-point rule.
+///
+///           abserr : f64
+///                    estimate of the modulus of the absolute error,
+///                    which should equal or exceed abs(i-result)
+///
+///           neval  : i32
+///                    number of integrand evaluations
+///
+///           ResultState =
+///           Success :
+///                    normal and reliable termination of the routine. it is assumed that the
+///                    requested accuracy has been achieved.
+///           MaxIteration :
+///                    the maximum number of steps has been executed. the integral is probably too
+///                    difficult to be calculated by dqng.
+///           Invalid :
+///                     the input is invalid, because epsabs <= 0 &&
+///                     epsrel < max(50 * rel.mach.acc.,0.5e-28).
+///           If ResultState != Succes =>  QngIntegration.{result, abserr,neval} are set to zero.
+///
+///           the following are the abscissae and weights of the integration rules used.
+///
+///           x1 :      abscissae common to the 10, 21, 43 and 87 point rule
+///           x2 :      abscissae common to the 21, 43 and 87 point rule
+///           x3 :      abscissae common to the 43 and 87 point rule
+///           x4 :      abscissae of the 87 point rule
+///           w10 :     weights of the 10 point formula
+///           w21a :    weights of the 21 point formula for abscissae x1
+///           w21b :    weights of the 21 point formula for abscissae x2
+///           w43a :    weights of the 43 point formula for abscissae x1, x3
+///           w43b :    weights of the 43 point formula for abscissae x3
+///           w87a :    weights of the 87 point formula for abscissae x1, x2, x3
+///           w87b :    weights of the 87 point formula for abscissae x4
+///
+///
+///         These coefficients were calculated with 101 decimal digit arithmetic by l. w. fullerton,
+///         bell labs, nov 1981.
+///
+///
+///
 
 
 const X1: [f64;5] = [0.973906528517171720077964012084452,

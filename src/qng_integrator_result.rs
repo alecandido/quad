@@ -30,6 +30,7 @@ impl QngIntegratorResult{
             ResultState::BadTolerance => panic!("{}", BAD_TOLERANCE_ERROR_MESSAGE),
             ResultState::Invalid => panic!("{}", INVALID_ERROR_MESSAGE),
             ResultState::BadFunction => panic!("{}", BAD_FUNCTION_ERROR_MESSAGE),
+            ResultState::Diverge => panic!("{}", DIVERGE_ERROR_MESSAGE),
 
         }
     }

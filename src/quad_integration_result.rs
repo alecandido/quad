@@ -30,7 +30,16 @@ impl QuadIntegrationResult {
             neval : integration_result.neval
         }
     }
+
     pub fn new_qag(integration_result : QagIntegrationResult) -> Self{
+        Self{
+            result : integration_result.result,
+            abserr : integration_result.abserr,
+            neval : integration_result.neval,
+        }
+    }
+
+    pub fn new_qags(integration_result : QagIntegrationResult) -> Self{
         Self{
             result : integration_result.result,
             abserr : integration_result.abserr,

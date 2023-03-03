@@ -6,6 +6,7 @@ pub enum ResultState{
     MaxIteration,
     BadTolerance,
     BadFunction,
+    Diverge,
 
 }
 
@@ -23,3 +24,5 @@ pub const INVALID_ERROR_MESSAGE : &str = "The input is invalid, because epsabs <
             epsrel < max(50 * rel.mach.acc.,0.5d-28)";
 pub const BAD_FUNCTION_ERROR_MESSAGE : &str = "Extremely bad integrand behaviour occurs at some \
             points of the integration interval.";
+pub const DIVERGE_ERROR_MESSAGE : &str = "The integral is probably divergent, or slowly convergent.\
+            It must be noted that divergence can occur with any other value of ResultState.";
