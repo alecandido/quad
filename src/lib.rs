@@ -29,6 +29,7 @@ pub mod quad_integrator_result;
 pub mod special_function;
 pub mod qagse;
 pub mod qelg;
+pub mod qagpe;
 
 use functions::*;
 use integral_method::*;
