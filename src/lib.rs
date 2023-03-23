@@ -1,4 +1,5 @@
 extern crate nalgebra as na;
+extern crate core;
 
 pub mod functions;
 pub mod integral_method;
@@ -30,6 +31,20 @@ pub mod special_function;
 pub mod qagse;
 pub mod qelg;
 pub mod qagpe;
+pub mod qk15_1dvec;
+pub mod qk61_1dvec;
+pub mod qk61_1dvec2;
+pub mod qk61_1dvec3;
+mod qk61_1dvec4;
+mod qsrt2;
+mod qage2;
+mod qage_1dvec;
+mod qag_1dvec_integration_result;
+mod qag_1dvec_integrator_result;
+mod qage_1dvec2;
+mod qage_1dvec_parall;
+mod qag_1dvec_parall_integration_result;
+mod qag_1dvec_parall_integrator_result;
 
 use functions::*;
 use integral_method::*;
@@ -43,46 +58,207 @@ use qng::*;
 use quad_integrator::*;
 use qage::*;
 use special_function::*;
-
-
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use ndarray::*;
 
 #[cfg(test)]
 mod tests {
+    use core::time;
+    use std::thread;
+    use std::time::Duration;
     //  use std::io::IntoInnerError;
     use crate::gauss_legendre::{Gauss,GaussLegendre};
-    use crate::qk::EPMACH;
+    use crate::qage2::Qag2;
+    use crate::qage_1dvec2::Qag_1dvec2;
+    use crate::qage_1dvec::Qag_1dvec;
+    use crate::qage_1dvec_parall::Qag_1dvec_parall;
+    use crate::qagpe::Qagp;
+    use crate::qagse::Qags;
+    use crate::qk15::Qk15;
+    use crate::qk::{EPMACH, Qk};
+    use crate::qk15_1dvec::Qk151DVec;
+    use crate::qk61::Qk61;
+    use crate::qk61_1dvec2::Qk611DVec2;
+    use crate::qk61_1dvec3::Qk611DVec3;
+    use crate::qk61_1dvec4::Qk611DVec4;
+    use crate::qk61_1dvec::Qk611DVec;
+    use crate::quad_integral_method::QuadIntegralMethod;
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn vectorization(){
+        let f = |x:f64| x.cos();
+        let (a,b) = (0.0,1.0);
+        let max = 200;
+        let qk61 = Qk61{};
+        let qk61_vec = Qk611DVec {};
+        let qk61_vec2 = Qk611DVec2 {};
+        let qk61_vec3 = Qk611DVec3 {};
+        let qk61_vec4 = Qk611DVec4 {};
+        let mut results = vec![vec![],vec![],vec![],vec![],vec![]];
+        let mut tot = 0.0;
+        let (mut t1,mut t2, mut t3,mut t4, mut t5) = ( 0.0, 0.0, 0.0,0.0, 0.0);
+
+        for i in 1..max+1 {
+            let time1 = Instant::now();
+            results[1].push(qk61.integrate(&f, a, b));
+            let time2 = Instant::now();
+            //println!("{i} : {:?}",res1);
+            if i > 100 {
+                t1 += (time2 - time1).as_secs_f64();
+                tot += 1.0;
+            }
+        }
+
+        for i in 1..max+1 {
+            let time1 = Instant::now();
+            results[0].push(qk61_vec3.integrate(&f, a, b));
+            let time2 = Instant::now();
+            //println!("{i} : {:?}",res1);
+            if i > 100 {
+                t4 += (time2 - time1).as_secs_f64();
+            }
+        }
+
+
+        for i in 1..max+1 {
+            let time1 = Instant::now();
+            results[2].push(qk61_vec.integrate(&f, a, b));
+            let time2 = Instant::now();
+            //println!("{i} : {:?}",res1);
+            if i > 100 {
+                t2 += (time2 - time1).as_secs_f64();
+            }
+        }
+        for i in 1..max+1 {
+            let time1 = Instant::now();
+            results[3].push(qk61_vec2.integrate(&f, a, b));
+            let time2 = Instant::now();
+            //println!("{i} : {:?}",res1);
+            if i > 100 {
+                t3 += (time2 - time1).as_secs_f64();
+            }
+        }
+        for i in 1..max+1 {
+            let time1 = Instant::now();
+            results[4].push(qk61_vec4.integrate(&f, a, b));
+            let time2 = Instant::now();
+            //println!("{i} : {:?}",res1);
+            if i > 100 {
+                t5 += (time2 - time1).as_secs_f64();
+            }
+        }
+
+        let mut n = 0;
+        for i in 1..max{
+            if results[0][i] == results[1][i] && results[1][i] == results[2][i] && results[2][i] == results[3][i]
+                && results[3][i] == results[4][i] {
+                n += 1;
+            }
+        }
+
+        t1 = t1 / tot;
+        t2 = t2 / tot;
+        t3 = t3 / tot;
+        t4 = t4 / tot;
+        t5 = t5 / tot;
+        let equalres = n as f64 / tot;
+        println!("time v1: {:?}; time v2: {:?}; time v3: {:?}; time v4 : {:?}; time v5 : {:?}; equalres : {equalres}"
+                 , t1, t2,t3,t4,t5);
     }
 
 
     #[test]
-    fn qna_test(){
-        let test : bool = false; // set to true if you want to have the results printed out
+    fn qags_test(){
+        let test : bool = true; // set to true if you want to have the results printed out
+        let sigma : f64 = 2000.0;
+        let pi : f64 = std::f64::consts::PI;
+        let norm = (2.0 * pi).sqrt();
+        let f = |x:f64|  1.0 / (sigma * norm ) * (-0.5 * ( x / sigma).powi(2) ).exp();
+        let f1 = |x:f64| (-x.powi(2)).exp();
+        let f2 = |x:f64| 1.0 / ( 1.0 - x ).sqrt();
+        let a = 0.0;
+        let b = 1.0;
+        let epsabs = 1.0;
+        let epsrel = 0.0;
+        let limit = 100;
+        let key = 2;
+        let npts2 = 3;
+        let qagp = Qagp{limit, npts2, points : vec![0.9] };
+        let qags = Qags{limit};
+        let qag = Qag {key,limit};
+        let time1 = Instant::now();
+        let res = qagp.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
+        let time2 = Instant::now();
+        if test {
+            println!("{:?}",res);
+            println!("time:{:?}",time2-time1);
+        }
+
+
+    }
+
+    #[test]
+    fn qag_test(){
+        let test : bool = true; // set to true if you want to have the results printed out
         let sigma : f64 = 2000.0;
         let pi : f64 = std::f64::consts::PI;
         let norm = (2.0 * pi).sqrt();
         let f = |x:f64|  1.0 / (sigma * norm ) * (-0.5 * ( x / sigma).powi(2) ).exp();
         let f1 = |x:f64| (-x.powi(2)).exp();
         let f2 = |x:f64| 10.0 + x.powi(2) - 10.0 * ( 2.0 * pi * x ).cos();
+        let f2 = |x:f64| x.sin();
         let a = 0.0;
         let b = 1000.0;
-        let epsabs = 0.0;
-        let epsrel = 2.0 * 0.5e-28_f64.max(50.0 * EPMACH);
-        let key = 1;
-        let limit = 100;
+        let epsabs = 1.0e-4;
+        let epsrel = 0.0;
+        let key = 2;
+        let limit = 1000000;
         let qag = Qag {key,limit};
-
+        let qag2 = Qag2{key,limit};
+        let qag_vec = Qag_1dvec {key,limit};
+        let qag_vec2 = Qag_1dvec2 {key,limit};
+        let qag_vec_par = Qag_1dvec_parall {key,limit};
+        let mut vec : Vec<Arc<dyn Fn(f64)->f64 + Send + Sync>> = vec![];
+        vec.push(Arc::new(f2.clone()));
+        let fun = FnVecPa{ components : vec};
+          //    for _i in 0..10{
+          //        let start = Instant::now();
+          //        let res = qag.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
+          //        println!("time 1 : {:?}", start.elapsed());
+          //        let start = Instant::now();
+          //        let res2 = qag2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+          //        println!("time 2 : {:?}", start.elapsed());
+          //        let start = Instant::now();
+          //        let res3 = qag_vec.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+          //        println!("time vec : {:?}", start.elapsed());
+          //        let start = Instant::now();
+          //        let res4 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+          //        println!("time vec 2: {:?}", start.elapsed());
+          //        let start = Instant::now();
+          //        let res5 = qag_vec_par.qintegrate(&fun,a,b,epsabs,epsrel).unwrap();
+          //        println!("time vec par: {:?}", start.elapsed());
+          //    }
+        let start = Instant::now();
         let res = qag.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
+        println!("time 1 : {:?}", start.elapsed());
+        let start = Instant::now();
+        let res2 = qag2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+        println!("time 2 : {:?}", start.elapsed());
+        let start = Instant::now();
+        let res3 = qag_vec.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+        println!("time vec : {:?}", start.elapsed());
+        let start = Instant::now();
+        let res4 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+        println!("time vec 2: {:?}", start.elapsed());
+        let start = Instant::now();
+        let res5 = qag_vec_par.qintegrate(&fun,a,b,epsabs,epsrel).unwrap();
+        println!("time vec par: {:?}", start.elapsed());
         if test {
-            println!("{:?}",res);
+            println!("{:?}",res4.neval);
+            //println!("{:?}",res2.neval);
+            //println!("{:?}",res4.result);
+            //println!("{:?}",res4.abserr);
+            println!("{:?}",res5.neval);
         }
 
 
@@ -90,7 +266,7 @@ mod tests {
 
 
     #[test]
-    fn qngg_test(){
+    fn qagg_test(){
         let test : bool = false; // set to true if you want to have the results printed out
 
 

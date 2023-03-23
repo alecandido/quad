@@ -5,7 +5,7 @@ use crate::qk31::*;
 use crate::qk41::*;
 use crate::qk51::*;
 use crate::qk61::*;
-use crate::qpsrt::*;
+use crate::qsrt2::*;
 use crate::qag_integrator_result::*;
 use crate::quad_integral_method::QuadIntegralMethod;
 use crate::quad_integrator_result::QuadIntegratorResult;
@@ -13,7 +13,7 @@ use crate::result_state::*;
 
 
 #[derive(Clone)]
-pub struct Qag {
+pub struct Qag2 {
     pub key : i32,
     pub limit : usize,
 }
@@ -123,7 +123,7 @@ pub struct Qag {
 
 
 
-impl Qag {
+impl Qag2 {
     pub fn qintegrate(&self, f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64)
                       -> QagIntegratorResult {
 
@@ -282,7 +282,7 @@ impl Qag {
 
                 if a1.abs().max(b2.abs()) <= (1.0 + 100.0 * EPMACH) * (a2.abs() + 1000.0 * UFLOW) {
                     return QagIntegratorResult::new_error(ResultState::BadFunction)
-                     }
+                }
 
                 //           append the newly-created intervals to the list.
             }
@@ -317,7 +317,7 @@ impl Qag {
 
             //  println!("Entering qpsrt with : limit={limit},last={last},maxerr={maxerr},errmax={errmax},\
             //  elist={:?},iord={:?},nrmax={nrmax}",elist,iord);
-            qpsrt(self.limit, last, &mut maxerr, &mut errmax, &elist, &mut iord, &mut nrmax);
+            qpsrt2(self.limit, last, &mut maxerr, &mut errmax, &elist, &mut iord);
             //  println!("Exiting qpsrt with : limit={limit},last={last},maxerr={maxerr},errmax={errmax},\
             //  elist={:?},iord={:?},nrmax={nrmax}",elist,iord);
             if errsum <= errbnd {
@@ -342,7 +342,7 @@ impl Qag {
 }
 
 
-impl QuadIntegralMethod for Qag{
+impl QuadIntegralMethod for Qag2 {
     fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
         QuadIntegratorResult::new_qag( self.qintegrate(f,a,b,epsabs,epsrel))
     }

@@ -1,4 +1,5 @@
 use crate::qag_integrator_result::QagIntegratorResult;
+use crate::qag_1dvec_integrator_result::Qag1DVecIntegratorResult;
 use crate::qng_integrator_result::QngIntegratorResult;
 use crate::quad_integration_result::*;
 use crate::result_state::*;
@@ -35,6 +36,13 @@ impl QuadIntegratorResult{
         Self{
             result_state : integrator_result.result_state,
             integration_result : QuadIntegrationResult::new_qag(integrator_result.integration_result),
+        }
+    }
+
+    pub fn new_qag_vec(integrator_result : Qag1DVecIntegratorResult) -> Self{
+        Self{
+            result_state : integrator_result.result_state,
+            integration_result : QuadIntegrationResult::new_qag_vec(integrator_result.integration_result),
         }
     }
 

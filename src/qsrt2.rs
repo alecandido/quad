@@ -35,13 +35,13 @@
 ///         nrmax   :   i32
 ///                     maxerr = iord[nrmax-1].
 
-pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64, elist :& Vec<f64>,iord : &mut Vec<usize>, nrmax : &mut usize)
-            -> (){
+pub fn qpsrt2(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64, elist :& Vec<f64>,iord : &mut Vec<usize>)
+             -> (){
 
     if last <= 2 {
         iord[0] = 1;
         iord.push(2);
-        *maxerr = iord[*nrmax-1];
+        *maxerr = iord[0];
         *ermax = elist[*maxerr-1];
         return()
     }
@@ -51,7 +51,7 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     //           start after the nrmax-th largest error estimate.
 
     let errmax = elist[*maxerr-1];
-    let mut i_nrmax = *nrmax;
+    let mut i_nrmax = 1;
     let jupbn : usize;
     //  println!("iord pre while: {:?}",iord);
 
@@ -75,14 +75,14 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     //           starting comparison from the element elist(iord(nrmax+1)).
 
     let jbnd = jupbn - 1;
-    let ibeg = *nrmax + 1;
+    let ibeg = 2;
 
     //  println!("jupbn:{jupbn},jbnd:{jbnd},ibeg:{ibeg},errmin:{errmin}");
 
     if ibeg > jbnd {
         iord[jbnd-1] = *maxerr;
         iord.push(last);
-        *maxerr = iord[*nrmax-1];
+        *maxerr = iord[0];
         *ermax = elist[*maxerr-1];
         //  println!("First return");
         return()
@@ -110,7 +110,7 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
     if i_break == 0 {
         iord[jbnd-1] = *maxerr;
         iord.push(last);
-        *maxerr = iord[*nrmax-1];
+        *maxerr = iord[0];
         *ermax = elist[*maxerr-1];
         //  println!("Second return");
         return()
@@ -158,7 +158,7 @@ pub fn qpsrt(limit : usize, last : usize, maxerr : &mut usize, ermax : &mut f64,
         }
     }
 
-    *maxerr = iord[*nrmax-1];
+    *maxerr = iord[0];
     *ermax = elist[*maxerr-1];
 }
 

@@ -90,7 +90,6 @@ impl Qags {
         area = result;
         errsum = abserr;
         erlarg = 0.0;
-        erlast = 0.0;
         small = 0.0;
         correc = 0.0;
         abserr = OFLOW;

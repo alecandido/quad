@@ -1,6 +1,56 @@
+///     Purpose:
+///         The function determines the limit of a given sequence of
+///         approximations, by means of the epsilon algorithm of
+///         p.wynn. An estimate of the absolute error is also given.
+///         The condensed epsilon table is computed. Only those
+///         elements needed for the computation of the next diagonal
+///         are preserved.
+///
+///     Parameters:
+///         n   :   i32
+///                 epstab(n) contains the new element in the
+///                 first column of the epsilon table.
+///
+///         epstab  :   Vec<f64>
+///                     Vector of dimension 52 containing the elements
+///                     of the two lower diagonals of the triangular
+///                     epsilon table. The elements are numbered
+///                     starting at the right-hand corner of the
+///                     triangle.
+///
+///         result  :   f64
+///                     resulting approximation to the integral
+///
+///         abserr  :   f64
+///                     estimate of the absolute error computed from
+///                     result and the 3 previous results
+///
+///         res3la  :   Vec<f64>
+///                     vector of dimension 3 containing the last 3
+///                     results
+///
+///         nres    :   i32
+///                     number of calls to the routine
+///                     (should be zero at first call)
+///
+///     List of major variables:
+///
+///         e0,e1,e2,e3 :   the 4 elements on which the computation of a new
+///                         element in the epsilon table is based
+///                                      e0
+///                                e3    e1    new
+///                                      e2
+///         newelm  :   number of elements to be computed in the new
+///                     diagonal
+///         error   :   error = abs(e1-e0)+abs(e2-e1)+abs(new-e2)
+///         result  :   the element in the new diagonal with least value
+///                     of error
+///
+
 use crate::qk::{EPMACH, OFLOW};
 
 pub fn qelg(n : &mut usize, epstab : &mut Vec<f64>, res3la : &mut Vec<f64>, nres : &mut usize) -> (f64, f64){
+    println!("{n}");
     *nres += 1;
     let mut abserr = OFLOW;
     let mut result = epstab[*n-1];
@@ -37,6 +87,10 @@ pub fn qelg(n : &mut usize, epstab : &mut Vec<f64>, res3la : &mut Vec<f64>, nres
             result = res;
             abserr = err2 + err3;
             abserr = abserr.max(5.0 * EPMACH * result.abs());
+            if *n == limexp-1 {
+                *n = 2 * (limexp / 2) - 2;
+            }
+            print!("convergence is assumed");
             return (result, abserr);
         }
         let e3 = epstab[k1 - 1];
@@ -73,9 +127,10 @@ pub fn qelg(n : &mut usize, epstab : &mut Vec<f64>, res3la : &mut Vec<f64>, nres
 
             //           shift the table.
 
-            if *n == limexp {
-                *n = 2 * (limexp / 2) - 1;
+            if *n == limexp-1 {
+                *n = 2 * (limexp / 2) - 2;
             }
+            print!(",{n}");
             let mut ib = 1;
             if (num / 2) * 2 == num {
                 ib = 2;

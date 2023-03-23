@@ -1,50 +1,53 @@
+use std::time::Instant;
 use crate::qk::*;
 
 pub struct Qk15{}
-
-///           f      : f64
-///                     function
+///     Parameters:
 ///
-///           a      : f64
-///                    lower limit of integration
+///     On entry:
+///         f   :   f64
+///                 function
 ///
-///           b      : f64
-///                    upper limit of integration
+///         a   :   f64
+///                 lower limit of integration
 ///
-///         on return
-///              result : f64
-///                       approximation to the integral i result is computed by applying
-///                       the 15-point kronrod rule (resk) obtained by optimal addition
-///                       of abscissae to the7-point gauss rule(resg).
+///         b   :   f64
+///                 upper limit of integration
 ///
-///              abserr : f64
-///                       estimate of the modulus of the absolute error, which should not
-///                       exceed abs(i-result)
+///     On return:
+///         result  :   f64
+///                     approximation to the integral i result is computed by applying
+///                     the 15-point kronrod rule (resk) obtained by optimal addition
+///                     of abscissae to the7-point gauss rule(resg).
 ///
-///              resabs : f64
-///                       approximation to the integral j
+///         abserr  :   f64
+///                     estimate of the modulus of the absolute error, which should not
+///                     exceed abs(i-result)
 ///
-///              resasc : f64
-///                       approximation to the integral of abs(f-i/(b-a)) over (a,b)
+///         resabs  :   f64
+///                     approximation to the integral j
 ///
-///           The abscissae and weights are given for the interval (-1,1).
-///           Because of symmetry only the positive abscissae and their
-///           corresponding weights are given.
+///         resasc  :   f64
+///                     approximation to the integral of abs(f-i/(b-a)) over (a,b)
 ///
-///           xgk    : abscissae of the 15-point kronrod rule
-///                    xgk(2), xgk(4), ...  abscissae of the 7-point
-///                    gauss rule
-///                    xgk(1), xgk(3), ...  abscissae which are optimally
-///                    added to the 7-point gauss rule
+///     The abscissae and weights are given for the interval (-1,1).
+///     Because of symmetry only the positive abscissae and their
+///     corresponding weights are given.
 ///
-///           wgk    : weights of the 15-point kronrod rule
+///         xgk     :   abscissae of the 15-point kronrod rule
+///                     xgk(2), xgk(4), ...  abscissae of the 7-point
+///                     gauss rule
+///                     xgk(1), xgk(3), ...  abscissae which are optimally
+///                     added to the 7-point gauss rule
 ///
-///           wg     : weights of the 7-point gauss rule
+///         wgk     :   weights of the 15-point kronrod rule
+///
+///         wg      :   weights of the 7-point gauss rule
 ///
 ///
-///           Gauss quadrature weights and kronrod quadrature abscissae and weights
-///           as evaluated with 80 decimal digit arithmetic by l. w. fullerton,
-///           bell labs, nov. 1981.
+///     Gauss quadrature weights and kronrod quadrature abscissae and weights
+///     as evaluated with 80 decimal digit arithmetic by l. w. fullerton,
+///     bell labs, nov. 1981.
 ///
 ///
 ///
@@ -64,12 +67,18 @@ const WG : [f64;4] = [0.129484966168869693270611432679082, 0.2797053914892766679
 
 impl Qk for Qk15{
     fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64,) -> (f64, f64, f64, f64){
+        let start = Instant::now();
         let hlgth : f64 = 0.5*(b-a);
         let dhlgth : f64 = hlgth.abs();
         let centr : f64 = 0.5 * (b+a);
 
+        //println!("first initialization :{:?}", start.elapsed());
+
         let mut fv1 : Vec<f64> = vec![0.0;8];
         let mut fv2 : Vec<f64> = vec![0.0;8];
+
+        //println!("vector initialization :{:?}", start.elapsed());
+
 
         //      compute the 15-point kronrod approximation to
         //      the integral, and estimate the absolute error.
@@ -103,12 +112,19 @@ impl Qk for Qk15{
             resk += WGK[jtwm1-1] * fsum;
             resabs += WGK[jtwm1-1] * (fval1.abs() + fval2.abs());
         }
+
+        //println!("cdot :{:?}", start.elapsed());
+
         let reskh = resk * 0.5;
         let mut resasc = WGK[7] * (fc - reskh).abs();
+
+        //println!("other  initialization :{:?}", start.elapsed());
 
         for j in 1..8{
             resasc += WGK[j-1] * ((fv1[j-1] - reskh).abs() + (fv2[j-1] - reskh).abs());
         }
+
+        //println!("second cdot :{:?}", start.elapsed());
 
         let result = resk * hlgth;
         resabs = resabs * dhlgth;
@@ -120,6 +136,8 @@ impl Qk for Qk15{
         if resabs > UFLOW /(50.0 * EPMACH) {
             abserr = abserr.max((EPMACH * 50.0) * resabs);
         }
+
+        //println!("last computation :{:?}", start.elapsed());
 
         (result,abserr,resabs,resasc)
     }

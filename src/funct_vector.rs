@@ -25,6 +25,26 @@ pub struct FnVecP {
 }
 
 #[derive(Clone)]
+pub struct FnVecPa {
+    pub components : Vec<Arc<dyn Fn(f64)->f64 + Send + Sync>>,
+}
+
+#[derive(Clone)]
+pub struct ResVecPa {
+    pub components : Vec<Arc<Mutex<qage_1dvec::Result>>>,
+}
+impl ResVecPa{
+    pub fn push(&mut self,new_component: Arc<Mutex<qage_1dvec::Result>> ){
+        self.components.push(new_component);
+    }
+    pub fn new_empty() -> Self{
+        Self{components : vec![]}
+    }
+}
+unsafe impl Send for ResVecPa{}
+unsafe impl Sync for ResVecPa{}
+
+#[derive(Clone)]
 pub struct IntVec{
     pub components : Vec<Arc<Mutex<dyn QuadIntegralMethod + Send + Sync>>>
 }

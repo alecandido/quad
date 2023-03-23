@@ -1,50 +1,52 @@
 use crate::qk::*;
 
 pub struct Qk61{}
-
-///           f      : f64
-///                     function
+///     Parameters:
 ///
-///           a      : f64
-///                    lower limit of integration
+///     On entry:
+///         f   :   f64
+///                 function
 ///
-///           b      : f64
-///                    upper limit of integration
+///         a   :   f64
+///                 lower limit of integration
 ///
-///         on return
-///              result : f64
-///                       approximation to the integral i result is computed by applying
-///                       the 61-point kronrod rule (resk) obtained by optimal addition
-///                       of abscissae to the 30-point gauss rule(resg).
+///         b   :   f64
+///                 upper limit of integration
 ///
-///              abserr : f64
-///                       estimate of the modulus of the absolute error, which should not
-///                       exceed abs(i-result)
+///     On return:
+///         result  :   f64
+///                     approximation to the integral i result is computed by applying
+///                     the 61-point kronrod rule (resk) obtained by optimal addition
+///                     of abscissae to the 30-point gauss rule(resg).
 ///
-///              resabs : f64
-///                       approximation to the integral j
+///         abserr  :   f64
+///                     estimate of the modulus of the absolute error, which should not
+///                     exceed abs(i-result)
 ///
-///              resasc : f64
-///                       approximation to the integral of abs(f-i/(b-a)) over (a,b)
+///         resabs  :   f64
+///                     approximation to the integral j
 ///
-///           The abscissae and weights are given for the interval (-1,1).
-///           Because of symmetry only the positive abscissae and their
-///           corresponding weights are given.
+///         resasc  :   f64
+///                     approximation to the integral of abs(f-i/(b-a)) over (a,b)
 ///
-///           xgk    : abscissae of the 61-point kronrod rule
-///                    xgk(2), xgk(4), ...  abscissae of the 30-point
-///                    gauss rule
-///                    xgk(1), xgk(3), ...  abscissae which are optimally
-///                    added to the 30-point gauss rule
+///     The abscissae and weights are given for the interval (-1,1).
+///     Because of symmetry only the positive abscissae and their
+///     corresponding weights are given.
 ///
-///           wgk    : weights of the 61-point kronrod rule
+///         xgk     :   abscissae of the 61-point kronrod rule
+///                     xgk(2), xgk(4), ...  abscissae of the 30-point
+///                     gauss rule
+///                     xgk(1), xgk(3), ...  abscissae which are optimally
+///                     added to the 30-point gauss rule
 ///
-///           wg     : weights of the 30-point gauss rule
+///         wgk     :   weights of the 61-point kronrod rule
+///
+///         wg      :   weights of the 30-point gauss rule
 ///
 ///
-///           Gauss quadrature weights and kronrod quadrature abscissae and weights
-///           as evaluated with 80 decimal digit arithmetic by l. w. fullerton,
-///           bell labs, nov. 1981.
+///     Gauss quadrature weights and kronrod quadrature abscissae and weights
+///     as evaluated with 80 decimal digit arithmetic by l. w. fullerton,
+///     bell labs, nov. 1981.
 ///
 ///
 ///
@@ -99,8 +101,8 @@ impl Qk for Qk61 {
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
 
-        let mut fv1: Vec<f64> = vec![0.0; 30];
-        let mut fv2: Vec<f64> = vec![0.0; 30];
+        let mut fv1 = [0.0; 30];
+        let mut fv2 = [0.0; 30];
 
         //compute the 61-point kronrod approximation to
         //the integral, and estimate the absolute error.

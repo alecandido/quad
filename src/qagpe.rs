@@ -1,3 +1,161 @@
+///     Purpose:
+///         The routine calculates an approximation result to a given
+///         definite integral i = integral of f over (a,b), hopefully
+///         satisfying following claim for accuracy abs(i-result) <=
+///         max(epsabs,epsrel*abs(i)). Break points of the integration
+///         interval, where local difficulties of the integrand may
+///         occur(e.g. singularities,discontinuities),provided by user.
+///
+///     Parameters:
+///
+///     On entry:
+///         f       :   f64
+///                     Integrand function f(x).
+///
+///         a       :   f64
+///                     Lower limit of integration.
+///
+///         b       :   f64
+///                     Upper limit of integration.
+///
+///         npts2   :   i32
+///                     Number equal to two more than the number of
+///                     user-supplied break points within the integration
+///                     range, npts2 >= 2.
+///                     If npts2 < 2, the function will end with error_state = Invalid.
+///
+///         points  :   Vec<f64>
+///                     Vector of dimension npts2, the first (npts2-2)
+///                     elements of which are the user provided break
+///                     points. If these points do not constitute an
+///                     ascending sequence there will be an automatic.
+///                     sorting.
+///
+///         epsabs  :   f64
+///                     Absolute accuracy requested.
+///         epsrel  :   f64
+///                     Relative accuracy requested.
+///                     If  epsabs <= 0 && epsrel < max(50*rel.mach.acc.,0.5d-28),
+///                     the function will end with error_state = Invalid.
+///
+///         limit   :   i32
+///                     Gives an upper bound on the number of subintervals
+///                     in the partition of (a,b), limit >= npts2
+///                     if limit.lt.npts2, the routine will end with
+///                     error_state = Invalid.
+///
+///     On return:
+///         result  :   f64
+///                     Approximation to the integral.
+///
+///         abserr  :   f64
+///                     Estimate of the modulus of the absolute error,
+///                     which should equal or exceed abs(i-result).
+///
+///         neval   :   i32
+///                     Number of integrand evaluations.
+///
+///         error_state :
+///
+///             Success :   normal and reliable termination of the routine. it is assumed that the
+///                         requested accuracy has been achieved.
+///
+///             MaxIteration    :   Maximum number of subdivisions allowed has been achieved.
+///                                 One can allow more subdivisions by increasing the value of
+///                                 limit (and taking the according dimension adjustments into
+///                                 account). However, if this yields no improvement it is advised
+///                                 to analyze the integrand in order to determine the integration
+///                                 difficulties. If the position of a local difficulty can be
+///                                 determined (i.e. singularity,discontinuity within the interval),
+///                                 it should be supplied to the function as an element of the
+///                                 vector points. If necessary an appropriate special-purpose
+///                                 integrator must be used, which is designed for handling the
+///                                 type of difficulty involved.
+///             BadTolerance    :   The occurrence of roundoff error is detected, which prevents
+///                                 the requested tolerance from being achieved.
+///                                 The error may be under-estimated.
+///             BadFunction     :   Extremely bad integrand behaviour occurs at some points of the
+///                                 integration interval.
+///                 = 4 the algorithm does not converge.
+///                     roundoff error is detected in the
+///                     extrapolation table. it is presumed that
+///                     the requested tolerance cannot be
+///                     achieved, and that the returned result is
+///                     the best which can be obtained.
+///                 = 5 the integral is probably divergent, or
+///                     slowly convergent. it must be noted that
+///                     divergence can occur with any other value
+///                     of ier.gt.0.
+///                 = 6 the input is invalid because
+///                     npts2.lt.2 or
+///                     break points are specified outside
+///                     the integration range or
+///                     (epsabs.le.0 and
+///                      epsrel.lt.max(50*rel.mach.acc.,0.5d-28))
+///                     or limit.lt.npts2.
+///                     result, abserr, neval, last, rlist(1),
+///                     and elist(1) are set to zero. alist(1) and
+///                     blist(1) are set to a and b respectively.
+///
+///            alist  - double precision
+///                     vector of dimension at least limit, the first
+///                      last  elements of which are the left end points
+///                     of the subintervals in the partition of the given
+///                     integration range (a,b)
+///
+///            blist  - double precision
+///                     vector of dimension at least limit, the first
+///                      last  elements of which are the right end points
+///                     of the subintervals in the partition of the given
+///                     integration range (a,b)
+///
+///            rlist  - double precision
+///                     vector of dimension at least limit, the first
+///                      last  elements of which are the integral
+///                     approximations on the subintervals
+///
+///            elist  - double precision
+///                     vector of dimension at least limit, the first
+///                      last  elements of which are the moduli of the
+///                     absolute error estimates on the subintervals
+///
+///            pts    - double precision
+///                     vector of dimension at least npts2, containing the
+///                     integration limits and the break points of the
+///                     interval in ascending sequence.
+///
+///            level  - integer
+///                     vector of dimension at least limit, containing the
+///                     subdivision levels of the subinterval, i.e. if
+///                     (aa,bb) is a subinterval of (p1,p2) where p1 as
+///                     well as p2 is a user-provided break point or
+///                     integration limit, then (aa,bb) has level l if
+///                     abs(bb-aa) = abs(p2-p1)*2**(-l).
+///
+///            ndin   - integer
+///                     vector of dimension at least npts2, after first
+///                     integration over the intervals (pts(i)),pts(i+1),
+///                     i = 0,1, ..., npts2-2, the error estimates over
+///                     some of the intervals may have been increased
+///                     artificially, in order to put their subdivision
+///                     forward. if this happens for the subinterval
+///                     numbered k, ndin(k) is put to 1, otherwise
+///                     ndin(k) = 0.
+///
+///            iord   - integer
+///                     vector of dimension at least limit, the first k
+///                     elements of which are pointers to the
+///                     error estimates over the subintervals,
+///                     such that elist(iord(1)), ..., elist(iord(k))
+///                     form a decreasing sequence, with k = last
+///                     if last.le.(limit/2+2), and k = limit+1-last
+///                     otherwise
+///
+///            last   - integer
+///                     number of subintervals actually produced in the
+///                     subdivisions process
+
+
 use crate::qag_integrator_result::QagIntegratorResult;
 use crate::qelg::qelg;
 use crate::qk21::Qk21;
@@ -100,12 +258,8 @@ impl Qagp {
         resabs = 0.0;
         for i in 1..nint+1{
             let b1 = pts[i];
-            let area1 : f64;
-            let error1 : f64;
-            let defabs : f64;
-            let resa : f64;
 
-            (area1, error1, defabs, resa) = qk21.integrate(&f,a1,b1);
+            let (area1, error1, defabs, resa) = qk21.integrate(&f,a1,b1);
             abserr += error1;
             result += area1;
             if error1 == resa && error1 != 0.0 { ndin.push(1); }
@@ -118,6 +272,7 @@ impl Qagp {
             rlist.push(area1);
             iord.push(i);
             a1 = b1;
+            println!("{i} abserr: {abserr}");
         }
 
         let mut errsum = 0.0;
@@ -155,6 +310,7 @@ impl Qagp {
             return QagIntegratorResult::new_error(ResultState::MaxIteration)
         }
                 }
+        println!("abserr:{abserr} errbnd:{errbnd}");
         if abserr <= errbnd {
             result = result * sign;
             return QagIntegratorResult::new(result,abserr,neval,alist,blist,rlist,elist,iord,last)
@@ -200,7 +356,7 @@ impl Qagp {
             let error2: f64;
             let defab1: f64;
             let defab2: f64;
-            let reseps : f64;
+            let reseps: f64;
             let abseps : f64;
 
             (area1,error1,_,defab1) = qk21.integrate(f,a1,b1);
@@ -244,9 +400,9 @@ impl Qagp {
             //           set error flag in the case of bad integrand behaviour
             //           at a point of the integration range.
 
-            if a1.abs().max(b2.abs()) <= (1.0 + 100.0 * EPMACH) * (a2.abs() + 1000.0 * UFLOW) {
-                return QagIntegratorResult::new_error(ResultState::BadFunction)
-            }
+            //if a1.abs().max(b2.abs()) <= (1.0 + 100.0 * EPMACH) * (a2.abs() + 1000.0 * UFLOW) {
+            //    return QagIntegratorResult::new_error(ResultState::BadFunction)
+            //}
             if iroff2 >= 5 {
                 ierro = 3;
             }
@@ -308,9 +464,8 @@ impl Qagp {
             }
             //          perform extrapolation.
             numrl2 += 1;
-            // if numrl2 == last { rlist2.push(area); } !!!!!!!!!!!!
-            //  rlist2(numrl2) = area !!!!!!!!!!1
-            rlist2.push(area);
+            if numrl2 - 1 == rlist2.len()  { rlist2.push(area); }
+            else { rlist2[numrl2-1] = area ;}
             let mut epstab = rlist2.clone();
             while epstab.len() < 52{
                 epstab.push(0.0);
@@ -321,7 +476,7 @@ impl Qagp {
                 if ktmin > 5 && abserr < 0.001 * errsum {
                     return QagIntegratorResult::new_error(ResultState::Diverge)
                 }
-                if abseps >= abserr {// go to 70
+                if abseps >= abserr {
                     ktmin = 0;
                     abserr = abseps;
                     result = reseps;
