@@ -190,7 +190,7 @@ impl Qag_1dvec_parall {
 
         let mut area = Arc::new(Mutex::new(result));
         let mut errsum = Arc::new(Mutex::new(abserr));
-        let mut errbnd = Arc::new(Mutex::new((errbnd)));
+        let mut errbnd = Arc::new(Mutex::new(errbnd));
         let mut iroff1 = Arc::new(Mutex::new(0));
         let mut iroff2 = Arc::new(Mutex::new(0));
         let mut neval = Arc::new(Mutex::new(0));

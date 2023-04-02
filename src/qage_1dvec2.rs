@@ -288,7 +288,7 @@ impl Qag_1dvec2 {
                     }
 
 
-                    result_list[k] = (Result::new(a1, b1, area1, error1));
+                    result_list[k] = Result::new(a1, b1, area1, error1);
                     result_list.push(Result::new(a2, b2, area2, error2));
                 }
             }

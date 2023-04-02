@@ -1,3 +1,4 @@
+#![feature(portable_simd)]
 extern crate nalgebra as na;
 extern crate core;
 
@@ -35,16 +36,29 @@ pub mod qk15_1dvec;
 pub mod qk61_1dvec;
 pub mod qk61_1dvec2;
 pub mod qk61_1dvec3;
-mod qk61_1dvec4;
-mod qsrt2;
-mod qage2;
-mod qage_1dvec;
-mod qag_1dvec_integration_result;
-mod qag_1dvec_integrator_result;
-mod qage_1dvec2;
-mod qage_1dvec_parall;
-mod qag_1dvec_parall_integration_result;
-mod qag_1dvec_parall_integrator_result;
+pub mod qk61_1dvec4;
+pub mod qsrt2;
+pub mod qage2;
+pub mod qage_1dvec;
+pub mod qag_1dvec_integration_result;
+pub mod qag_1dvec_integrator_result;
+pub mod qage_1dvec2;
+pub mod qage_1dvec_parall;
+pub mod qag_1dvec_parall_integration_result;
+pub mod qag_1dvec_parall_integrator_result;
+pub mod qage_vec;
+mod qag_vec_integration_result;
+mod qag_vec_integrator_result;
+mod qk61_vec;
+mod qk61_1dvec_simd;
+mod qk61_vec_simd_faster;
+mod qage_4vec_simd;
+mod qk61_4vec_simd;
+mod qag_vec4_integration_result;
+mod qag_vec4_integrator_result;
+mod qk21_1dvec_simd;
+mod qk21_3vec_simd;
+
 
 use functions::*;
 use integral_method::*;

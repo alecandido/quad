@@ -1,8 +1,9 @@
 use std::iter::zip;
+use std::simd::{Simd, SimdFloat};
 use std::time::Instant;
 use crate::qk::*;
 
-pub struct Qk611DVec3 {}
+pub struct Qk611DVec_Simd {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -53,7 +54,8 @@ pub struct Qk611DVec3 {}
 ///
 ///
 
-const XGK : [f64;61] = [-0.999484410050490637571325895705811, -0.996893484074649540271630050918695,
+
+const XGK: Simd<f64,64> = Simd::from_array([-0.999484410050490637571325895705811, -0.996893484074649540271630050918695,
     -0.991630996870404594858628366109486, -0.983668123279747209970032581605663,
     -0.973116322501126268374693868423707, -0.960021864968307512216871025581798,
     -0.944374444748559979415831324037439, -0.926200047429274325879324277080474,
@@ -83,9 +85,10 @@ const XGK : [f64;61] = [-0.999484410050490637571325895705811, -0.996893484074649
     0.944374444748559979415831324037439, 0.960021864968307512216871025581798,
     0.973116322501126268374693868423707, 0.983668123279747209970032581605663,
     0.991630996870404594858628366109486, 0.996893484074649540271630050918695,
-    0.999484410050490637571325895705811];
+    0.999484410050490637571325895705811, 0.0, 0.0, 0.0]);
 
-const WGK : [f64;61] = [0.001389013698677007624551591226760, 0.003890461127099884051267201844516,
+
+const WGK: Simd<f64,64> = Simd::from_array([0.001389013698677007624551591226760, 0.003890461127099884051267201844516,
     0.006630703915931292173319826369750, 0.009273279659517763428441146892024,
     0.011823015253496341742232898853251, 0.014369729507045804812451432443580,
     0.016920889189053272627572289420322, 0.019414141193942381173408951050128,
@@ -115,9 +118,9 @@ const WGK : [f64;61] = [0.001389013698677007624551591226760, 0.00389046112709988
     0.016920889189053272627572289420322, 0.014369729507045804812451432443580,
     0.011823015253496341742232898853251, 0.009273279659517763428441146892024,
     0.006630703915931292173319826369750, 0.003890461127099884051267201844516,
-    0.001389013698677007624551591226760];
+    0.001389013698677007624551591226760, 0.0, 0.0, 0.0]);
 
-const WG :  [f64;61] = [0.0, 0.007968192496166605615465883474674, 0.0, 0.018466468311090959142302131912047,
+const WG: Simd<f64,64> = Simd::from_array([0.0, 0.007968192496166605615465883474674, 0.0, 0.018466468311090959142302131912047,
     0.0, 0.028784707883323369349719179611292, 0.0, 0.038799192569627049596801936446348,
     0.0, 0.048402672830594052902938140422808, 0.0, 0.057493156217619066481721689402056,
     0.0, 0.065974229882180495128128515115962, 0.0, 0.073755974737705206268243850022191,
@@ -132,57 +135,26 @@ const WG :  [f64;61] = [0.0, 0.007968192496166605615465883474674, 0.0, 0.0184664
     0.0, 0.065974229882180495128128515115962, 0.0, 0.057493156217619066481721689402056,
     0.0, 0.048402672830594052902938140422808, 0.0, 0.038799192569627049596801936446348,
     0.0, 0.028784707883323369349719179611292, 0.0, 0.018466468311090959142302131912047,
-    0.0, 0.007968192496166605615465883474674, 0.0];
-
-const WG2 :  [f64;31] = [0.007968192496166605615465883474674, 0.018466468311090959142302131912047,
-      0.028784707883323369349719179611292,  0.038799192569627049596801936446348,
-      0.048402672830594052902938140422808,  0.057493156217619066481721689402056,
-      0.065974229882180495128128515115962,  0.073755974737705206268243850022191,
-      0.080755895229420215354694938460530,  0.086899787201082979802387530715126,
-      0.092122522237786128717632707087619,  0.096368737174644259639468626351810,
-      0.099593420586795267062780282103569,  0.101762389748405504596428952168554,
-      0.102852652893558840341285636705415,  0.0,
-      0.102852652893558840341285636705415,  0.101762389748405504596428952168554,
-      0.099593420586795267062780282103569,  0.096368737174644259639468626351810,
-      0.092122522237786128717632707087619,  0.086899787201082979802387530715126,
-      0.080755895229420215354694938460530,  0.073755974737705206268243850022191,
-      0.065974229882180495128128515115962,  0.057493156217619066481721689402056,
-      0.048402672830594052902938140422808,  0.038799192569627049596801936446348,
-      0.028784707883323369349719179611292,  0.018466468311090959142302131912047,
-      0.007968192496166605615465883474674];
+    0.0, 0.007968192496166605615465883474674, 0.0, 0.0, 0.0, 0.0]);
 
 
 
-impl Qk for Qk611DVec3 {
+
+
+
+impl Qk for Qk611DVec_Simd {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
 
-        //let g = |x:f64| f(centr + hlgth * x);
-        //let fv = XGK.map( |x| f(centr + hlgth * x) );
-
-        let fv = fvec(f,centr,hlgth);
-        //let resk = scalar_product(&WGK,&fv);
-        //let mut resabs = scalar_product_abs(&WGK,&fv);
-        //let mut resabs = scalar_product(&WGK,&abs_vec(&fv));
-
-        //let (resk, mut resabs) = scalar_products2(&fv);
-
-        let (resk, mut resabs,resg) = scalar_products3(&fv);
-
-
-        //let resg = scalar_product2(&WG,&fv);
-        //let resg = scalar_product(&WG,&fv);
-        //let resg = scalar_product3(&WG2,&fv);
-
-
+        let fv = fvec_simd(f, centr, hlgth);
+        let resk = (fv * WGK).reduce_sum();
         let reskh = resk * 0.5;
-        //let reskh_vec = [reskh;61];
-        //let lv = vec_difference_abs(&fv,&reskh_vec );
-
-        //let mut resasc = scalar_product(&WGK,&lv);
-        let mut resasc = scalar_product_diff_abs(&fv,reskh,&WGK);
+        let reskhs = Simd::from_array([reskh;64]);
+        let mut resabs = (fv.abs() * WGK).reduce_sum();
+        let resg = ( fv * WG).reduce_sum();
+        let mut resasc = ( WGK * ( fv - reskhs).abs()).reduce_sum();
 
         let result = resk * hlgth;
         resabs = resabs * dhlgth;
@@ -200,123 +172,59 @@ impl Qk for Qk611DVec3 {
 }
 
 
-pub fn fvec(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> [f64;61]{
-        [f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
-         f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
-         f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
-         f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
-         f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
-         f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
-         f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
-         f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
-         f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
-         f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
-         f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
-         f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
-         f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
-         f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
-         f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
-         f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
-         f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
-         f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
-         f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
-         f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
-         f(centr + hlgth * XGK[60])]
+pub fn fvec_simd(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> Simd<f64,64>{
+    Simd::from_array([f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
+        f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
+        f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
+        f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
+        f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
+        f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
+        f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
+        f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
+        f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
+        f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
+        f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
+        f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
+        f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
+        f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
+        f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
+        f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
+        f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
+        f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
+        f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
+        f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
+        f(centr + hlgth * XGK[60]), 0.0, 0.0, 0.0])
 }
 
 
-pub fn scalar_product(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for (i,j) in zip(v,w){
-        sum += i * j;
-    }
-    sum
-}
+#[cfg(test)]
+mod tests {
+    use std::simd::Simd;
+    use std::time::Instant;
+    use crate::qk61::Qk61;
+    use crate::qk61_1dvec3::Qk611DVec3;
+    use crate::qk61_1dvec_simd::Qk611DVec_Simd;
+    use crate::qk::Qk;
 
-pub fn scalar_products(v: &[f64], w: &[f64]) -> (f64,f64){
-    let (mut sum, mut sumabs) = (0.0,0.0);
-    for (i,j) in zip(v,w){
-        sum += i * j;
-        sumabs += (i * j).abs();
-    }
-    (sum,sumabs)
-}
+    #[test]
+    fn test(){
+        let f = |x:f64| x.cos();
+        let a = 0.0;
+        let b = 1000.0;
+        let qks = Qk611DVec_Simd{};
+        let qk = Qk61{};
 
-pub fn scalar_products2(w: &[f64]) -> (f64,f64){
-    let (mut sum, mut sumneg) = (0.0,0.0);
-    for (i,j) in zip(&WGK, w){
-        sum += i * j;
-        if i * j < 0.0 {
-            sumneg += i * j;
+        for k in 0..10 {
+            let start = Instant::now();
+            let res2 = qk.integrate(&f, a, b);
+            println!("normal {:?}", start.elapsed());
+            let start = Instant::now();
+            let res1 = qks.integrate(&f, a, b);
+            println!("simd {:?}", start.elapsed());
         }
-    }
-    (sum,sum - 2.0 * sumneg)
-}
+       //println!("{:?}",res1);
+       //println!("{:?}",res1);
 
-pub fn scalar_products3(w: &[f64]) -> (f64,f64,f64){
-    let (mut sum, mut sumneg,mut sum2) = (0.0,0.0,0.0);
-    //let mut n = 0;
-    for (i,j) in zip(zip(&WGK, w),&WG){
-        sum += i.0 * i.1;
-        if i.0 * i.1 < 0.0 {
-            sumneg += i.0 * i.1;
-        }
-        if *j != 0.0 {
-        //if n % 2 == 1{
-            sum2 += i.1 * j;
-        }
-        //n += 1;
 
     }
-    (sum,sum - 2.0 * sumneg,sum2)
-}
-
-
-pub fn scalar_product2(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for i in 0..v.len()/2+1{
-        sum += v[2*i] * w[2*i];
-    }
-    sum
-}
-
-pub fn scalar_product3(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for (i,j) in zip(v,w.iter().step_by(2)){
-        sum += i * j;
-    }
-    sum
-}
-
-
-pub fn scalar_product_abs(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for i in 0..v.len(){
-        sum += v[i] * w[i].abs();
-    }
-    sum
-}
-
-pub fn scalar_product_diff_abs(v: &[f64], w: f64, z: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for i in 0..v.len(){
-        sum += z[i] * ( v[i] - w).abs();
-    }
-    sum
-}
-
-pub fn abs_vec( v : &[f64]) -> [f64;61]{
-    let mut abs_vec = [0.0;61];
-    for i in 0..v.len(){
-        abs_vec[i] = v[i].abs();
-    }
-    abs_vec
-}
-
-pub fn vec_difference_abs( v : &[f64], w : &[f64]) -> [f64;61]{
-    let mut vec_difference = [0.0;61];
-    for i in 0..v.len(){
-        vec_difference[i] = ( v[i] - w[i] ).abs();
-    }
-    vec_difference
 }

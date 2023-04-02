@@ -15,6 +15,14 @@ pub struct FnVec {
     pub components : Vec<Box<dyn Fn(f64)->f64 + Send + Sync >>,
 }
 
+pub struct FnVec4 {
+    pub components : [Box<dyn Fn(f64)->f64 + Send + Sync>;4]
+}
+
+pub struct FnVec3 {
+    pub components : [Box<dyn Fn(f64)->f64 + Send + Sync>;3]
+}
+
 pub struct FnVecRayon {
     pub components : Vec<Box<dyn Fn(f64)->f64 + Send + Sync >>,
 }

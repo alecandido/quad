@@ -1,8 +1,9 @@
 use std::iter::zip;
 use std::time::Instant;
+use crate::funct_vector::FnVec;
 use crate::qk::*;
 
-pub struct Qk611DVec3 {}
+pub struct Qk61Vec {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -135,166 +136,97 @@ const WG :  [f64;61] = [0.0, 0.007968192496166605615465883474674, 0.0, 0.0184664
     0.0, 0.007968192496166605615465883474674, 0.0];
 
 const WG2 :  [f64;31] = [0.007968192496166605615465883474674, 0.018466468311090959142302131912047,
-      0.028784707883323369349719179611292,  0.038799192569627049596801936446348,
-      0.048402672830594052902938140422808,  0.057493156217619066481721689402056,
-      0.065974229882180495128128515115962,  0.073755974737705206268243850022191,
-      0.080755895229420215354694938460530,  0.086899787201082979802387530715126,
-      0.092122522237786128717632707087619,  0.096368737174644259639468626351810,
-      0.099593420586795267062780282103569,  0.101762389748405504596428952168554,
-      0.102852652893558840341285636705415,  0.0,
-      0.102852652893558840341285636705415,  0.101762389748405504596428952168554,
-      0.099593420586795267062780282103569,  0.096368737174644259639468626351810,
-      0.092122522237786128717632707087619,  0.086899787201082979802387530715126,
-      0.080755895229420215354694938460530,  0.073755974737705206268243850022191,
-      0.065974229882180495128128515115962,  0.057493156217619066481721689402056,
-      0.048402672830594052902938140422808,  0.038799192569627049596801936446348,
-      0.028784707883323369349719179611292,  0.018466468311090959142302131912047,
-      0.007968192496166605615465883474674];
+    0.028784707883323369349719179611292,  0.038799192569627049596801936446348,
+    0.048402672830594052902938140422808,  0.057493156217619066481721689402056,
+    0.065974229882180495128128515115962,  0.073755974737705206268243850022191,
+    0.080755895229420215354694938460530,  0.086899787201082979802387530715126,
+    0.092122522237786128717632707087619,  0.096368737174644259639468626351810,
+    0.099593420586795267062780282103569,  0.101762389748405504596428952168554,
+    0.102852652893558840341285636705415,  0.0,
+    0.102852652893558840341285636705415,  0.101762389748405504596428952168554,
+    0.099593420586795267062780282103569,  0.096368737174644259639468626351810,
+    0.092122522237786128717632707087619,  0.086899787201082979802387530715126,
+    0.080755895229420215354694938460530,  0.073755974737705206268243850022191,
+    0.065974229882180495128128515115962,  0.057493156217619066481721689402056,
+    0.048402672830594052902938140422808,  0.038799192569627049596801936446348,
+    0.028784707883323369349719179611292,  0.018466468311090959142302131912047,
+    0.007968192496166605615465883474674];
 
 
 
-impl Qk for Qk611DVec3 {
-    fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
+impl QkVec for Qk61Vec {
+    fn integrate(&self, fun: &FnVec, a: f64, b: f64, ) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
+        let (mut result_vec,mut abserr_vec,mut resabs_vec,mut resasc_vec) =
+            (vec![],vec![],vec![],vec![]);
+        for f in &fun.components {
+            let fv = fvec(f, centr, hlgth);
+            let (resk, mut resabs, resg) = scalar_products3(&fv);
+            let reskh = resk * 0.5;
+            let mut resasc = scalar_product_diff_abs(&fv, reskh, &WGK);
+            let result = resk * hlgth;
+            resabs = resabs * dhlgth;
+            resasc = resasc * dhlgth;
+            let mut abserr = ((resk - resg) * hlgth).abs();
 
-        //let g = |x:f64| f(centr + hlgth * x);
-        //let fv = XGK.map( |x| f(centr + hlgth * x) );
+            if resasc != 0.0 && abserr != 0.0 {
+                abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
+            }
+            if resabs > UFLOW / (50.0 * EPMACH) {
+                abserr = abserr.max((EPMACH * 50.0) * resabs);
+            }
 
-        let fv = fvec(f,centr,hlgth);
-        //let resk = scalar_product(&WGK,&fv);
-        //let mut resabs = scalar_product_abs(&WGK,&fv);
-        //let mut resabs = scalar_product(&WGK,&abs_vec(&fv));
-
-        //let (resk, mut resabs) = scalar_products2(&fv);
-
-        let (resk, mut resabs,resg) = scalar_products3(&fv);
-
-
-        //let resg = scalar_product2(&WG,&fv);
-        //let resg = scalar_product(&WG,&fv);
-        //let resg = scalar_product3(&WG2,&fv);
-
-
-        let reskh = resk * 0.5;
-        //let reskh_vec = [reskh;61];
-        //let lv = vec_difference_abs(&fv,&reskh_vec );
-
-        //let mut resasc = scalar_product(&WGK,&lv);
-        let mut resasc = scalar_product_diff_abs(&fv,reskh,&WGK);
-
-        let result = resk * hlgth;
-        resabs = resabs * dhlgth;
-        resasc = resasc * dhlgth;
-        let mut abserr = ((resk - resg) * hlgth).abs();
-        if resasc != 0.0 && abserr != 0.0 {
-            abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
+            result_vec.push(result);
+            abserr_vec.push(abserr);
+            resabs_vec.push(resabs);
+            resasc_vec.push(resasc);
         }
-        if resabs > UFLOW / (50.0 * EPMACH) {
-            abserr = abserr.max((EPMACH * 50.0) * resabs);
-        }
-
-        (result, abserr, resabs, resasc)
+        (result_vec,abserr_vec,resabs_vec,resasc_vec)
     }
 }
 
 
-pub fn fvec(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> [f64;61]{
-        [f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
-         f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
-         f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
-         f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
-         f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
-         f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
-         f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
-         f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
-         f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
-         f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
-         f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
-         f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
-         f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
-         f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
-         f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
-         f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
-         f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
-         f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
-         f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
-         f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
-         f(centr + hlgth * XGK[60])]
+pub fn fvec(f : &Box<dyn Fn(f64)->f64 + Send + Sync>, centr : f64, hlgth : f64) -> [f64;61]{
+    [f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
+        f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
+        f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
+        f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
+        f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
+        f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
+        f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
+        f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
+        f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
+        f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
+        f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
+        f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
+        f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
+        f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
+        f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
+        f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
+        f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
+        f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
+        f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
+        f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
+        f(centr + hlgth * XGK[60])]
 }
 
 
-pub fn scalar_product(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for (i,j) in zip(v,w){
-        sum += i * j;
-    }
-    sum
-}
-
-pub fn scalar_products(v: &[f64], w: &[f64]) -> (f64,f64){
-    let (mut sum, mut sumabs) = (0.0,0.0);
-    for (i,j) in zip(v,w){
-        sum += i * j;
-        sumabs += (i * j).abs();
-    }
-    (sum,sumabs)
-}
-
-pub fn scalar_products2(w: &[f64]) -> (f64,f64){
-    let (mut sum, mut sumneg) = (0.0,0.0);
-    for (i,j) in zip(&WGK, w){
-        sum += i * j;
-        if i * j < 0.0 {
-            sumneg += i * j;
-        }
-    }
-    (sum,sum - 2.0 * sumneg)
-}
 
 pub fn scalar_products3(w: &[f64]) -> (f64,f64,f64){
     let (mut sum, mut sumneg,mut sum2) = (0.0,0.0,0.0);
-    //let mut n = 0;
     for (i,j) in zip(zip(&WGK, w),&WG){
         sum += i.0 * i.1;
         if i.0 * i.1 < 0.0 {
             sumneg += i.0 * i.1;
         }
         if *j != 0.0 {
-        //if n % 2 == 1{
             sum2 += i.1 * j;
         }
-        //n += 1;
 
     }
     (sum,sum - 2.0 * sumneg,sum2)
-}
-
-
-pub fn scalar_product2(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for i in 0..v.len()/2+1{
-        sum += v[2*i] * w[2*i];
-    }
-    sum
-}
-
-pub fn scalar_product3(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for (i,j) in zip(v,w.iter().step_by(2)){
-        sum += i * j;
-    }
-    sum
-}
-
-
-pub fn scalar_product_abs(v: &[f64], w: &[f64]) -> f64{
-    let mut sum = 0.0;
-    for i in 0..v.len(){
-        sum += v[i] * w[i].abs();
-    }
-    sum
 }
 
 pub fn scalar_product_diff_abs(v: &[f64], w: f64, z: &[f64]) -> f64{
@@ -303,20 +235,4 @@ pub fn scalar_product_diff_abs(v: &[f64], w: f64, z: &[f64]) -> f64{
         sum += z[i] * ( v[i] - w).abs();
     }
     sum
-}
-
-pub fn abs_vec( v : &[f64]) -> [f64;61]{
-    let mut abs_vec = [0.0;61];
-    for i in 0..v.len(){
-        abs_vec[i] = v[i].abs();
-    }
-    abs_vec
-}
-
-pub fn vec_difference_abs( v : &[f64], w : &[f64]) -> [f64;61]{
-    let mut vec_difference = [0.0;61];
-    for i in 0..v.len(){
-        vec_difference[i] = ( v[i] - w[i] ).abs();
-    }
-    vec_difference
 }
