@@ -1,7 +1,9 @@
 use std::time::Instant;
+use cblas::daxpy;
 use crate::qk::*;
+use cblas::ddot;
 
-pub struct Qk611DVec2 {}
+pub struct Qk61Blas {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -116,80 +118,94 @@ const WGK : [f64;61] = [0.001389013698677007624551591226760, 0.00389046112709988
     0.006630703915931292173319826369750, 0.003890461127099884051267201844516,
     0.001389013698677007624551591226760];
 
-const WG :  [f64;61] = [0.0, 0.007968192496166605615465883474674, 0.0, 0.018466468311090959142302131912047,
-    0.0, 0.028784707883323369349719179611292, 0.0, 0.038799192569627049596801936446348,
-    0.0, 0.048402672830594052902938140422808, 0.0, 0.057493156217619066481721689402056,
-    0.0, 0.065974229882180495128128515115962, 0.0, 0.073755974737705206268243850022191,
-    0.0, 0.080755895229420215354694938460530, 0.0, 0.086899787201082979802387530715126,
-    0.0, 0.092122522237786128717632707087619, 0.0, 0.096368737174644259639468626351810,
-    0.0, 0.099593420586795267062780282103569, 0.0, 0.101762389748405504596428952168554,
-    0.0, 0.102852652893558840341285636705415, 0.0,
-    0.102852652893558840341285636705415, 0.0, 0.101762389748405504596428952168554,
-    0.0, 0.099593420586795267062780282103569, 0.0, 0.096368737174644259639468626351810,
-    0.0, 0.092122522237786128717632707087619, 0.0, 0.086899787201082979802387530715126,
-    0.0, 0.080755895229420215354694938460530, 0.0, 0.073755974737705206268243850022191,
-    0.0, 0.065974229882180495128128515115962, 0.0, 0.057493156217619066481721689402056,
-    0.0, 0.048402672830594052902938140422808, 0.0, 0.038799192569627049596801936446348,
-    0.0, 0.028784707883323369349719179611292, 0.0, 0.018466468311090959142302131912047,
-    0.0, 0.007968192496166605615465883474674, 0.0];
+const WG :  [f64;30] = [0.007968192496166605615465883474674, 0.018466468311090959142302131912047,
+    0.028784707883323369349719179611292, 0.038799192569627049596801936446348,
+    0.048402672830594052902938140422808, 0.057493156217619066481721689402056,
+    0.065974229882180495128128515115962, 0.073755974737705206268243850022191,
+    0.080755895229420215354694938460530, 0.086899787201082979802387530715126,
+    0.092122522237786128717632707087619, 0.096368737174644259639468626351810,
+    0.099593420586795267062780282103569, 0.101762389748405504596428952168554,
+    0.102852652893558840341285636705415,
+    0.102852652893558840341285636705415, 0.101762389748405504596428952168554,
+    0.099593420586795267062780282103569,  0.096368737174644259639468626351810,
+    0.092122522237786128717632707087619,  0.086899787201082979802387530715126,
+    0.080755895229420215354694938460530,  0.073755974737705206268243850022191,
+    0.065974229882180495128128515115962,  0.057493156217619066481721689402056,
+    0.048402672830594052902938140422808,  0.038799192569627049596801936446348,
+    0.028784707883323369349719179611292,  0.018466468311090959142302131912047,
+    0.007968192496166605615465883474674];
 
 
-impl Qk for Qk611DVec2 {
-    fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
+impl Qk61Blas {
+    pub fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
+        unsafe{
+            let hlgth : f64 = 0.5*(b-a);
+            let dhlgth : f64 = hlgth.abs();
+            let centr : f64 = 0.5 * (b+a);
 
-        let hlgth : f64 = 0.5*(b-a);
-        let dhlgth : f64 = hlgth.abs();
-        let centr : f64 = 0.5 * (b+a);
+            let mut fv = fvec(f,centr,hlgth);
+            let resk = ddot(61,&fv,1,&WGK,1);
+            let resg = ddot(30,&fv,2,&WG,1);
+            //let mut resabs = ddot(&VectorF64::from_slice(&abs_vec(&fv)).unwrap(),&VectorF64::from_slice(&WGK).unwrap()).1;
+            //let resg = ddot(&VectorF64::from_slice(&fv).unwrap(),&VectorF64::from_slice(&WG).unwrap()).1;
 
-        let fv = fvec(f,centr,hlgth);
-        let resk = scalar_product(&WGK,&fv);
-        let mut resabs = scalar_product(&WGK,&abs_vec(&fv));
-        let resg = scalar_product(&WG,&fv);
 
-        let reskh = resk * 0.5;
-        let reskh_vec = vec![reskh;61];
-        let lv = vec_difference_abs(&fv,&reskh_vec );
+            //let resk = scalar_product(&WGK,&fv);
+            //let mut resabs = scalar_product(&WGK,&abs_vec(&fv));
+            //let resg = scalar_product(&WG,&fv);
 
-        let mut resasc = scalar_product(&WGK,&lv);
+            let reskh = resk * 0.5;
+            let mut reskh_vec = [reskh;61];
+            daxpy(61,-1.0,&fv,1,&mut reskh_vec,1);
+            abs_vec(&mut reskh_vec);
+            let mut resasc = ddot(61,&reskh_vec,1,&WGK,1);
 
-        let result = resk * hlgth;
-        resabs = resabs * dhlgth;
-        resasc = resasc * dhlgth;
-        let mut abserr = ((resk - resg) * hlgth).abs();
-        if resasc != 0.0 && abserr != 0.0 {
-            abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
-        }
-        if resabs > UFLOW / (50.0 * EPMACH) {
-            abserr = abserr.max((EPMACH * 50.0) * resabs);
-        }
+            abs_vec(&mut fv);
+            let mut resabs = ddot(61,&fv,1,&WGK,1);
 
-        (result, abserr, resabs, resasc)
+            //let lv = abs_vec(&reskh_vec);
+            //let lv = vec_difference_abs(&fv,&reskh_vec );
+            //let mut resasc = scalar_product(&WGK,&lv);
+
+            let result = resk * hlgth;
+            resabs = resabs * dhlgth;
+            resasc = resasc * dhlgth;
+            let mut abserr = ((resk - resg) * hlgth).abs();
+            if resasc != 0.0 && abserr != 0.0 {
+                abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
+            }
+            if resabs > UFLOW / (50.0 * EPMACH) {
+                abserr = abserr.max((EPMACH * 50.0) * resabs);
+            }
+
+            (result, abserr, resabs, resasc)
+    }
     }
 }
 
 
-pub fn fvec(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> Vec<f64>{
-    vec![f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
-        f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
-        f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
-        f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
-        f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
-        f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
-        f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
-        f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
-        f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
-        f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
-        f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
-        f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
-        f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
-        f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
-        f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
-        f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
-        f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
-        f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
-        f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
-        f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
-        f(centr + hlgth * XGK[60])]
+pub fn fvec(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> [f64;61]{
+    [f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
+         f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
+         f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
+         f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
+         f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
+         f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
+         f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
+         f(centr + hlgth * XGK[21]), f(centr + hlgth * XGK[22]), f(centr + hlgth * XGK[23]),
+         f(centr + hlgth * XGK[24]), f(centr + hlgth * XGK[25]),f(centr + hlgth * XGK[26]),
+         f(centr + hlgth * XGK[27]), f(centr + hlgth * XGK[28]), f(centr + hlgth * XGK[29]),
+         f(centr + hlgth * XGK[30]), f(centr + hlgth * XGK[31]), f(centr + hlgth * XGK[32]),
+         f(centr + hlgth * XGK[33]), f(centr + hlgth * XGK[34]), f(centr + hlgth * XGK[35]),
+         f(centr + hlgth * XGK[36]), f(centr + hlgth * XGK[37]), f(centr + hlgth * XGK[38]),
+         f(centr + hlgth * XGK[39]), f(centr + hlgth * XGK[40]),f(centr + hlgth * XGK[41]),
+         f(centr + hlgth * XGK[42]), f(centr + hlgth * XGK[43]), f(centr + hlgth * XGK[44]),
+         f(centr + hlgth * XGK[45]), f(centr + hlgth * XGK[46]), f(centr + hlgth * XGK[47]),
+         f(centr + hlgth * XGK[48]), f(centr + hlgth * XGK[49]), f(centr + hlgth * XGK[50]),
+         f(centr + hlgth * XGK[51]), f(centr + hlgth * XGK[52]), f(centr + hlgth * XGK[53]),
+         f(centr + hlgth * XGK[54]), f(centr + hlgth * XGK[55]),f(centr + hlgth * XGK[56]),
+         f(centr + hlgth * XGK[57]), f(centr + hlgth * XGK[58]), f(centr + hlgth * XGK[59]),
+         f(centr + hlgth * XGK[60])]
 }
 
 pub fn scalar_product(v: &[f64], w: &[f64]) -> f64{
@@ -200,18 +216,28 @@ pub fn scalar_product(v: &[f64], w: &[f64]) -> f64{
     sum
 }
 
-pub fn abs_vec( v : &[f64]) -> Vec<f64>{
-    let mut abs_vec = vec![0.0;v.len()];
-    for i in 0..v.len(){
-        abs_vec[i] = v[i].abs();
+pub fn abs_vec( v : &mut [f64]) {
+    for k in v{
+        if *k < 0.0 {
+         *k = - *k;
+        }
     }
-    abs_vec
 }
 
-pub fn vec_difference_abs( v : &[f64], w : &[f64]) -> Vec<f64>{
-    let mut vec_difference = vec![0.0;v.len()];
+pub fn vec_difference_abs( v : &[f64], w : &[f64]) -> [f64;61]{
+    let mut vec_difference = [0.0;61];
     for i in 0..v.len(){
         vec_difference[i] = ( v[i] - w[i] ).abs();
     }
     vec_difference
 }
+
+/*
+pub fn abs_vec( v : &[f64]) -> [f64;61]{
+    let mut abs_vec = [0.0;61];
+    for i in 0..61{
+        abs_vec[i] = v[i].abs();
+    }
+    abs_vec
+}
+ */
