@@ -3,7 +3,7 @@ use std::simd::{Simd, SimdFloat};
 use std::time::Instant;
 use crate::qk::*;
 
-pub struct Qk611DVec_Simd {}
+pub struct Qk61Simd {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -142,7 +142,7 @@ const WG: Simd<f64,64> = Simd::from_array([0.0, 0.007968192496166605615465883474
 
 
 
-impl Qk for Qk611DVec_Simd {
+impl Qk for Qk61Simd {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
@@ -203,27 +203,30 @@ mod tests {
     use std::time::Instant;
     use crate::qk61::Qk61;
     use crate::qk61_1dvec3::Qk611DVec3;
-    use crate::qk61_1dvec_simd::Qk611DVec_Simd;
+    use crate::qk61_simd::Qk61Simd;
     use crate::qk::Qk;
 
     #[test]
     fn test(){
-        let f = |x:f64| x.cos();
+        let f = |x:f64| x.sin();
         let a = 0.0;
-        let b = 1000.0;
-        let qks = Qk611DVec_Simd{};
+        let b = 1.0;
+        let qks = Qk61Simd {};
         let qk = Qk61{};
 
-        for k in 0..10 {
+        let mut res2 = (0.0,0.0,0.0,0.0);
+        let mut res1 = res2.clone();
+
+        for k in 0..100 {
             let start = Instant::now();
-            let res2 = qk.integrate(&f, a, b);
+            res2 = qk.integrate(&f, a, b);
             println!("normal {:?}", start.elapsed());
             let start = Instant::now();
-            let res1 = qks.integrate(&f, a, b);
+            res1 = qks.integrate(&f, a, b);
             println!("simd {:?}", start.elapsed());
         }
-       //println!("{:?}",res1);
-       //println!("{:?}",res1);
+        println!("{:?}",res1);
+        println!("{:?}",res2);
 
 
     }

@@ -143,7 +143,7 @@ const WG: Simd<f64,64> = Simd::from_array([0.0, 0.007968192496166605615465883474
 
 
 impl Qk611DVec_Simd {
-    fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
+    pub fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);

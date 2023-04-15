@@ -1,24 +1,28 @@
-use crate::qk::*;
-use crate::qk15::*;
-use crate::qk21::*;
-use crate::qk31::*;
-use crate::qk41::*;
-use crate::qk51::*;
-use crate::qk61::*;
-use crate::qsrt2::*;
 use crate::qag_1dvec_integrator_result::Qag1DVecIntegratorResult;
-use crate::quad_integral_method::QuadIntegralMethod;
-use crate::quad_integrator_result::QuadIntegratorResult;
-use crate::result_state::*;
-use crate::qage_1dvec::*;
-use crate::qk21_simd::Qk21Simd;
-use crate::qk61_simd::Qk61Simd;
+use crate::qk::*;
+use crate::qk21_simd::Qk211DVec_Simd;
+use crate::qk61_simd::Qk611DVec_Simd;
+use crate::result_state::ResultState;
 
 
 #[derive(Clone)]
 pub struct Qag_1dvec2 {
     pub key : i32,
     pub limit : usize,
+}
+
+#[derive(Clone,Debug)]
+pub struct Result {
+    pub a : f64,
+    pub b : f64,
+    pub result : f64,
+    pub error : f64,
+}
+
+impl Result{
+    pub fn new(a : f64, b : f64, result : f64, error : f64) -> Self{
+        Self{a,b,result,error}
+    }
 }
 
 ///           f      : f64
@@ -145,11 +149,11 @@ impl Qag_1dvec2 {
 
 
         //let qk15 = Qk15 {};
-        let qk21 = Qk21Simd {};
+        let qk21 = Qk211DVec_Simd {};
         //let qk31 = Qk31 {};
         //let qk41 = Qk41 {};
         //let qk51 = Qk51 {};
-        let qk61 = Qk61Simd {};
+        let qk61 = Qk611DVec_Simd {};
 
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
@@ -292,14 +296,10 @@ impl Qag_1dvec2 {
 
                     result_list[k] = Result::new(a1, b1, area1, error1);
                     result_list.push(Result::new(a2, b2, area2, error2));
-
-                    if errsum <= errbnd {
-                        break
-                    }
                 }
             }
 
-            //  result_list.sort_by(|a,b| b.error.total_cmp(&a.error));
+            //result_list.sort_by(|a,b| b.error.total_cmp(&a.error));
             last += new_interval;
 
             if errsum <= errbnd {
@@ -325,9 +325,80 @@ impl Qag_1dvec2 {
 }
 
 
-impl QuadIntegralMethod for Qag_1dvec2 {
-    fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
-        QuadIntegratorResult::new_qag_vec( self.qintegrate(f,a,b,epsabs,epsrel))
+//  impl QuadIntegralMethod for Qag_1dvec2 {
+//      fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
+//          QuadIntegratorResult::new_qag_vec( self.qintegrate(f,a,b,epsabs,epsrel))
+//      }
+//  }
+
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+    use std::time::Instant;
+    use rgsl::GaussKronrodRule::{Gauss21, Gauss61};
+    use rgsl::IntegrationWorkspace;
+    use crate::funct_vector::FnPa;
+    use crate::qage_1dvec2::Qag_1dvec2;
+    use crate::qage_1dvec_parall_8thread::Qag_1dvec_parall_8thread;
+
+    #[test]
+    fn test(){
+        unsafe{
+            let f = |x:f64| x.sin() * x.cos() + x.sin() + x.cos();
+            let a = 0.0;
+            let b = 1000000.0;
+            let key = 6;
+            let limit = 10000000;
+            let epsabs = 1.0e3;
+            let epsrel = 0.0;
+            let max = 15;
+            let my_qag = Qag_1dvec2{key,limit};
+            let my_qag_par = Qag_1dvec_parall_8thread{key,limit};
+
+            let (mut t1,mut t2,mut t3) = (0.0,0.0,0.0);
+
+            let mut rgsl_res;
+            let mut my_res;
+            let mut my_res_par;
+            let fun = FnPa{ components : Arc::new(f.clone())};
+
+            for k in 0..max {
+                let rgsl_qag = IntegrationWorkspace::new(limit);
+                let start = Instant::now();
+                rgsl_res = rgsl_qag.expect("REASON").qag(f,a,b,epsabs,epsrel,limit,Gauss61);
+                if k > 10 { t1 += start.elapsed().as_secs_f64();}
+                let start = Instant::now();
+                my_res = my_qag.qintegrate(&f,a,b,epsabs,epsrel);
+                if k > 10 { t2 += start.elapsed().as_secs_f64();}
+                let start = Instant::now();
+                my_res_par = my_qag_par.qintegrate(&fun,a,b,epsabs,epsrel);
+                if k > 10 { t3 += start.elapsed().as_secs_f64();}
+
+
+                if k == max-1{
+                    println!("rgsl {:?}",rgsl_res);
+                    println!("my : {:?},{:?}, last : {:?}",my_res.integration_result.result,
+                             my_res.integration_result.abserr,my_res.integration_result.last);
+                    println!("my parallel: {:?},{:?}, last : {:?}",my_res_par.integration_result.result,
+                             my_res_par.integration_result.abserr,my_res_par.integration_result.last);
+                }
+
+
+            }
+
+            t1 = t1 / ( max as f64 - 10.0);
+            t2 = t2 / ( max as f64 - 10.0);
+            t3 = t3 / ( max as f64 - 10.0);
+
+            println!("rgsl time : {t1} ; my vec time : {t2} ; my parall time: {t3}");
+
+
+
+        }
+
     }
+
+
 }
 

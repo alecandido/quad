@@ -50,14 +50,23 @@ pub mod qage_vec;
 mod qag_vec_integration_result;
 mod qag_vec_integrator_result;
 mod qk61_vec;
-mod qk61_1dvec_simd;
+mod qk61_simd;
 mod qk61_vec_simd_faster;
 mod qage_4vec_simd;
 mod qk61_4vec_simd;
 mod qag_vec4_integration_result;
 mod qag_vec4_integrator_result;
-mod qk21_1dvec_simd;
+mod qk21_simd;
 mod qk21_3vec_simd;
+mod qage_1dvec_parall2;
+mod qage_1dvec_parall3;
+mod qage_1dvec_parall_2thread;
+mod qage_1dvec_parall_4thread;
+mod qage_1dvec_parall_8thread;
+mod qk51_simd;
+mod qk41_simd;
+mod qk15_simd;
+mod qk31_simd;
 
 
 use functions::*;
@@ -84,7 +93,12 @@ mod tests {
     use crate::qage2::Qag2;
     use crate::qage_1dvec2::Qag_1dvec2;
     use crate::qage_1dvec::Qag_1dvec;
+    use crate::qage_1dvec_parall2::Qag_1dvec_parall2;
+    use crate::qage_1dvec_parall3::Qag_1dvec_parall3;
     use crate::qage_1dvec_parall::Qag_1dvec_parall;
+    use crate::qage_1dvec_parall_2thread::Qag_1dvec_parall_2thread;
+    use crate::qage_1dvec_parall_4thread::Qag_1dvec_parall_4thread;
+    use crate::qage_1dvec_parall_8thread::Qag_1dvec_parall_8thread;
     use crate::qagpe::Qagp;
     use crate::qagse::Qags;
     use crate::qk15::Qk15;
@@ -223,57 +237,61 @@ mod tests {
         let f2 = |x:f64| x.sin();
         let a = 0.0;
         let b = 1000.0;
-        let epsabs = 1.0e-4;
+        let epsabs = 1.0e-8;
         let epsrel = 0.0;
         let key = 2;
-        let limit = 1000000;
+        let limit = 10000000;
+        let max = 100;
         let qag = Qag {key,limit};
         let qag2 = Qag2{key,limit};
         let qag_vec = Qag_1dvec {key,limit};
         let qag_vec2 = Qag_1dvec2 {key,limit};
-        let qag_vec_par = Qag_1dvec_parall {key,limit};
+        let qag_parall_2thread = Qag_1dvec_parall_2thread {key,limit};
+        let qag_parall_4thread = Qag_1dvec_parall_4thread {key,limit};
+        let qag_parall_8thread = Qag_1dvec_parall_8thread {key,limit};
+        let qag_vec_par2 = Qag_1dvec_parall2{key,limit};
         let mut vec : Vec<Arc<dyn Fn(f64)->f64 + Send + Sync>> = vec![];
+        let (mut t1,mut t2,mut t3) = (0.0,0.0,0.0);
+        let (mut t4, mut t5) = (0.0,0.0);
+
+
+
         vec.push(Arc::new(f2.clone()));
         let fun = FnVecPa{ components : vec};
-          //    for _i in 0..10{
-          //        let start = Instant::now();
-          //        let res = qag.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
-          //        println!("time 1 : {:?}", start.elapsed());
-          //        let start = Instant::now();
-          //        let res2 = qag2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-          //        println!("time 2 : {:?}", start.elapsed());
-          //        let start = Instant::now();
-          //        let res3 = qag_vec.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-          //        println!("time vec : {:?}", start.elapsed());
-          //        let start = Instant::now();
-          //        let res4 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-          //        println!("time vec 2: {:?}", start.elapsed());
-          //        let start = Instant::now();
-          //        let res5 = qag_vec_par.qintegrate(&fun,a,b,epsabs,epsrel).unwrap();
-          //        println!("time vec par: {:?}", start.elapsed());
-          //    }
-        let start = Instant::now();
-        let res = qag.qintegrate(&f2, a, b, epsabs, epsrel).unwrap();
-        println!("time 1 : {:?}", start.elapsed());
-        let start = Instant::now();
-        let res2 = qag2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-        println!("time 2 : {:?}", start.elapsed());
-        let start = Instant::now();
-        let res3 = qag_vec.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-        println!("time vec : {:?}", start.elapsed());
-        let start = Instant::now();
-        let res4 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
-        println!("time vec 2: {:?}", start.elapsed());
-        let start = Instant::now();
-        let res5 = qag_vec_par.qintegrate(&fun,a,b,epsabs,epsrel).unwrap();
-        println!("time vec par: {:?}", start.elapsed());
-        if test {
-            println!("{:?}",res4.neval);
-            //println!("{:?}",res2.neval);
-            //println!("{:?}",res4.result);
-            //println!("{:?}",res4.abserr);
-            println!("{:?}",res5.neval);
-        }
+        let fun2 = FnPa{ components : Arc::new(f2.clone())};
+              for i in 0..max{
+                  let start = Instant::now();
+                  let res = qag_parall_8thread.qintegrate(&fun2, a, b, epsabs, epsrel).unwrap();
+                  if i > 10 { t5 += start.elapsed().as_secs_f64();}
+                  let start = Instant::now();
+                  let res2 = qag_vec_par2.qintegrate(&fun,a,b,epsabs,epsrel).unwrap();
+                  if i > 10 { t1 += start.elapsed().as_secs_f64();}
+                  let start = Instant::now();
+                  let res3 = qag_parall_4thread.qintegrate(&fun2,a,b,epsabs,epsrel).unwrap();
+                  if i > 10 { t4 += start.elapsed().as_secs_f64();}
+                  let start = Instant::now();
+                  let res4 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel).unwrap();
+                  if i > 10 { t2 += start.elapsed().as_secs_f64();}
+                  let start = Instant::now();
+                  let res5 = qag_parall_2thread.qintegrate(&fun2, a, b, epsabs, epsrel).unwrap();
+                  if i > 10 { t3 += start.elapsed().as_secs_f64();}
+                  if test && i == max-1 {
+                      println!("{:?}",res4.neval);
+                      println!("{:?}",res2.neval);
+                      //println!("{:?}",res4.result);
+                      //println!("{:?}",res4.abserr);
+                      println!("{:?}",res5.neval);
+                  }
+              }
+        t1 = t1 / ( max as f64 - 10.0);
+        t2 = t2 / ( max as f64 - 10.0);
+        t3 = t3 / ( max as f64 - 10.0);
+        t4 = t4 / ( max as f64 - 10.0);
+        t5 = t5 / ( max as f64 - 10.0);
+
+
+        println!("best vec : {t2}; 2thread parall : {t3}; rayon parall : {t1}; 4thread parall : {t4};\
+        8thread parall : {t5}");
 
 
     }

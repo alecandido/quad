@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::qk::*;
 
 
-pub struct Qk211DVec_Simd {}
+pub struct Qk21Simd {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -90,7 +90,7 @@ const WG: Simd<f64,32> = Simd::from_array([0.0, 0.066671344308688137593568809893
 
 
 
-impl Qk for Qk211DVec_Simd {
+impl Qk for Qk21Simd {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
@@ -136,7 +136,7 @@ pub fn fvec_simd(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> Simd<f64,32
 mod tests {
     use std::time::Instant;
     use crate::qk21::Qk21;
-    use crate::qk21_1dvec_simd::Qk211DVec_Simd;
+    use crate::qk21_simd::Qk21Simd;
     use crate::qk::Qk;
 
     #[test]
@@ -144,19 +144,22 @@ mod tests {
         let f = |x:f64| x.sin();
         let a = 0.0;
         let b = 1.0;
-        let qks = Qk211DVec_Simd{};
+        let qks = Qk21Simd {};
         let qk = Qk21{};
 
-        for k in 0..10000 {
+        let mut res2 = (0.0,0.0,0.0,0.0);
+        let mut res1 = res2.clone();
+
+        for k in 0..100 {
             let start = Instant::now();
-            let res2 = qk.integrate(&f, a, b);
+            res2 = qk.integrate(&f, a, b);
             println!("normal {:?}", start.elapsed());
             let start = Instant::now();
-            let res1 = qks.integrate(&f, a, b);
+            res1 = qks.integrate(&f, a, b);
             println!("simd {:?}", start.elapsed());
         }
-        //println!("{:?}",res1);
-        //println!("{:?}",res1);
+        println!("{:?}",res1);
+        println!("{:?}",res2);
     }
 }
 

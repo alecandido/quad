@@ -199,7 +199,7 @@ mod tests {
     use std::time::Instant;
     use crate::qk61::Qk61;
     use crate::qk61_1dvec3::Qk611DVec3;
-    use crate::qk61_1dvec_simd::Qk611DVec_Simd;
+    use crate::qk61_simd::Qk61Simd;
     use crate::qk::Qk;
 
     #[test]
@@ -207,7 +207,7 @@ mod tests {
         let f = |x:f64| x.cos();
         let a = 0.0;
         let b = 1.0;
-        let qks = Qk611DVec_Simd{};
+        let qks = Qk61Simd {};
         let qk = Qk61{};
 
         for k in 0..100 {

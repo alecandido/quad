@@ -240,7 +240,7 @@ mod tests {
     use std::time::Instant;
     use crate::funct_vector::FnVec3;
     use crate::qk21::Qk21;
-    use crate::qk21_1dvec_simd::Qk211DVec_Simd;
+    use crate::qk21_simd::Qk21Simd;
     use crate::qk21_3vec_simd::Qk21Vec3_Simd;
     use crate::qk::Qk;
 
@@ -250,7 +250,7 @@ mod tests {
         let a = 0.0;
         let b = 1.0;
         let qks = Qk21Vec3_Simd{};
-        let qk = Qk211DVec_Simd{};
+        let qk = Qk21Simd {};
         let fun = FnVec3{ components : [Box::new(f),Box::new(f),Box::new(f)]};
 
         for k in 0..10000 {

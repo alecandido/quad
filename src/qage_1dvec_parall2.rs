@@ -16,7 +16,7 @@ use crate::qk61_simd::Qk61Simd;
 
 
 #[derive(Clone)]
-pub struct Qag_1dvec_parall {
+pub struct Qag_1dvec_parall2 {
     pub key : i32,
     pub limit : usize,
 }
@@ -126,7 +126,7 @@ pub struct Qag_1dvec_parall {
 
 
 
-impl Qag_1dvec_parall {
+impl Qag_1dvec_parall2 {
     pub fn qintegrate(&self, fun : &FnVecPa , a : f64, b : f64, epsabs : f64, epsrel : f64)
                       -> Qag1DVecParIntegratorResult {
 
@@ -184,9 +184,9 @@ impl Qag_1dvec_parall {
         }
 
 
-        let mut area = Arc::new(Mutex::new(result));
-        let mut errsum = Arc::new(Mutex::new(abserr));
-        let mut errbnd = Arc::new(Mutex::new(errbnd));
+        let mut area = result;
+        let mut errsum = abserr;
+        let mut errbnd = errbnd;
         let mut iroff1 = Arc::new(Mutex::new(0));
         let mut iroff2 = Arc::new(Mutex::new(0));
         let mut neval = Arc::new(Mutex::new(0));
@@ -213,17 +213,12 @@ impl Qag_1dvec_parall {
                 let qk61 = Arc::new(Qk61Simd {});
 
                 for component in &result_list {
-                    let area_lock = area.lock().unwrap();
-                    let area_temp = *area_lock;
-                    drop(area_lock);
                     let mut comp = component.inner.lock().unwrap();
-                    //let mut component = component.clone();
 
-                    if comp.error > epsabs.max(epsrel * area_temp.abs()) / last as f64 {
+                    if comp.error > epsabs.max(epsrel * area.abs()) / last as f64 {
                         let mut new_interval = Arc::clone(&new_interval);
-                        let mut area = Arc::clone(&area);
-                        let mut errsum = Arc::clone(&errsum);
-                        let mut errbnd = Arc::clone(&errbnd);
+                        let mut area = area.clone();
+                        let mut errsum = errsum.clone();
                         let mut iroff1 = Arc::clone(&iroff1);
                         let mut iroff2 = Arc::clone(&iroff2);
                         let mut neval = Arc::clone(&neval);
@@ -312,18 +307,10 @@ impl Qag_1dvec_parall {
                             drop(neval);
 
 
-                            let mut errsum = errsum.lock().unwrap();
-                            *errsum += erro12 - component.error;
-                            let errsum_temp = *errsum;
-                            drop(errsum);
+                            errsum += erro12 - component.error;
+                            area += area12 - component.result;
+                            let errbnd = epsabs.max(epsrel * area.abs());
 
-                            let mut area = area.lock().unwrap();
-                            *area += area12 - component.result;
-                            let mut errbnd = errbnd.lock().unwrap();
-                            *errbnd = epsabs.max(epsrel * area.abs());
-                            drop(area);
-                            let errbnd_temp = *errbnd;
-                            drop(errbnd);
 
 
                             //  let mut iroff11 = iroff1.lock().unwrap();
@@ -352,7 +339,7 @@ impl Qag_1dvec_parall {
                             }
 
 
-                            if errsum_temp > errbnd_temp {
+                            if errsum > errbnd {
 
                                 //           test for roundoff error.
 
@@ -373,7 +360,7 @@ impl Qag_1dvec_parall {
                                     let mut max_iteration = max_iteration.lock().unwrap();
                                     *max_iteration += 1;
                                     return ()
-                                        //QagVecIntegratorResult::new_error(ResultState::MaxIteration)
+                                    //QagVecIntegratorResult::new_error(ResultState::MaxIteration)
                                 }
 
                                 //           set error flag in the case of bad integrand behaviour
@@ -383,7 +370,7 @@ impl Qag_1dvec_parall {
                                     let mut bad_function = bad_function.lock().unwrap();
                                     *bad_function += 1;
                                     return ()
-                                        //QagVecIntegratorResult::new_error(ResultState::BadFunction)
+                                    //QagVecIntegratorResult::new_error(ResultState::BadFunction)
                                 }
 
                                 //           append the newly-created intervals to the list.
@@ -393,9 +380,9 @@ impl Qag_1dvec_parall {
                             let mut new_contributes = new_contributes.lock().unwrap();
                             new_contributes.push(ArcResult::new(a2, b2, area2, error2));
 
-                              if errsum_temp <= errbnd_temp {
-                                  *break_flag.lock().unwrap() += 1;
-                              }
+                            if errsum <= errbnd {
+                                *break_flag.lock().unwrap() += 1;
+                            }
                         });
                     }
 
@@ -416,24 +403,26 @@ impl Qag_1dvec_parall {
             //result_list.sort_by(|a,b| b.inner.lock().unwrap().error.total_cmp(&a.inner.lock().unwrap().error));
             last += *new_interval;
 
-            let errsum = errsum.lock().unwrap();
-            let errbnd = errbnd.lock().unwrap();
+            (area, errsum, errbnd) = (0.0,0.0,0.0);
+            for k in &result_list{
+                area += k.inner.lock().unwrap().result;
+                errsum += k.inner.lock().unwrap().error;
+            }
+
+            errbnd = epsabs.max(epsrel * area.abs());
 
 
-            if *errsum <= *errbnd {
+
+            if errsum <= errbnd {
                 break
             }
         }
         //           compute final result.
 
-        let mut result = 0.0;
-        for k in &result_list {
-            result += k.inner.lock().unwrap().result;
-        }
+        let mut result = area;
 
-        let mut errsum = errsum.lock().unwrap();
         let mut neval = neval.lock().unwrap();
-        abserr = *errsum;
+        abserr = errsum;
 
 
         if keyf != 1 { *neval = (10 * keyf + 1) * (2 * *neval + 1); }

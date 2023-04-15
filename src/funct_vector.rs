@@ -38,6 +38,11 @@ pub struct FnVecPa {
 }
 
 #[derive(Clone)]
+pub struct FnPa {
+    pub components : Arc<dyn Fn(f64)->f64 + Send + Sync>,
+}
+
+#[derive(Clone)]
 pub struct ResVecPa {
     pub components : Vec<Arc<Mutex<qage_1dvec::Result>>>,
 }
