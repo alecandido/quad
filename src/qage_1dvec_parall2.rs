@@ -258,7 +258,7 @@ impl Qag_1dvec_parall2 {
                             let defab2: f64;
 
                             //let qk15 = Qk15 {};
-                            //let qk21 = Qk21Simd{};
+                            //let qk21 = Qk21Simd2{};
                             //let qk31 = Qk31 {};
                             //let qk41 = Qk41 {};
                             //let qk51 = Qk51 {};

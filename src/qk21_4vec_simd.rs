@@ -1,12 +1,26 @@
 use std::simd::{f64x4, Simd, SimdFloat};
 use crate::funct_vector::FnVec4;
 use crate::qk::*;
-use crate::qk61_simd::*;
+use crate::qk21_simd::*;
 
-pub struct Qk61Vec4Simd {}
+pub struct Qk21Vec4Simd {}
 
-impl Qk61Vec4Simd {
+impl Qk21Vec4Simd {
     pub(crate) fn integrate(&self, fun: &FnVec4, a: f64, b: f64, ) -> (Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, ) {
+        let qk21 = Qk21Simd{};
+        let mut result = [0.0;4];
+        let mut abserr = [0.0;4];
+        let mut resabs = [0.0;4];
+        let mut resasc = [0.0;4];
+
+        for k in 0..4{
+            (result[k],abserr[k],resabs[k],resasc[k]) = qk21.integrate(&fun.components[k],a,b);
+        }
+
+        (Simd::from_array(result), Simd::from_array(abserr),
+         Simd::from_array(resabs), Simd::from_array(resasc))
+    }
+    pub(crate) fn integrate2(&self, fun: &FnVec4, a: f64, b: f64, ) -> (Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, ) {
         let hlgth = f64x4::splat(0.5 * (b - a));
         let dhlgth = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
@@ -21,7 +35,7 @@ impl Qk61Vec4Simd {
             let fv = fvec_simd(&fun.components[k], centr, hlgth[k]);
             resk[k] = (fv * WGK).reduce_sum();
             let reskh = resk[k] * 0.5;
-            let reskhs = Simd::from_array([reskh; 64]);
+            let reskhs = Simd::from_array([reskh; 32]);
             resabs[k] = (fv.abs() * WGK).reduce_sum();
             resg[k] = (fv * WG).reduce_sum();
             resasc[k] = (WGK * (fv - reskhs).abs()).reduce_sum();
@@ -49,6 +63,9 @@ impl Qk61Vec4Simd {
 mod tests {
     use std::time::Instant;
     use crate::funct_vector::FnVec4;
+    use crate::qk21_4vec_simd::Qk21Vec4Simd;
+    use crate::qk21_simd::Qk21Simd;
+    use crate::qk41_simd::Qk41Simd;
     use crate::qk61::Qk61;
     use crate::qk61_1dvec3::Qk611DVec3;
     use crate::qk61_simd::Qk61Simd;
@@ -61,8 +78,8 @@ mod tests {
 
         let a = 0.0;
         let b = 1.0;
-        let qks = Qk61Vec4Simd{};
-        let qk = Qk61Simd {};
+        let qks = Qk21Vec4Simd {};
+        let qk = Qk21Simd {};
         let fun = FnVec4{ components : [Box::new(f),Box::new(f),Box::new(f),Box::new(f)]};
 
         for k in 0..100 {
@@ -75,37 +92,11 @@ mod tests {
             let start = Instant::now();
             let res_simd = qks.integrate(&fun, a, b);
             println!("simd {:?}", start.elapsed());
+            let start = Instant::now();
+            let res_simd2 = qks.integrate2(&fun, a, b);
+            println!("simd2 {:?}", start.elapsed());
         }
         //println!("{:?}",res1);
         //println!("{:?}",res1);
     }
 }
-
-/*
-
-pub(crate) fn integrate(&self, fun: &FnVec4, a: f64, b: f64, ) -> (Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, Simd<f64, 4>, ) {
-    let qk61_1d = Qk61Simd2 {};
-    /*
-    let (mut result_vec,mut abserr_vec,mut resabs_vec,mut resasc_vec) =
-        ([0.0;4],[0.0;4],[0.0;4],[0.0;4]);
-    for k in 0..4 {
-        (result_vec[k], abserr_vec[k], resabs_vec[k], resasc_vec[k]) = qk61_1d.integrate(&fun.components[k],a,b);
-    }
-    (Simd::from_array(result_vec),Simd::from_array(abserr_vec),
-     Simd::from_array(resabs_vec),Simd::from_array(resasc_vec))
-      */
-
-    let (mut result_vec, mut abserr_vec, mut resabs_vec, mut resasc_vec) =
-        (f64x4::splat(0.0), f64x4::splat(0.0), f64x4::splat(0.0), f64x4::splat(0.0));
-    (result_vec[0], abserr_vec[0], resabs_vec[0], resasc_vec[0]) =
-        qk61_1d.integrate(&fun.components[0], a, b);
-    (result_vec[1], abserr_vec[1], resabs_vec[1], resasc_vec[1]) =
-        qk61_1d.integrate(&fun.components[1], a, b);
-    (result_vec[2], abserr_vec[2], resabs_vec[2], resasc_vec[2]) =
-        qk61_1d.integrate(&fun.components[2], a, b);
-    (result_vec[3], abserr_vec[3], resabs_vec[3], resasc_vec[3]) =
-        qk61_1d.integrate(&fun.components[3], a, b);
-    (result_vec, abserr_vec, resabs_vec, resasc_vec)
-}
-
- */

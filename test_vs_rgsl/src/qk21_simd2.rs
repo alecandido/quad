@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::qk::*;
 
 
-pub struct Qk211DVec_Simd {}
+pub struct Qk21Simd2 {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -56,7 +56,7 @@ pub struct Qk211DVec_Simd {}
 ///
 
 
-const XGK: Simd<f64,32> = Simd::from_array([-0.995657163025808080735527280689003, -0.973906528517171720077964012084452,
+pub const XGK: [f64;21] = [-0.995657163025808080735527280689003, -0.973906528517171720077964012084452,
     -0.930157491355708226001207180059508, -0.865063366688984510732096688423493,
     -0.780817726586416897063717578345042, -0.679409568299024406234327365114874,
     -0.562757134668604683339000099272694, -0.433395394129247190799265943165784,
@@ -66,43 +66,48 @@ const XGK: Simd<f64,32> = Simd::from_array([-0.995657163025808080735527280689003
     0.562757134668604683339000099272694, 0.679409568299024406234327365114874,
     0.780817726586416897063717578345042, 0.865063366688984510732096688423493,
     0.930157491355708226001207180059508, 0.973906528517171720077964012084452,
-    0.995657163025808080735527280689003, 0.0 , 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    0.995657163025808080735527280689003];
 
 
-const WGK: Simd<f64,32> = Simd::from_array([0.011694638867371874278064396062192, 0.032558162307964727478818972459390,
+pub const WGK1: Simd<f64,16> = Simd::from_array([0.011694638867371874278064396062192, 0.032558162307964727478818972459390,
     0.054755896574351996031381300244580, 0.075039674810919952767043140916190,
     0.093125454583697605535065465083366, 0.109387158802297641899210590325805,
     0.123491976262065851077958109831074, 0.134709217311473325928054001771707,
     0.142775938577060080797094273138717, 0.147739104901338491374841515972068,
     0.149445554002916905664936468389821, 0.147739104901338491374841515972068,
     0.142775938577060080797094273138717, 0.134709217311473325928054001771707,
-    0.123491976262065851077958109831074, 0.109387158802297641899210590325805,
-    0.093125454583697605535065465083366, 0.075039674810919952767043140916190,
-    0.054755896574351996031381300244580, 0.032558162307964727478818972459390,
-    0.011694638867371874278064396062192,  0.0 , 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    0.123491976262065851077958109831074, 0.109387158802297641899210590325805]);
 
-const WG: Simd<f64,32> = Simd::from_array([0.0, 0.066671344308688137593568809893332, 0.0, 0.149451349150580593145776339657697,
+pub const WGK2: Simd<f64,4> = Simd::from_array([0.093125454583697605535065465083366, 0.075039674810919952767043140916190,
+    0.054755896574351996031381300244580, 0.032558162307964727478818972459390]);
+
+pub const WGK3 : f64 = 0.011694638867371874278064396062192;
+
+
+pub const WG1: Simd<f64,16> = Simd::from_array([0.0, 0.066671344308688137593568809893332, 0.0, 0.149451349150580593145776339657697,
     0.0, 0.219086362515982043995534934228163, 0.0, 0.269266719309996355091226921569469,
     0.0, 0.295524224714752870173892994651338, 0.0, 0.295524224714752870173892994651338,
-    0.0, 0.269266719309996355091226921569469, 0.0, 0.219086362515982043995534934228163,
-    0.0, 0.149451349150580593145776339657697, 0.0, 0.066671344308688137593568809893332,
-    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]);
+    0.0, 0.269266719309996355091226921569469, 0.0, 0.219086362515982043995534934228163]);
+
+pub const WG2: Simd<f64,4> = Simd::from_array(
+    [0.0, 0.149451349150580593145776339657697, 0.0, 0.066671344308688137593568809893332]);
 
 
 
-impl Qk for Qk211DVec_Simd {
+impl Qk for Qk21Simd2 {
     fn integrate(&self, f: &dyn Fn(f64) -> f64, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
 
-        let fv = fvec_simd(f, centr, hlgth);
-        let resk = (fv * WGK).reduce_sum();
+        let (fv1,fv2,fv3) = fvec_simd(f, centr, hlgth);
+        let resk = (fv1 * WGK1).reduce_sum() + ( fv2 * WGK2).reduce_sum() + fv3 * WGK3;
         let reskh = resk * 0.5;
-        let reskhs = Simd::from_array([reskh;32]);
-        let mut resabs = (fv.abs() * WGK).reduce_sum();
-        let resg = ( fv * WG).reduce_sum();
-        let mut resasc = ( WGK * ( fv - reskhs).abs()).reduce_sum();
+        let (reskhs1,reskhs2) = (Simd::from_array([reskh;16]),Simd::from_array([reskh;4]));
+        let mut resabs = (fv1.abs() * WGK1).reduce_sum() + ( fv2.abs() * WGK2).reduce_sum() + fv3.abs() * WGK3;
+        let resg = (fv1 * WG1).reduce_sum() + ( fv2 * WG2).reduce_sum();
+        let mut resasc = ( WGK1 * ( fv1 - reskhs1).abs()).reduce_sum() +
+            ( WGK2 * ( fv2 - reskhs2).abs()).reduce_sum() + ( WGK3 * ( fv3 - reskh).abs());
 
         let result = resk * hlgth;
         resabs = resabs * dhlgth;
@@ -120,53 +125,19 @@ impl Qk for Qk211DVec_Simd {
 }
 
 
-pub fn fvec_simd(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> Simd<f64,32>{
-    Simd::from_array([f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
+pub fn fvec_simd(f : &dyn Fn(f64)->f64, centr : f64, hlgth : f64) -> (Simd<f64,16>,Simd<f64,4>,f64){
+    (Simd::from_array([f(centr + hlgth * XGK[0]), f(centr + hlgth * XGK[1]), f(centr + hlgth * XGK[2]),
         f(centr + hlgth * XGK[3]), f(centr + hlgth * XGK[4]), f(centr + hlgth * XGK[5]),
         f(centr + hlgth * XGK[6]), f(centr + hlgth * XGK[7]), f(centr + hlgth * XGK[8]),
         f(centr + hlgth * XGK[9]), f(centr + hlgth * XGK[10]),f(centr + hlgth * XGK[11]),
         f(centr + hlgth * XGK[12]), f(centr + hlgth * XGK[13]), f(centr + hlgth * XGK[14]),
-        f(centr + hlgth * XGK[15]), f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
-        f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19]), f(centr + hlgth * XGK[20]),
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        f(centr + hlgth * XGK[15])]),
+     Simd::from_array([f(centr + hlgth * XGK[16]), f(centr + hlgth * XGK[17]),
+         f(centr + hlgth * XGK[18]), f(centr + hlgth * XGK[19])]),
+     f(centr + hlgth * XGK[20]))
 }
 
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use rgsl::integration::{qk21, qk61};
-    use crate::qk21_simd2::Qk21Simd2;
-    use crate::qk21_simd::Qk211DVec_Simd;
-    use crate::qk::Qk;
 
-    #[test]
-    fn test(){
-        let f = |x:f64| x.cos();
-        let a = 0.0;
-        let b = 1000.0;
-        let qks = Qk211DVec_Simd{};
-        let qks2 = Qk21Simd2{};
-
-        let mut my_res = (0.0,0.0,0.0,0.0);
-        let mut my_res2 = (0.0,0.0,0.0,0.0);
-        let mut rgsl_res = my_res;
-
-        for k in 0..1000 {
-            let start = Instant::now();
-            rgsl_res = qk21(f,a,b);
-            println!("rgsl {:?}", start.elapsed());
-            let start = Instant::now();
-            my_res = qks.integrate(&f, a, b);
-            println!("simd {:?}", start.elapsed());
-            let start = Instant::now();
-            my_res2 = qks2.integrate(&f, a, b);
-            println!("simd2 {:?}", start.elapsed());
-        }
-        println!("{:?}",rgsl_res);
-        println!("{:?}",my_res);
-        println!("{:?}",my_res2);
-    }
-}
 
 

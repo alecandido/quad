@@ -350,9 +350,9 @@ mod tests {
             let b = 1000000.0;
             let key = 6;
             let limit = 10000000;
-            let epsabs = 1.0e3;
+            let epsabs = 1.0e-6;
             let epsrel = 0.0;
-            let max = 15;
+            let max = 20;
             let my_qag = Qag_1dvec2{key,limit};
             let my_qag_par = Qag_1dvec_parall_8thread{key,limit};
 

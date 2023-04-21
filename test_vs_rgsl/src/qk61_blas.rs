@@ -1,7 +1,6 @@
 use std::time::Instant;
-use cblas::daxpy;
 use crate::qk::*;
-use cblas::ddot;
+use blas::*;
 
 pub struct Qk61Blas {}
 ///     Parameters:

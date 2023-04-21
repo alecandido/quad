@@ -207,45 +207,60 @@ mod tests {
     use crate::qk61::Qk61;
     use crate::qk61_blas::Qk61Blas;
     use cblas::ddot;
+    use crate::qk61_simd2::Qk61Simd2;
 
     #[test]
     fn test(){
         unsafe{
-        let f = |x:f64| x.cos();
-        let a = 0.0;
-        let b = 1000.0;
-        let qks = Qk611DVec_Simd{};
-        let qk = Qk61{};
-        let qk_blas = Qk61Blas{};
+            let f = |x:f64| x.cos();
+            let a = 0.0;
+            let b = 1000.0;
+            let qks = Qk611DVec_Simd{};
+            let qk = Qk61{};
+            let qk_blas = Qk61Blas{};
+            let qks2 = Qk61Simd2{};
 
-        for k in 0..10 {
-            let start = Instant::now();
-            let rgsl_res = qk61(f,a,b);
-            println!("rgsl {:?}", start.elapsed());
-            let start = Instant::now();
-            let my_res = qks.integrate(&f, a, b);
-            println!("simd {:?}", start.elapsed());
+            let mut rgsl_res = (0.0,0.0,0.0,0.0);
+            let mut my_res = rgsl_res.clone();
+            let mut res = rgsl_res.clone();
+            let mut res_blas = rgsl_res.clone();
+            let mut my_res2 = rgsl_res.clone();
 
-            let start = Instant::now();
-            let res = qk.integrate(&f,a,b);
-            println!("normal {:?}", start.elapsed());
+            for k in 0..10 {
+                let start = Instant::now();
+                rgsl_res = qk61(f,a,b);
+                println!("rgsl {:?}", start.elapsed());
+                let start = Instant::now();
+                my_res = qks.integrate(&f, a, b);
+                println!("simd {:?}", start.elapsed());
 
-            let start = Instant::now();
-            let res_blas = qk_blas.integrate(&f,a,b);
-            println!("blas {:?}", start.elapsed());
+                let start = Instant::now();
+                res = qk.integrate(&f,a,b);
+                println!("normal {:?}", start.elapsed());
 
+                let start = Instant::now();
+                res_blas = qk_blas.integrate(&f,a,b);
+                println!("blas {:?}", start.elapsed());
 
+                let start = Instant::now();
+                my_res2 = qks2.integrate(&f,a,b);
+                println!("simd2 {:?}", start.elapsed());
+
+            }
             println!("simd : {:?}", my_res);
             println!("rgsl : {:?}",rgsl_res);
             println!("normal : {:?}", res);
             println!("blas : {:?}", res_blas);
-        }
-        //println!("{:?}",res1);
-        //println!("{:?}",res1);
+            println!("simd2 : {:?}", res_blas);
+
+
+            /*
             let mut x = [1.0,2.0,3.0];
             let mut y = [2.0,3.0,4.0];
             cblas::daxpy(3,-1.0, & x, 1, &mut y, 1);
             println!("{:?}", y);
+
+             */
         }
 
     }

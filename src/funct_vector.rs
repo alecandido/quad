@@ -19,6 +19,10 @@ pub struct FnVec4 {
     pub components : [Box<dyn Fn(f64)->f64 + Send + Sync>;4]
 }
 
+pub struct FnVec8 {
+    pub components : [Box<dyn Fn(f64)->f64 + Send + Sync>;8]
+}
+
 pub struct FnVec3 {
     pub components : [Box<dyn Fn(f64)->f64 + Send + Sync>;3]
 }

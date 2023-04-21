@@ -1,4 +1,5 @@
 #![feature(portable_simd)]
+#[cfg(target_arch = "x86_64")]
 extern crate nalgebra as na;
 extern crate core;
 
@@ -51,22 +52,33 @@ mod qag_vec_integration_result;
 mod qag_vec_integrator_result;
 mod qk61_vec;
 mod qk61_simd;
-mod qk61_vec_simd_faster;
 mod qage_4vec_simd;
 mod qk61_4vec_simd;
 mod qag_vec4_integration_result;
 mod qag_vec4_integrator_result;
 mod qk21_simd;
 mod qk21_3vec_simd;
-mod qage_1dvec_parall2;
-mod qage_1dvec_parall3;
-mod qage_1dvec_parall_2thread;
-mod qage_1dvec_parall_4thread;
-mod qage_1dvec_parall_8thread;
+pub mod qage_1dvec_parall2;
+pub mod qage_1dvec_parall3;
+pub mod qage_1dvec_parall_2thread;
+pub mod qage_1dvec_parall_4thread;
+pub mod qage_1dvec_parall_8thread;
 mod qk51_simd;
 mod qk41_simd;
 mod qk15_simd;
 mod qk31_simd;
+mod qk21_4vec_simd;
+mod qk21_simd2;
+mod qk21_simd3;
+mod qk61_simd2;
+mod qk61_4vec_simd2;
+mod qag_vec8_integration_result;
+mod qag_vec8_integrator_result;
+mod qk61_8vec_simd;
+mod qage_8vec_simd;
+mod qk61_1dvec_nalgebra;
+mod qk61_4vec_simd3;
+mod qk61_4vec_simd4;
 
 
 use functions::*;
@@ -86,9 +98,10 @@ use ndarray::*;
 #[cfg(test)]
 mod tests {
     use core::time;
+    use std::arch::x86_64::{_mm256_add_pd, _mm256_set_pd};
+    use std::simd::{Simd, SimdFloat};
     use std::thread;
     use std::time::Duration;
-    //  use std::io::IntoInnerError;
     use crate::gauss_legendre::{Gauss,GaussLegendre};
     use crate::qage2::Qag2;
     use crate::qage_1dvec2::Qag_1dvec2;
@@ -111,6 +124,79 @@ mod tests {
     use crate::qk61_1dvec::Qk611DVec;
     use crate::quad_integral_method::QuadIntegralMethod;
     use super::*;
+
+
+    #[test]
+    #[inline]
+    fn arch(){
+         {
+            let a = 1.0;
+            let b = 2.0;
+            let c = 3.0;
+            let d = 4.0;
+            let e = 5.0;
+            let f = 6.0;
+            let g = 7.0;
+            let h = 8.0;
+            let a2 = 1.0;
+            let b2 = 2.0;
+            let c2 = 3.0;
+            let d2 = 4.0;
+            let e2 = 5.0;
+            let f2 = 6.0;
+            let g2 = 7.0;
+            let h2 = 8.0;
+
+             let arr1 = [a,b,c,d,e,f,g,h];
+             let arr2 = [a2,b2,c2,d2,e2,f2,g2,h2];
+
+            //let vec1 = _mm256_set_pd(a,b,c,d);
+            //let vec2 = _mm256_set_pd(e,f,g,h);
+
+            let simd1 : Simd<f64,8> = Simd::from_array([a,b,c,d,e,f,g,h]);
+            let simd2 : Simd<f64,8> = Simd::from_array([a2,b2,c2,d2,e2,f2,g2,h2]);
+
+            println!("{:?}",is_x86_feature_detected!("sse3"));
+
+            for k in 0..200{
+                let start = Instant::now();
+                for _i in 0..100 {
+                    arr1.iter()
+                        .zip(arr2.iter())
+                        .map(|(a, b)| a * b).sum::<f64>();
+                }
+                println!("norm: {:?}",start.elapsed());
+            //    println!("norm: {:?}",start.elapsed());
+            //for k in 0..200{
+            //    let start = Instant::now();
+            //    for _i in 0..10000 {
+            //        let sum1 = a + e;
+            //        let sum2 = b + f;
+            //        let sum3 = c + g;
+            //        let sum4 = d + h;
+            //        let sum12 = a2 + e2;
+            //        let sum22 = b2 + f2;
+            //        let sum32 = c2 + g2;
+            //        let sum42 = d2 + h2;
+            //    }
+            //    println!("norm: {:?}",start.elapsed());
+
+                //let start = Instant::now();
+                //for _i in 0..10000 {
+                //    let sum_mm = _mm256_add_pd(vec1, vec2);
+                //}
+                //println!("mm: {:?}",start.elapsed());
+
+
+                let start = Instant::now();
+                for _i in 0..100 {
+                    let sum_simd : f64 = (simd1 * simd2).reduce_sum();
+                }
+                println!("simd: {:?}",start.elapsed());
+            }
+        }
+    }
+
 
     #[test]
     fn vectorization(){

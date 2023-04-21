@@ -12,6 +12,7 @@ use crate::quad_integrator_result::QuadIntegratorResult;
 use crate::result_state::*;
 use crate::qage_1dvec::*;
 use crate::qk21_simd::Qk21Simd;
+use crate::qk61_simd2::Qk61Simd2;
 use crate::qk61_simd::Qk61Simd;
 
 
@@ -149,7 +150,7 @@ impl Qag_1dvec2 {
         //let qk31 = Qk31 {};
         //let qk41 = Qk41 {};
         //let qk51 = Qk51 {};
-        let qk61 = Qk61Simd {};
+        let qk61 = Qk61Simd2 {};
 
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }

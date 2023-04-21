@@ -7,6 +7,8 @@ use rayon::{current_thread_index, join, ThreadPool};
 use crate::qag_1dvec_parall_integration_result::ArcResult;
 use crate::qag_1dvec_parall_integrator_result::Qag1DVecParIntegratorResult;
 use crate::qage_1dvec2::*;
+use crate::qk21_simd2::Qk21Simd2;
+use crate::qk61_simd2::Qk61Simd2;
 
 #[derive(Clone)]
 pub struct Qag_1dvec_parall_8thread {
@@ -138,8 +140,8 @@ impl Qag_1dvec_parall_8thread {
         let f = fun.components.clone();
 
 
-        let qk21 = Qk211DVec_Simd{};
-        let qk61 = Qk611DVec_Simd{};
+        let qk21 = Qk21Simd2{};
+        let qk61 = Qk61Simd2{};
 
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
@@ -210,8 +212,8 @@ impl Qag_1dvec_parall_8thread {
                                               let defab1: f64;
                                               let defab2: f64;
 
-                                              let qk21 = Qk211DVec_Simd {};
-                                              let qk61 = Qk611DVec_Simd {};
+                                              let qk21 = Qk21Simd2 {};
+                                              let qk61 = Qk61Simd2 {};
 
 
                                               match keyf {
@@ -264,8 +266,8 @@ impl Qag_1dvec_parall_8thread {
                                                   let defab1: f64;
                                                   let defab2: f64;
 
-                                                  let qk21 = Qk211DVec_Simd {};
-                                                  let qk61 = Qk611DVec_Simd {};
+                                                  let qk21 = Qk21Simd2 {};
+                                                  let qk61 = Qk61Simd2 {};
 
 
                                                   match keyf {
@@ -321,8 +323,8 @@ impl Qag_1dvec_parall_8thread {
                                               let defab1: f64;
                                               let defab2: f64;
 
-                                              let qk21 = Qk211DVec_Simd {};
-                                              let qk61 = Qk611DVec_Simd {};
+                                              let qk21 = Qk21Simd2 {};
+                                              let qk61 = Qk61Simd2 {};
 
 
                                               match keyf {
@@ -375,8 +377,8 @@ impl Qag_1dvec_parall_8thread {
                                                   let defab1: f64;
                                                   let defab2: f64;
 
-                                                  let qk21 = Qk211DVec_Simd {};
-                                                  let qk61 = Qk611DVec_Simd {};
+                                                  let qk21 = Qk21Simd2 {};
+                                                  let qk61 = Qk61Simd2 {};
 
 
                                                   match keyf {
@@ -438,8 +440,8 @@ impl Qag_1dvec_parall_8thread {
                                               let defab1: f64;
                                               let defab2: f64;
 
-                                              let qk21 = Qk211DVec_Simd {};
-                                              let qk61 = Qk611DVec_Simd {};
+                                              let qk21 = Qk21Simd2 {};
+                                              let qk61 = Qk61Simd2 {};
 
 
                                               match keyf {
@@ -492,8 +494,8 @@ impl Qag_1dvec_parall_8thread {
                                                   let defab1: f64;
                                                   let defab2: f64;
 
-                                                  let qk21 = Qk211DVec_Simd {};
-                                                  let qk61 = Qk611DVec_Simd {};
+                                                  let qk21 = Qk21Simd2 {};
+                                                  let qk61 = Qk61Simd2 {};
 
 
                                                   match keyf {
@@ -549,8 +551,8 @@ impl Qag_1dvec_parall_8thread {
                                               let defab1: f64;
                                               let defab2: f64;
 
-                                              let qk21 = Qk211DVec_Simd {};
-                                              let qk61 = Qk611DVec_Simd {};
+                                              let qk21 = Qk21Simd2 {};
+                                              let qk61 = Qk61Simd2 {};
 
 
                                               match keyf {
@@ -603,8 +605,8 @@ impl Qag_1dvec_parall_8thread {
                                                   let defab1: f64;
                                                   let defab2: f64;
 
-                                                  let qk21 = Qk211DVec_Simd {};
-                                                  let qk61 = Qk611DVec_Simd {};
+                                                  let qk21 = Qk21Simd2 {};
+                                                  let qk61 = Qk61Simd2 {};
 
 
                                                   match keyf {
