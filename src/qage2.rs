@@ -189,7 +189,6 @@ impl Qag2 {
         let mut maxerr = 1;
         let mut area = result;
         let mut errsum = abserr;
-        let mut nrmax = 1;
         let mut iroff1 = 0;
         let mut iroff2 = 0;
 
@@ -346,5 +345,52 @@ impl QuadIntegralMethod for Qag2 {
     fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
         QuadIntegratorResult::new_qag( self.qintegrate(f,a,b,epsabs,epsrel))
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+    use crate::qage2::Qag2;
+    use crate::qage::Qag;
+
+    #[test]
+    fn test(){
+        let test : bool = true; // set to true if you want to have the results printed out
+
+        let f = |x:f64| x.sin();
+        let a = 0.0;
+        let b = 100000.0;
+        let epsabs = 1.0e-6;
+        let epsrel = 0.0;
+        let key = 6;
+        let limit = 10000000;
+        let max = 1000;
+        let qag = Qag{key,limit};
+        let qag2 = Qag2{key,limit};
+
+
+        let (mut t1,mut t2) = (0.0,0.0);
+
+        for i in 0..max{
+            let start = Instant::now();
+            let res = qag.qintegrate(&f, a, b, epsabs, epsrel).unwrap();
+            if i > 10 { t1 += start.elapsed().as_secs_f64();}
+            let start = Instant::now();
+            let res2 = qag2.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
+            if i > 10 { t2 += start.elapsed().as_secs_f64();}
+
+            if test && i == max-1 {
+                println!("{:?}",res.neval);
+                println!("{:?}",res2.neval);
+            }
+        }
+        t1 = t1 / ( max as f64 - 10.0);
+        t2 = t2 / ( max as f64 - 10.0);
+
+
+        println!("qag : {:?} ; qag2 : {:?}", t1, t2);
+    }
+
 }
 

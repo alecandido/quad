@@ -11,3 +11,13 @@ cblas = "0.4.0"
 rayon = "1.6"
 blas = "0.20"
 openblas-src = "0.9"
+cty = "0.2.2"
+cc = "1.0"
+bindgen = "0.53.1"
+
+[build-dependencies]
+cc = "1.0"
+bindgen = "0.53.1"
+
+[profile.dev]
+opt-level = 3

@@ -1,0 +1,3 @@
+int hello();
+void prin();
+

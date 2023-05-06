@@ -1,6 +1,20 @@
+//void gsl_integration_qk61 (double a, double b,
+//                           double *result, double *abserr,
+//                           double *resabs, double *resasc);
+//
+//void gsl_integration_qk (const int n, const double xgk[],
+//                    const double wg[], const double wgk[],
+//                    double fv1[], double fv2[],
+//                    double a, double b,
+//                    double * result, double * abserr,
+//                    double * resabs, double * resasc);
+
+//double rescale_error (double err, const double result_abs, const double result_asc) ;
+
+
 use crate::qk::*;
 
-pub struct Qk61{}
+pub struct Qk61cos{}
 ///     Parameters:
 ///
 ///     On entry:
@@ -95,8 +109,9 @@ const WG : [f64;15] = [0.007968192496166605615465883474674, 0.018466468311090959
     0.102852652893558840341285636705415];
 
 
-impl Qk61 {
-    pub fn integrate<F: Fn(f64)->f64 >(&self, f: F, a: f64, b: f64, ) -> (f64, f64, f64, f64) {
+impl Qk61cos {
+    pub fn integrate(&self, a: f64, b: f64, result: &mut f64, abserr: &mut f64, resabs: &mut f64,
+                     resasc: &mut f64 ) -> () {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
@@ -108,80 +123,15 @@ impl Qk61 {
         //the integral, and estimate the absolute error.
 
         let mut resg = 0.0;
-        let fc : f64 = f(centr);
-        let mut resk = WGK[30] * fc;
-        let mut resabs = resk.abs();
-
-        for j in 1..16 {
-            let jtw = 2 * j;
-            let absc = hlgth * XGK[jtw - 1];
-            let fval1 : f64 = f(centr - absc);
-            let fval2 : f64 = f(centr + absc);
-            fv1[jtw - 1] = fval1;
-            fv2[jtw - 1] = fval2;
-            let fsum = fval1 + fval2;
-            resg += WG[j - 1] * fsum;
-            resk += WGK[jtw - 1] * fsum;
-            resabs += WGK[jtw - 1] * (fval1.abs() + fval2.abs());
-        }
-
-        for j in 1..16 {
-            let jtwm1 = 2 * j - 1;
-            let absc = hlgth * XGK[jtwm1 - 1];
-            let fval1 : f64 = f(centr - absc);
-            let fval2 : f64 = f(centr + absc);
-            fv1[jtwm1 - 1] = fval1;
-            fv2[jtwm1 - 1] = fval2;
-            let fsum = fval1 + fval2;
-            resk += WGK[jtwm1 - 1] * fsum;
-            resabs += WGK[jtwm1 - 1] * (fval1.abs() + fval2.abs());
-        }
-
-        let reskh = resk * 0.5;
-        let mut resasc = WGK[30] * (fc - reskh).abs();
-
-        for j in 1..31 {
-            resasc += WGK[j - 1] * ((fv1[j - 1] - reskh).abs() + (fv2[j - 1] - reskh).abs());
-        }
-
-        let result = resk * hlgth;
-        resabs = resabs * dhlgth;
-        resasc = resasc * dhlgth;
-        let mut abserr = ((resk - resg) * hlgth).abs();
-        if resasc != 0.0 && abserr != 0.0 {
-            abserr = resasc * 1.0_f64.min((200.0 * abserr / resasc).powf(1.5));
-        }
-        if resabs > UFLOW / (50.0 * EPMACH) {
-            abserr = abserr.max((EPMACH * 50.0) * resabs);
-        }
-
-        (result, abserr, resabs, resasc)
-    }
-
-
-    pub fn integrate2<F: Fn(f64)->f64 >(&self, f: F, a: f64, b: f64, result: &mut f64,
-                                        abserr: &mut f64, resabs: &mut f64, resasc: &mut f64 ) -> ()
-    {
-        let hlgth: f64 = 0.5 * (b - a);
-        let dhlgth: f64 = hlgth.abs();
-        let centr: f64 = 0.5 * (b + a);
-
-        let mut fv1 = [0.0; 30];
-        let mut fv2 = [0.0; 30];
-
-        //compute the 61-point kronrod approximation to
-        //the integral, and estimate the absolute error.
-
-        let mut resg = 0.0;
-        let fc : f64 = f(centr);
+        let fc : f64 = (centr).cos();
         let mut resk = WGK[30] * fc;
         *resabs = resk.abs();
 
         for j in 1..16 {
             let jtw = 2 * j;
             let absc = hlgth * XGK[jtw - 1];
-            let fval1 : f64 = f(centr - absc);
-            let fval2 : f64 = f(centr + absc);
+            let fval1 : f64 = (centr - absc).cos();
+            let fval2 : f64 = (centr + absc).cos();
             fv1[jtw - 1] = fval1;
             fv2[jtw - 1] = fval2;
             let fsum = fval1 + fval2;
@@ -193,8 +143,8 @@ impl Qk61 {
         for j in 1..16 {
             let jtwm1 = 2 * j - 1;
             let absc = hlgth * XGK[jtwm1 - 1];
-            let fval1 : f64 = f(centr - absc);
-            let fval2 : f64 = f(centr + absc);
+            let fval1 : f64 = (centr - absc).cos();
+            let fval2 : f64 = (centr + absc).cos();
             fv1[jtwm1 - 1] = fval1;
             fv2[jtwm1 - 1] = fval2;
             let fsum = fval1 + fval2;
@@ -213,22 +163,16 @@ impl Qk61 {
         *resabs = *resabs * dhlgth;
         *resasc = *resasc * dhlgth;
         *abserr = ((resk - resg) * hlgth).abs();
-        if *resasc != 0.0 && *abserr != 0.0 {
+        if resasc != 0.0 && *abserr != 0.0 {
             *abserr = *resasc * 1.0_f64.min((200.0 * *abserr / *resasc).powf(1.5));
         }
         if *resabs > UFLOW / (50.0 * EPMACH) {
-            *abserr = (*abserr).max((EPMACH * 50.0) * *resabs);
+            *abserr = *abserr.max((EPMACH * 50.0) * *resabs);
         }
+
+
+        //(result, abserr, resabs, resasc)
     }
-
-    pub fn integrate3<F: Fn(f64)->f64 >(&self, f: F, a: f64, b: f64, ) -> (f64, f64, f64, f64){
-        let mut result = 0.0;
-        let mut abserr = 0.0;
-        let mut resabs = 0.0;
-        let mut resasc = 0.0;
-        self.integrate2(f,a,b,&mut result,&mut abserr,&mut resabs, &mut resasc);
-
-        (result, abserr, resabs, resasc)
-    }
-
 }
+
+

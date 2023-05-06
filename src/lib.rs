@@ -79,6 +79,11 @@ mod qage_8vec_simd;
 mod qk61_1dvec_nalgebra;
 mod qk61_4vec_simd3;
 mod qk61_4vec_simd4;
+mod qk61_simd3;
+mod qk15_simd3;
+mod qk21_simd4;
+mod qage_nosort;
+mod qage_nosort_findmax;
 
 
 use functions::*;
@@ -122,6 +127,7 @@ mod tests {
     use crate::qk61_1dvec3::Qk611DVec3;
     use crate::qk61_1dvec4::Qk611DVec4;
     use crate::qk61_1dvec::Qk611DVec;
+    use crate::qk61_simd3::Qk61Simd3;
     use crate::quad_integral_method::QuadIntegralMethod;
     use super::*;
 
@@ -202,82 +208,106 @@ mod tests {
     fn vectorization(){
         let f = |x:f64| x.cos();
         let (a,b) = (0.0,1.0);
-        let max = 200;
+        let max = 20000;
+        let threshold = 100;
+        let niter = 150;
         let qk61 = Qk61{};
         let qk61_vec = Qk611DVec {};
         let qk61_vec2 = Qk611DVec2 {};
         let qk61_vec3 = Qk611DVec3 {};
         let qk61_vec4 = Qk611DVec4 {};
-        let mut results = vec![vec![],vec![],vec![],vec![],vec![]];
-        let mut tot = 0.0;
-        let (mut t1,mut t2, mut t3,mut t4, mut t5) = ( 0.0, 0.0, 0.0,0.0, 0.0);
+        let qk61_simd = Qk61Simd3{};
 
-        for i in 1..max+1 {
-            let time1 = Instant::now();
-            results[1].push(qk61.integrate(&f, a, b));
-            let time2 = Instant::now();
-            //println!("{i} : {:?}",res1);
-            if i > 100 {
-                t1 += (time2 - time1).as_secs_f64();
-                tot += 1.0;
+        let null = (0.0,0.0,0.0,0.0);
+        let (mut res1, mut res2, mut res3, mut res4, mut res5, mut res6) =
+            (null.clone(), null.clone(),null.clone(),null.clone(),null.clone(), null.clone());
+
+        for _k in 0..niter {
+            let (mut t1, mut t2, mut t3, mut t4, mut t5, mut t6) =
+                (0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res2 = qk61.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t1 += (time2 - time1).as_secs_f64();
+                }
             }
+
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res1 = qk61_vec3.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t4 += (time2 - time1).as_secs_f64();
+                }
+            }
+
+
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res3 = qk61_vec.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t2 += (time2 - time1).as_secs_f64();
+                }
+            }
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res4 = qk61_vec2.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t3 += (time2 - time1).as_secs_f64();
+                }
+            }
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res5 = qk61_vec4.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t5 += (time2 - time1).as_secs_f64();
+                }
+            }
+
+            for i in 1..max + 1 {
+                let time1 = Instant::now();
+                res6 = qk61_simd.integrate(&f, a, b);
+                let time2 = Instant::now();
+                //println!("{i} : {:?}",res1);
+                if i > threshold {
+                    t6 += (time2 - time1).as_secs_f64();
+                }
+            }
+
+
+
+
+            let tot = (max - threshold) as f64;
+            t1 = t1 / tot;
+            t2 = t2 / tot;
+            t3 = t3 / tot;
+            t4 = t4 / tot;
+            t5 = t5 / tot;
+            t6 = t6 / tot;
+            println!("time v1: {:?}; time v2: {:?}; time v3: {:?}; time v4 : {:?}; time v5 : {:?};\
+            time v5 : {:?}"
+                     , t1, t2, t3, t4, t5,t6);
         }
 
-        for i in 1..max+1 {
-            let time1 = Instant::now();
-            results[0].push(qk61_vec3.integrate(&f, a, b));
-            let time2 = Instant::now();
-            //println!("{i} : {:?}",res1);
-            if i > 100 {
-                t4 += (time2 - time1).as_secs_f64();
-            }
-        }
+        println!("res1 : {:?}",res1);
+        println!("res2 : {:?}",res2);
+        println!("res3 : {:?}",res3);
+        println!("res4 : {:?}",res4);
+        println!("res5 : {:?}",res5);
 
 
-        for i in 1..max+1 {
-            let time1 = Instant::now();
-            results[2].push(qk61_vec.integrate(&f, a, b));
-            let time2 = Instant::now();
-            //println!("{i} : {:?}",res1);
-            if i > 100 {
-                t2 += (time2 - time1).as_secs_f64();
-            }
-        }
-        for i in 1..max+1 {
-            let time1 = Instant::now();
-            results[3].push(qk61_vec2.integrate(&f, a, b));
-            let time2 = Instant::now();
-            //println!("{i} : {:?}",res1);
-            if i > 100 {
-                t3 += (time2 - time1).as_secs_f64();
-            }
-        }
-        for i in 1..max+1 {
-            let time1 = Instant::now();
-            results[4].push(qk61_vec4.integrate(&f, a, b));
-            let time2 = Instant::now();
-            //println!("{i} : {:?}",res1);
-            if i > 100 {
-                t5 += (time2 - time1).as_secs_f64();
-            }
-        }
 
-        let mut n = 0;
-        for i in 1..max{
-            if results[0][i] == results[1][i] && results[1][i] == results[2][i] && results[2][i] == results[3][i]
-                && results[3][i] == results[4][i] {
-                n += 1;
-            }
-        }
-
-        t1 = t1 / tot;
-        t2 = t2 / tot;
-        t3 = t3 / tot;
-        t4 = t4 / tot;
-        t5 = t5 / tot;
-        let equalres = n as f64 / tot;
-        println!("time v1: {:?}; time v2: {:?}; time v3: {:?}; time v4 : {:?}; time v5 : {:?}; equalres : {equalres}"
-                 , t1, t2,t3,t4,t5);
     }
 
 
@@ -1072,6 +1102,8 @@ mod tests {
             rel_error_real_nu[3][0] < precision && rel_error_real_nu[3][1] < precision &&
             rel_error_real_nu[3][2] < precision)
         }
+
+
 
 
 

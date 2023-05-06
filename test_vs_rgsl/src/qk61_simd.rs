@@ -208,6 +208,7 @@ mod tests {
     use crate::qk61_blas::Qk61Blas;
     use cblas::ddot;
     use crate::qk61_simd2::Qk61Simd2;
+    use crate::qk61_simd3::Qk61Simd3;
 
     #[test]
     fn test(){
@@ -219,14 +220,17 @@ mod tests {
             let qk = Qk61{};
             let qk_blas = Qk61Blas{};
             let qks2 = Qk61Simd2{};
+            let qks3 = Qk61Simd3{};
 
             let mut rgsl_res = (0.0,0.0,0.0,0.0);
             let mut my_res = rgsl_res.clone();
             let mut res = rgsl_res.clone();
             let mut res_blas = rgsl_res.clone();
             let mut my_res2 = rgsl_res.clone();
+            let mut my_res3 = rgsl_res.clone();
+            let mut res_new = rgsl_res.clone();
 
-            for k in 0..10 {
+            for k in 0..100 {
                 let start = Instant::now();
                 rgsl_res = qk61(f,a,b);
                 println!("rgsl {:?}", start.elapsed());
@@ -235,23 +239,33 @@ mod tests {
                 println!("simd {:?}", start.elapsed());
 
                 let start = Instant::now();
-                res = qk.integrate(&f,a,b);
+                res_new = qk.integrate(&f,a,b);
                 println!("normal {:?}", start.elapsed());
+
+                let start = Instant::now();
+                let (mut result,mut abserr,mut resabs, mut resasc) = (0.0,0.0,0.0,0.0);
+                qk.integrate2(f,a,b,&mut result, &mut abserr, &mut resabs, &mut resasc);
+                println!("normal new {:?}", start.elapsed());
 
                 let start = Instant::now();
                 res_blas = qk_blas.integrate(&f,a,b);
                 println!("blas {:?}", start.elapsed());
-
+//
                 let start = Instant::now();
                 my_res2 = qks2.integrate(&f,a,b);
                 println!("simd2 {:?}", start.elapsed());
+//
+                let start = Instant::now();
+                my_res3 = qks3.integrate(&f,a,b);
+                println!("simd3 {:?}", start.elapsed());
 
             }
             println!("simd : {:?}", my_res);
             println!("rgsl : {:?}",rgsl_res);
-            println!("normal : {:?}", res);
+            println!("normal new : {:?}", res_new);
             println!("blas : {:?}", res_blas);
-            println!("simd2 : {:?}", res_blas);
+            println!("simd2 : {:?}", my_res2);
+            println!("simd3 : {:?}", my_res3);
 
 
             /*

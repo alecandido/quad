@@ -1,3 +1,4 @@
+/*
 use std::iter::zip;
 use std::simd::{f64x4, Simd, SimdFloat};
 use crate::funct_vector::{FnVec, FnVec4};
@@ -472,3 +473,5 @@ mod tests {
 
     }
 }
+
+ */

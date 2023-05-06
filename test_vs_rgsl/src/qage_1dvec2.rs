@@ -339,60 +339,73 @@ mod tests {
     use rgsl::GaussKronrodRule::{Gauss21, Gauss61};
     use rgsl::IntegrationWorkspace;
     use crate::funct_vector::FnPa;
+    use crate::qage2::Qag2;
     use crate::qage_1dvec2::Qag_1dvec2;
     use crate::qage_1dvec_parall_8thread::Qag_1dvec_parall_8thread;
 
     #[test]
     fn test(){
-        unsafe{
-            let f = |x:f64| x.sin() * x.cos() + x.sin() + x.cos();
+        unsafe {
+            let f = |x: f64| x.sin() * x.cos() + x.sin() + x.cos();
             let a = 0.0;
-            let b = 1000000.0;
+            let b = 10000.0;
             let key = 6;
             let limit = 10000000;
             let epsabs = 1.0e-6;
             let epsrel = 0.0;
-            let max = 20;
-            let my_qag = Qag_1dvec2{key,limit};
-            let my_qag_par = Qag_1dvec_parall_8thread{key,limit};
+            let max = 200;
+            let niter = 25;
+            let my_qag = Qag_1dvec2 { key, limit };
+            let my_qag_par = Qag_1dvec_parall_8thread { key, limit };
+            let my_qag2 = Qag2 { key, limit };
 
-            let (mut t1,mut t2,mut t3) = (0.0,0.0,0.0);
+
 
             let mut rgsl_res;
             let mut my_res;
             let mut my_res_par;
-            let fun = FnPa{ components : Arc::new(f.clone())};
+            let mut my_res2;
+            let fun = FnPa { components: Arc::new(f.clone()) };
+
+            for _k in 0..niter{
+
+            let (mut t1, mut t2, mut t3, mut t4) = (0.0, 0.0, 0.0, 0.0);
+
 
             for k in 0..max {
                 let rgsl_qag = IntegrationWorkspace::new(limit);
                 let start = Instant::now();
-                rgsl_res = rgsl_qag.expect("REASON").qag(f,a,b,epsabs,epsrel,limit,Gauss61);
-                if k > 10 { t1 += start.elapsed().as_secs_f64();}
+                rgsl_res = rgsl_qag.expect("REASON").qag(f, a, b, epsabs, epsrel, limit, Gauss61);
+                if k > 10 { t1 += start.elapsed().as_secs_f64(); }
                 let start = Instant::now();
-                my_res = my_qag.qintegrate(&f,a,b,epsabs,epsrel);
-                if k > 10 { t2 += start.elapsed().as_secs_f64();}
+                my_res = my_qag.qintegrate(&f, a, b, epsabs, epsrel);
+                if k > 10 { t2 += start.elapsed().as_secs_f64(); }
                 let start = Instant::now();
-                my_res_par = my_qag_par.qintegrate(&fun,a,b,epsabs,epsrel);
-                if k > 10 { t3 += start.elapsed().as_secs_f64();}
-
-
-                if k == max-1{
-                    println!("rgsl {:?}",rgsl_res);
-                    println!("my : {:?},{:?}, last : {:?}",my_res.integration_result.result,
-                             my_res.integration_result.abserr,my_res.integration_result.last);
-                    println!("my parallel: {:?},{:?}, last : {:?}",my_res_par.integration_result.result,
-                             my_res_par.integration_result.abserr,my_res_par.integration_result.last);
-                }
-
-
+                my_res_par = my_qag_par.qintegrate(&fun, a, b, epsabs, epsrel);
+                if k > 10 { t3 += start.elapsed().as_secs_f64(); }
+                let start = Instant::now();
+                my_res2 = my_qag2.qintegrate(&f, a, b, epsabs, epsrel);
+                if k > 10 { t4 += start.elapsed().as_secs_f64(); }
             }
 
-            t1 = t1 / ( max as f64 - 10.0);
-            t2 = t2 / ( max as f64 - 10.0);
-            t3 = t3 / ( max as f64 - 10.0);
+            t1 = t1 / (max as f64 - 10.0);
+            t2 = t2 / (max as f64 - 10.0);
+            t3 = t3 / (max as f64 - 10.0);
+            t4 = t4 / (max as f64 - 10.0);
 
-            println!("rgsl time : {t1} ; my vec time : {t2} ; my parall time: {t3}");
+            println!("rgsl time : {t1} ; my vec time : {t2} ; my parall time: {t3} ; my vec2 time : {t4}");
+        }
 
+
+            /*
+            println!("rgsl {:?}",rgsl_res);
+            println!("my : {:?},{:?}, last : {:?}",my_res.integration_result.result,
+                     my_res.integration_result.abserr,my_res.integration_result.last);
+            println!("my2 : {:?},{:?}, last : {:?}",my_res2.integration_result.result,
+                     my_res2.integration_result.abserr,my_res2.integration_result.last);
+            println!("my parallel: {:?},{:?}, last : {:?}",my_res_par.integration_result.result,
+                     my_res_par.integration_result.abserr,my_res_par.integration_result.last);
+             */
 
 
         }
