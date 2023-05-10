@@ -1,6 +1,5 @@
-use crate::qag_vec_integration_result::*;
+use crate::qag_vec_integration_result::QagVecIntegrationResult;
 use crate::result_state::*;
-use crate::qage_vec::*;
 
 #[derive(Clone,Debug)]
 pub struct QagVecIntegratorResult {
@@ -11,11 +10,13 @@ pub struct QagVecIntegratorResult {
 
 
 impl QagVecIntegratorResult {
-    pub fn new(result : Vec<f64>, abserr : Vec<f64>, neval : i32, list : Vec<ResultVec>,
+    pub fn new(result : [f64;4], abserr : [f64;4], neval : i32, alist : Vec<f64>,
+               blist : Vec<f64>, rlist : Vec<[f64;4]>, elist : Vec<[f64;4]>,
                last : usize) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagVecIntegrationResult::new(result, abserr, neval, list, last ),
+            integration_result : QagVecIntegrationResult::new(result, abserr, neval, alist, blist,
+                                                              rlist, elist, last),
         }
     }
     pub fn new_error(result_state : ResultState) -> Self{

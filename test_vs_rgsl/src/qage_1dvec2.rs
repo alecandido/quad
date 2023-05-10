@@ -348,13 +348,13 @@ mod tests {
         unsafe {
             let f = |x: f64| x.sin() * x.cos() + x.sin() + x.cos();
             let a = 0.0;
-            let b = 10000.0;
+            let b = 10000000.0;
             let key = 6;
             let limit = 10000000;
-            let epsabs = 1.0e-6;
+            let epsabs = 1.0e-5;
             let epsrel = 0.0;
-            let max = 200;
-            let niter = 25;
+            let max = 20;
+            let niter = 2;
             let my_qag = Qag_1dvec2 { key, limit };
             let my_qag_par = Qag_1dvec_parall_8thread { key, limit };
             let my_qag2 = Qag2 { key, limit };
@@ -363,8 +363,8 @@ mod tests {
 
             let mut rgsl_res;
             let mut my_res;
-            let mut my_res_par;
-            let mut my_res2;
+            //let mut my_res_par;
+            //let mut my_res2;
             let fun = FnPa { components: Arc::new(f.clone()) };
 
             for _k in 0..niter{
@@ -381,10 +381,10 @@ mod tests {
                 my_res = my_qag.qintegrate(&f, a, b, epsabs, epsrel);
                 if k > 10 { t2 += start.elapsed().as_secs_f64(); }
                 let start = Instant::now();
-                my_res_par = my_qag_par.qintegrate(&fun, a, b, epsabs, epsrel);
+                //my_res_par = my_qag_par.qintegrate(&fun, a, b, epsabs, epsrel);
                 if k > 10 { t3 += start.elapsed().as_secs_f64(); }
                 let start = Instant::now();
-                my_res2 = my_qag2.qintegrate(&f, a, b, epsabs, epsrel);
+                //my_res2 = my_qag2.qintegrate(&f, a, b, epsabs, epsrel);
                 if k > 10 { t4 += start.elapsed().as_secs_f64(); }
             }
 

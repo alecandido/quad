@@ -47,10 +47,10 @@ pub mod qage_1dvec2;
 pub mod qage_1dvec_parall;
 pub mod qag_1dvec_parall_integration_result;
 pub mod qag_1dvec_parall_integrator_result;
-pub mod qage_vec;
-mod qag_vec_integration_result;
-mod qag_vec_integrator_result;
-mod qk61_vec;
+pub mod qage_vec_pre;
+mod qag_vec_integration_result_pre;
+mod qag_vec_integrator_result_pre;
+mod qk61_vec_pre;
 mod qk61_simd;
 mod qage_4vec_simd;
 mod qk61_4vec_simd;
@@ -84,6 +84,16 @@ mod qk15_simd3;
 mod qk21_simd4;
 mod qage_nosort;
 mod qage_nosort_findmax;
+mod qk61_vec;
+mod qk61_vec_na;
+mod qage_vec_nosort_findmax;
+mod qag_vec_integrator_result;
+mod qag_vec_integration_result;
+mod qage_vec_nosort_findmax_iroff;
+mod qage_vec_nosort;
+mod qk61_vec_earlystop;
+mod qage_vec_nosort_earlystop;
+mod qage_vec_norm;
 
 
 use functions::*;
@@ -200,6 +210,7 @@ mod tests {
                 }
                 println!("simd: {:?}",start.elapsed());
             }
+
         }
     }
 

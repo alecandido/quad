@@ -1,5 +1,5 @@
 use std::simd::{f64x8, Simd};
-use crate::qage_vec::*;
+use crate::qage_vec_pre::*;
 
 #[derive(Clone,Debug)]
 pub struct ResultVec8 {

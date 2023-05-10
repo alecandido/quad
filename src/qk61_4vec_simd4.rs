@@ -469,7 +469,7 @@ mod tests {
         let b = 1.0;
         let qks = Qk61Vec4Simd3{};
         let qks2 = Qk61Vec4Simd4{};
-        let qk = Qk61Simd {};
+        let qk = Qk61 {};
         let qk2 = Qk61Simd2 {};
         let fun = FnVec4{ components : [Box::new(f),Box::new(f),Box::new(f),Box::new(f)]};
 

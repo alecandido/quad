@@ -1,6 +1,8 @@
 use crate::qk::*;
+use na::{SVector, vector};
 
-pub struct Qk61Vec {}
+
+pub struct Qk61VecNa {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -95,78 +97,67 @@ const WG : [f64;15] = [0.007968192496166605615465883474674, 0.018466468311090959
     0.102852652893558840341285636705415];
 
 
-impl Qk61Vec {
-    pub fn integrate(&self, f: &dyn Fn(f64) -> [f64;4], a: f64, b: f64, )
-        -> ([f64;4], [f64;4], [f64;4], [f64;4]) {
+impl Qk61VecNa {
+    fn integrate(&self, f: &dyn Fn(f64) -> SVector<f64,4>, a: f64, b: f64, )
+                 -> (SVector<f64,4>, SVector<f64,4>, SVector<f64,4>, SVector<f64,4>) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
 
-        let mut fv1 = [[0.0;4]; 30];
-        let mut fv2 = [[0.0;4]; 30];
+        let mut fv1 = [vector![0.0,0.0,0.0,0.0]; 30];
+        let mut fv2 = [vector![0.0,0.0,0.0,0.0]; 30];
 
         //compute the 61-point kronrod approximation to
         //the integral, and estimate the absolute error.
 
-        let mut resg = [0.0;4];
-        let fc : [f64;4]  = f(centr);
-        let mut resk = [WGK[30] * fc[0],WGK[30] * fc[1],WGK[30] * fc[2],WGK[30] * fc[3]];
-        let mut resabs = [resk[0].abs(),resk[1].abs(),resk[2].abs(),resk[3].abs()];
+        let mut resg = vector![0.0,0.0,0.0,0.0];
+        let fc : SVector<f64,4>  = f(centr);
+        let mut resk = WGK[30] * fc;
+        let mut resabs = resk.abs();
 
         for j in 1..16 {
             let jtw = 2 * j;
             let absc = hlgth * XGK[jtw - 1];
-            let fval1 : [f64;4] = f(centr - absc);
-            let fval2 : [f64;4] = f(centr + absc);
+            let fval1 : SVector<f64,4> = f(centr - absc);
+            let fval2 : SVector<f64,4> = f(centr + absc);
             fv1[jtw - 1] = fval1;
             fv2[jtw - 1] = fval2;
-            let fsum : [f64;4] = [fval1[0] + fval2[0],fval1[1] + fval2[1], fval1[2] + fval2[2],
-                fval1[3] + fval2[3]];
-            for k in 0..4{
-                resg[k] += WG[j - 1] * fsum[k];
-                resk[k] += WGK[jtw - 1] * fsum[k];
-                resabs[k] += WGK[jtw - 1] * (fval1[k].abs() + fval2[k].abs());
-            }
+            let fsum : SVector<f64,4> = fval1 + fval2;
+            resg += WG[j - 1] * fsum;
+            resk += WGK[jtw - 1] * fsum;
+            resabs += WGK[jtw - 1] * (fval1.abs() + fval2.abs());
+
 
         }
 
         for j in 1..16 {
             let jtwm1 = 2 * j - 1;
             let absc = hlgth * XGK[jtwm1 - 1];
-            let fval1 : [f64;4] = f(centr - absc);
-            let fval2 : [f64;4] = f(centr + absc);
+            let fval1 : SVector<f64,4> = f(centr - absc);
+            let fval2 : SVector<f64,4> = f(centr + absc);
             fv1[jtwm1 - 1] = fval1;
             fv2[jtwm1 - 1] = fval2;
-            let fsum : [f64;4] = [fval1[0] + fval2[0],fval1[1] + fval2[1], fval1[2] + fval2[2],
-                fval1[3] + fval2[3]];
-            for k in 0..4{
-                resk[k] += WGK[jtwm1 - 1] * fsum[k];
-                resabs[k] += WGK[jtwm1 - 1] * (fval1[k].abs() + fval2[k].abs());
-            }
+            let fsum : SVector<f64,4> = fval1 + fval2;
+            resk += WGK[jtwm1 - 1] * fsum;
+            resabs += WGK[jtwm1 - 1] * (fval1.abs() + fval2.abs());
         }
 
-        let reskh = [resk[0] * 0.5,resk[1] * 0.5,resk[2] * 0.5,resk[3] * 0.5];
-        let mut resasc = [WGK[30] * (fc[0] - reskh[0]).abs(),
-            WGK[30] * (fc[1] - reskh[1]).abs(), WGK[30] * (fc[2] - reskh[2]).abs(),
-            WGK[30] * (fc[3] - reskh[3]).abs()];
+        let reskh = 0.5 * resk;
+        let mut resasc = WGK[30] * (fc - reskh).abs();
 
         for j in 1..31 {
-            for k in 0..4{
-                resasc[k] += WGK[j - 1] * ((fv1[j - 1][k] - reskh[k]).abs() + (fv2[j - 1][k] -
-                    reskh[k]).abs());
-            }
+
+            resasc += WGK[j - 1] * ((fv1[j - 1] - reskh).abs() + (fv2[j - 1] -
+                reskh).abs());
+
 
         }
 
-        let result = [resk[0] * hlgth, resk[1] * hlgth, resk[2] * hlgth, resk[3] * hlgth];
-        for k in 0..4{
-            resabs[k] = resabs[k] * dhlgth;
-            resasc[k] = resasc[k] * dhlgth;
-        }
+        let result = resk * hlgth;
+        resabs = resabs * dhlgth;
+        resasc = resasc * dhlgth;
 
-        let mut abserr = [((resk[0] - resg[0]) * hlgth).abs(),
-            ((resk[1] - resg[1]) * hlgth).abs(), ((resk[2] - resg[2]) * hlgth).abs(),
-            ((resk[3] - resg[3]) * hlgth).abs()];
+        let mut abserr = ((resk - resg) * hlgth).abs();
         for k in 0..4{
             if resasc[k] != 0.0 && abserr[k] != 0.0 {
                 abserr[k] = resasc[k] * 1.0_f64.min((200.0 * abserr[k] / resasc[k]).powf(1.5));
@@ -185,8 +176,10 @@ impl Qk61Vec {
 #[cfg(test)]
 mod tests {
     use std::time::Instant;
+    use na::vector;
     use crate::qk61::Qk61;
     use crate::qk61_vec::Qk61Vec;
+    use crate::qk61_vec_na::Qk61VecNa;
     use crate::qk::Qk;
 
     #[test]
@@ -195,12 +188,15 @@ mod tests {
         let f2 = |x:f64| x.sin();
         let f3 = |x:f64| f1(x) + f2(x);
         let f4 = |x:f64| - 2.0 * f3(x);
+        let f = |x:f64| [f1(x),f2(x),f3(x),f4(x)];
+        let ff = |x:f64| vector![f1(x),f2(x),f3(x),f4(x)];
 
         let a = 0.0;
         let b = 1.0;
         let qk = Qk61 {};
         let qk_vec = Qk61Vec{};
-        let f = |x:f64| [f1(x),f2(x),f3(x),f4(x)];
+        let qk_vec_na = Qk61VecNa{};
+
 
 
         let mut res1 = (0.0,0.0,0.0,0.0);
@@ -208,6 +204,9 @@ mod tests {
         let mut res3 = res1.clone();
         let mut res4 = res1.clone();
         let mut res_vec = ([0.0;4],[0.0;4],[0.0;4],[0.0;4]);
+        let mut res_vec_na = (vector![0.0,0.0,0.0,0.0],
+                              vector![0.0,0.0,0.0,0.0],vector![0.0,0.0,0.0,0.0],
+                              vector![0.0,0.0,0.0,0.0]);
 
         for k in 0..100 {
             let start = Instant::now();
@@ -219,8 +218,13 @@ mod tests {
             let start = Instant::now();
             res_vec = qk_vec.integrate(&f, a, b);
             println!("vec {:?}", start.elapsed());
+            let start = Instant::now();
+            res_vec_na = qk_vec_na.integrate(&ff, a, b);
+            println!("vec na {:?}", start.elapsed());
+
         }
         println!("normal {:?},{:?},{:?},{:?}",res1,res2,res3,res4);
         println!("vec {:?}",res_vec);
+        println!("vec na {:?}",res_vec_na);
     }
 }

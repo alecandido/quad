@@ -1,6 +1,6 @@
 use crate::qk::*;
 
-pub struct Qk61Vec {}
+pub struct Qk61VecES {}
 ///     Parameters:
 ///
 ///     On entry:
@@ -95,9 +95,9 @@ const WG : [f64;15] = [0.007968192496166605615465883474674, 0.018466468311090959
     0.102852652893558840341285636705415];
 
 
-impl Qk61Vec {
-    pub fn integrate(&self, f: &dyn Fn(f64) -> [f64;4], a: f64, b: f64, )
-        -> ([f64;4], [f64;4], [f64;4], [f64;4]) {
+impl Qk61VecES {
+    pub fn integrate(&self, f: &dyn Fn(f64) -> [f64;4], a: f64, b: f64, flag : &[bool;4] )
+                     -> ([f64;4], [f64;4], [f64;4], [f64;4]) {
         let hlgth: f64 = 0.5 * (b - a);
         let dhlgth: f64 = hlgth.abs();
         let centr: f64 = 0.5 * (b + a);
@@ -123,9 +123,11 @@ impl Qk61Vec {
             let fsum : [f64;4] = [fval1[0] + fval2[0],fval1[1] + fval2[1], fval1[2] + fval2[2],
                 fval1[3] + fval2[3]];
             for k in 0..4{
-                resg[k] += WG[j - 1] * fsum[k];
-                resk[k] += WGK[jtw - 1] * fsum[k];
-                resabs[k] += WGK[jtw - 1] * (fval1[k].abs() + fval2[k].abs());
+                if flag[k] == true{
+                    resg[k] += WG[j - 1] * fsum[k];
+                    resk[k] += WGK[jtw - 1] * fsum[k];
+                    resabs[k] += WGK[jtw - 1] * (fval1[k].abs() + fval2[k].abs());
+                }
             }
 
         }
@@ -140,8 +142,10 @@ impl Qk61Vec {
             let fsum : [f64;4] = [fval1[0] + fval2[0],fval1[1] + fval2[1], fval1[2] + fval2[2],
                 fval1[3] + fval2[3]];
             for k in 0..4{
-                resk[k] += WGK[jtwm1 - 1] * fsum[k];
-                resabs[k] += WGK[jtwm1 - 1] * (fval1[k].abs() + fval2[k].abs());
+                if flag[k] == true{
+                    resk[k] += WGK[jtwm1 - 1] * fsum[k];
+                    resabs[k] += WGK[jtwm1 - 1] * (fval1[k].abs() + fval2[k].abs());
+                }
             }
         }
 
@@ -152,16 +156,20 @@ impl Qk61Vec {
 
         for j in 1..31 {
             for k in 0..4{
-                resasc[k] += WGK[j - 1] * ((fv1[j - 1][k] - reskh[k]).abs() + (fv2[j - 1][k] -
-                    reskh[k]).abs());
+                if flag[k] == true{
+                    resasc[k] += WGK[j - 1] * ((fv1[j - 1][k] - reskh[k]).abs() + (fv2[j - 1][k] -
+                        reskh[k]).abs());
+                }
             }
 
         }
 
         let result = [resk[0] * hlgth, resk[1] * hlgth, resk[2] * hlgth, resk[3] * hlgth];
         for k in 0..4{
-            resabs[k] = resabs[k] * dhlgth;
-            resasc[k] = resasc[k] * dhlgth;
+            if flag[k] == true{
+                resabs[k] = resabs[k] * dhlgth;
+                resasc[k] = resasc[k] * dhlgth;
+            }
         }
 
         let mut abserr = [((resk[0] - resg[0]) * hlgth).abs(),

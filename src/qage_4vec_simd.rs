@@ -22,7 +22,7 @@ use crate::qage_vec::ResultVec;
 use crate::qk21_4vec_simd::Qk21Vec4Simd;
 use crate::qk61_4vec_simd2::Qk61Vec4Simd2;
 use crate::qk61_4vec_simd::Qk61Vec4Simd;
-use crate::qk61_vec::Qk61Vec;
+use crate::qk61_vec::Qk61VecPre;
 
 
 #[derive(Clone)]

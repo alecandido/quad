@@ -1,34 +1,30 @@
-use crate::qage_vec::*;
 
 #[derive(Debug,Clone)]
 pub struct QagVecIntegrationResult {
-    pub result : Vec<f64>,
-    pub abserr : Vec<f64>,
+    pub result : [f64;4],
+    pub abserr : [f64;4],
     pub neval : i32,
-    pub list : Vec<ResultVec>,
+    pub alist : Vec<f64>,
+    pub blist : Vec<f64>,
+    pub rlist : Vec<[f64;4]>,
+    pub elist : Vec<[f64;4]>,
     pub last : usize,
 }
 
 impl QagVecIntegrationResult {
-    pub fn new(result : Vec<f64>, abserr : Vec<f64>, neval : i32, list : Vec<ResultVec>,
+    pub fn new(result : [f64;4], abserr : [f64;4], neval : i32, alist : Vec<f64>,
+               blist : Vec<f64>, rlist : Vec<[f64;4]>, elist : Vec<[f64;4]>,
                last : usize) -> Self {
         Self{
-            result, abserr, neval, list, last
+            result, abserr, neval, alist, blist, rlist, elist, last
         }
     }
 
     pub fn new_error() -> Self {
-        let zerof = 0.0 ;
-        let zeroi = 0;
-        let zerou : usize = 0 ;
-        let zerovecf = vec![zerof];
         Self{
-            result : zerovecf.clone(), abserr : zerovecf.clone(), neval : zeroi, list :
-            vec![ResultVec::new(0.0,0.0, zerovecf.clone(),zerovecf)].clone(), last : zerou,
+            result : [0.0;4], abserr : [0.0;4], neval : 0, alist : vec![0.0],
+            blist : vec![0.0], rlist : vec![[0.0;4]], elist : vec![[0.0;4]], last : 0,
         }
     }
 }
-
-
-
 

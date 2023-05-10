@@ -1,34 +1,32 @@
-use std::simd::Simd;
-use crate::qag_vec8_integration_result::{QagVec8IntegrationResult, ResultVec8};
 use crate::qag_vec_integration_result_pre::*;
 use crate::result_state::*;
 use crate::qage_vec_pre::*;
 
 #[derive(Clone,Debug)]
-pub struct QagVec8IntegratorResult {
+pub struct QagVecIntegratorResultPre {
     pub result_state : ResultState,
-    pub integration_result : QagVec8IntegrationResult,
+    pub integration_result : QagVecIntegrationResultPre,
 }
 
 
 
-impl QagVec8IntegratorResult {
-    pub fn new(result : Simd<f64,8>, abserr : Simd<f64,8>, neval : i32, list : Vec<ResultVec8>,
+impl QagVecIntegratorResultPre {
+    pub fn new(result : Vec<f64>, abserr : Vec<f64>, neval : i32, list : Vec<ResultVecPre>,
                last : usize) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagVec8IntegrationResult::new(result, abserr, neval, list, last ),
+            integration_result : QagVecIntegrationResultPre::new(result, abserr, neval, list, last ),
         }
     }
     pub fn new_error(result_state : ResultState) -> Self{
         Self{
             result_state,
-            integration_result : QagVec8IntegrationResult::new_error(),
+            integration_result : QagVecIntegrationResultPre::new_error(),
         }
     }
 
 
-    pub fn unwrap(&self) -> QagVec8IntegrationResult {
+    pub fn unwrap(&self) -> QagVecIntegrationResultPre {
         match self.result_state{
             ResultState::Success => self.integration_result.clone(),
             ResultState::Failure => panic!("Generic Fail"),

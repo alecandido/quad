@@ -1,8 +1,8 @@
 use std::simd::Simd;
 use crate::qag_vec4_integration_result::{QagVec4IntegrationResult, ResultVec4};
-use crate::qag_vec_integration_result::*;
+use crate::qag_vec_integration_result_pre::*;
 use crate::result_state::*;
-use crate::qage_vec::*;
+use crate::qage_vec_pre::*;
 
 #[derive(Clone,Debug)]
 pub struct QagVec4IntegratorResult {

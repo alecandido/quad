@@ -1,5 +1,3 @@
-use std::iter::zip;
-use crate::funct_vector::FnVec;
 use crate::qk::*;
 use crate::qk15::*;
 use crate::qk21::*;
@@ -8,32 +6,17 @@ use crate::qk41::*;
 use crate::qk51::*;
 use crate::qk61::*;
 use crate::qsrt2::*;
-use crate::qag_1dvec_integrator_result::Qag1DVecIntegratorResult;
+use crate::qag_integrator_result::*;
 use crate::qag_vec_integrator_result::QagVecIntegratorResult;
+use crate::qk61_vec::Qk61Vec;
 use crate::quad_integral_method::QuadIntegralMethod;
 use crate::quad_integrator_result::QuadIntegratorResult;
 use crate::result_state::*;
-use crate::qage_1dvec::*;
-use crate::qk61_vec::Qk61Vec;
 
-#[derive(Clone,Debug)]
-pub struct ResultVec {
-    pub a : f64,
-    pub b : f64,
-    pub result : Vec<f64>,
-    pub error : Vec<f64>,
-}
 
-impl ResultVec{
-    pub fn new(a : f64, b : f64, result : Vec<f64>, error : Vec<f64>) -> Self{
-        Self{
-            a,b,result,error
-        }
-    }
-}
 
 #[derive(Clone)]
-pub struct QagVec {
+pub struct QagVecNosort {
     pub key : i32,
     pub limit : usize,
 }
@@ -143,8 +126,8 @@ pub struct QagVec {
 
 
 
-impl QagVec {
-    pub fn qintegrate(&self, f : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
+impl QagVecNosort {
+    pub fn qintegrate(&self, f : &dyn Fn(f64)->[f64;4], a : f64, b : f64, epsabs : f64, epsrel : f64)
                       -> QagVecIntegratorResult {
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
@@ -152,15 +135,18 @@ impl QagVec {
         }
         //            first approximation to the integral
 
-        let len = f.components.len();
         let mut neval = 0;
         let mut last= 1 ;
-        let mut result = vec![];
-        let mut abserr = vec![];
-        let mut defabs = vec![];
-        let mut resabs = vec![];
-        let mut result_list = vec![];
-
+        let mut result = [0.0;4];
+        let mut abserr = [0.0;4];
+        let mut defabs = [0.0;4];
+        let mut resabs = [0.0;4];
+        let mut alist = vec![];
+        let mut blist = vec![];
+        let mut rlist = vec![];
+        let mut elist = vec![];
+        alist.push(a);
+        blist.push(b);
 
         //let qk15 = Qk15 {};
         //let qk21 = Qk21 {};
@@ -181,24 +167,27 @@ impl QagVec {
             6 => (result, abserr, defabs, resabs) = qk61.integrate(f, a, b),
             _ => (),
         }
-
-        result_list.push(ResultVec::new(a,b,result,abserr));
-
+        rlist.push(result);
+        elist.push(abserr);
 
         //           test on accuracy.
 
-        let mut errbnd = vec![];
-        for k in 0..len{
-            errbnd.push( epsabs.max( epsrel * result_list[0].result[k].abs()));
-            if result_list[0].error[k] <= 50.0 * EPMACH * defabs[k] && result_list[0].error[k] > errbnd[k] {
+        let mut errbnd = [epsabs.max(epsrel * result[0].abs()),
+            epsabs.max(epsrel * result[1].abs()),epsabs.max(epsrel * result[2].abs()),
+            epsabs.max(epsrel * result[3].abs())];
+        for k in 0..4 {
+            if abserr[k] <= 50.0 * EPMACH * defabs[k] && abserr[k] > errbnd[k] {
                 return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
-        if condition1(&result_list[0].error,&errbnd,&resabs) {
+
+        if (abserr[0] <= errbnd[0] && abserr[0] != resabs[0]) || abserr[0] == 0.0  &&
+            (abserr[1] <= errbnd[1] && abserr[1] != resabs[1]) || abserr[1] == 0.0 &&
+            (abserr[2] <= errbnd[2] && abserr[2] != resabs[2]) || abserr[2] == 0.0 &&
+            (abserr[3] <= errbnd[3] && abserr[3] != resabs[3]) || abserr[3] == 0.0 {
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * neval + 1); }
             if keyf == 1 { neval = 30 * neval + 15; }
-            return QagVecIntegratorResult::new(result_list[0].result.clone(), result_list[0].error.clone(),
-                                               neval, result_list, last)
+            return QagVecIntegratorResult::new(result, abserr, neval, alist, blist, rlist, elist, last)
         }
 
         if self.limit == 1 {
@@ -206,34 +195,35 @@ impl QagVec {
         }
 
         //          initialization
-        let mut area = result_list[0].result.clone();
-        let mut errsum = result_list[0].error.clone();
-        let mut iroff1 = vec![0;len];
-        let mut iroff2 = vec![0;len];
+        let mut errmax = abserr;
+        let mut area = result;
+        let mut errsum = abserr;
+        let mut iroff1 = 0;
+        let mut iroff2 = 0;
 
         //          main do-loop
         //           bisect the subinterval with the largest error estimate.
 
-
-        while last <= self.limit {
-
-            let mut new_interval = 0;
-
-            for k in 0..last {
-                if condition2(&result_list[k].error,&area,epsabs,epsrel,last as f64){
-                    new_interval += 1;
-                    let a1 = result_list[k].a;
-                    let b1 = 0.5 * (result_list[k].a + result_list[k].b);
+        while last  < self.limit + 1 {
+            for i in 0..last{
+                let mut comp = 5;
+                if elist[i][0] > errbnd[0] / last as f64 && elist[i][0] > 0.1 * errmax[0] { comp = 0;}
+                else if elist[i][1] > errbnd[1] / last as f64 && elist[i][1] > 0.1 * errmax[1] { comp = 1;}
+                else if elist[i][2] > errbnd[2] / last as f64 && elist[i][2] > 0.1 * errmax[2] { comp = 2;}
+                else if elist[i][3] > errbnd[3] / last as f64 && elist[i][3] > 0.1 * errmax[3] { comp = 3;}
+                if comp != 5{
+                    let a1 = alist[i];
+                    let b1 = 0.5 * (alist[i] + blist[i]);
                     let a2 = b1;
-                    let b2 = result_list[k].b;
+                    let b2 = blist[i];
 
+                    let area1: [f64;4];
+                    let error1: [f64;4];
+                    let area2: [f64;4];
+                    let error2: [f64;4];
+                    let defab1: [f64;4];
+                    let defab2: [f64;4];
 
-                    let mut area1 : Vec<f64> = vec![];
-                    let mut error1 : Vec<f64> = vec![];
-                    let mut area2 : Vec<f64> = vec![];
-                    let mut error2 : Vec<f64> = vec![];
-                    let mut defab1 : Vec<f64> = vec![];
-                    let mut defab2 : Vec<f64> = vec![];
 
 
                     match keyf {
@@ -262,8 +252,8 @@ impl QagVec {
                             (area2, error2, _, defab2) = qk61.integrate(f, a2, b2);
                         },
                         _ => {
-                            (area1, error1, _, defab1) = (vec![0.0], vec![0.0], vec![0.0], vec![0.0]);
-                            (area2, error2, _, defab2) = (vec![0.0], vec![0.0], vec![0.0], vec![0.0]);
+                            (area1, error1, _, defab1) = ([0.0;4], [0.0;4], [0.0;4], [0.0;4]);
+                            (area2, error2, _, defab2) = ([0.0;4], [0.0;4], [0.0;4], [0.0;4]);
                         },
                     }
 
@@ -272,27 +262,35 @@ impl QagVec {
                     //           and error and test for accuracy.
 
                     neval += 1;
-
-
-                    let area12 = vec_sum(&area1,&area2);
-                    let erro12 = vec_sum(&error1, &error2);
-                    errsum_update(&mut errsum,&erro12,&result_list[k].error);
-                    area_update(&mut area,&area12,&result_list[k].result);
-
-
-                    if defab1 == error1 || defab2 == error2 {} else {
-                        for j in 0..len {
-                            if (result_list[k].result[j] - area12[j]).abs() <= 0.00001 * area12[j].abs() && erro12[j] >= 0.99 * result_list[k].error[j] {
-                                iroff1[j] += 1;
-                            }
-                            if last > 10 && erro12[j] > result_list[k].error[j] { iroff2[j] += 1; }
-                        }
+                    let area12 = [area1[0] + area2[0], area1[1] + area2[1], area1[2] + area2[2],
+                        area1[3] + area2[3]];
+                    let erro12 = [error1[0] + error2[0], error1[1] + error2[1],
+                        error1[2] + error2[2], error1[3] + error2[3]];
+                    for k in 0..4{
+                        errsum[k] += erro12[k] - elist[i][k];
+                        area[k] += area12[k] - rlist[i][k];
                     }
-                    for k in 0..len {
+
+
+                    if defab1[comp] == error1[comp] || defab2[comp] == error2[comp] {} else {
+                        if (rlist[i][comp] - area12[comp]).abs() <= 0.00001 * area12[comp].abs() && erro12[comp] >= 0.99 * errmax[comp] {
+                            iroff1 += 1;
+                        }
+                        if last > 10 && erro12[comp] > errmax[comp] { iroff2 += 1; }
+                    }
+                    for k in 0..4{
                         errbnd[k] = epsabs.max(epsrel * area[k].abs());
                     }
 
-                    if gt(&errsum ,&errbnd) {
+
+                    if errsum[0] > errbnd[0] || errsum[1] > errbnd[1] || errsum[2] > errbnd[2] ||
+                        errsum[3] > errbnd[3]{
+
+                        //           test for roundoff error.
+
+                        if iroff1 >= 6 || iroff2 >= 20 {
+                            return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
+                        }
 
                         //           set error flag in the case that the number of subintervals
                         //           equals limit.
@@ -307,192 +305,151 @@ impl QagVec {
                         if a1.abs().max(b2.abs()) <= (1.0 + 100.0 * EPMACH) * (a2.abs() + 1000.0 * UFLOW) {
                             return QagVecIntegratorResult::new_error(ResultState::BadFunction)
                         }
-
-                        for k in 0..len {
-                            //           test for roundoff error.
-
-                            if iroff1[k] >= 6 || iroff2[k] >= 20 {
-                                return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
-                            }
-
-                        }
-                        //           append the newly-created intervals to the list.
                     }
 
 
-                    result_list[k] = ResultVec::new(a1, b1, area1, error1);
-                    result_list.push(ResultVec::new(a2, b2, area2, error2));
+
+
+                    alist[i] = a2;
+                    alist.push(a1);
+                    blist.push(b1);
+                    rlist[i] = area2;
+                    rlist.push(area1);
+                    elist[i] = error2;
+                    elist.push(error1);
+                    //  println!("{last} error2 > error1, rlis {:?}, elist{:?}, alist {:?}, blist {:?}",
+                    //          rlist, elist, alist, blist);
+
+
+
+
+                    if errsum[0] <= errbnd[0] && errsum[1] <= errbnd[1] && errsum[2] <= errbnd[2] &&
+                        errsum[3] <= errbnd[3]{
+                        break
+                    }
                 }
             }
+            last = alist.len();
 
-            result_list.sort_by(|a,b| vec_norm(&b.error).total_cmp(&vec_norm(&a.error)));
-            last += new_interval;
-
-            if ! gt(&errsum, &errbnd) {
+            if errsum[0] <= errbnd[0] && errsum[1] <= errbnd[1] && errsum[2] <= errbnd[2] &&
+                errsum[3] <= errbnd[3]{
                 break
             }
+
+            let maxerr_list = [elist.iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a[0].total_cmp(&b[0]))
+                .map(|(index, _)| index).unwrap(),
+                elist.iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a[1].total_cmp(&b[1]))
+                    .map(|(index, _)| index).unwrap(),
+                elist.iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a[2].total_cmp(&b[2]))
+                    .map(|(index, _)| index).unwrap(),
+                elist.iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a[3].total_cmp(&b[3]))
+                    .map(|(index, _)| index).unwrap()];
+            errmax = [elist[maxerr_list[0]][0], elist[maxerr_list[1]][1],
+                elist[maxerr_list[2]][2], elist[maxerr_list[3]][3]];
+
         }
         //           compute final result.
 
-        let mut result = vec![];
-        for j in 0..len {
-            let mut comp_result = 0.0;
-            for k in &result_list {
-                comp_result += k.result[j];
+        result = [0.0;4];
+        for k in 1..last+1 {
+            for j in 0..4{
+                result[j] += rlist[k-1][j];
             }
-            result.push(comp_result);
         }
+        abserr = errsum;
 
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * neval + 1); }
         if keyf == 1 { neval = 30 * neval + 15; }
 
 
-        QagVecIntegratorResult::new(result, errsum, neval, result_list, last)
+        QagVecIntegratorResult::new(result, abserr, neval, alist, blist, rlist, elist,  last)
     }
 }
-
-
-pub fn le( a : &Vec<f64>, b : &Vec<f64> ) -> bool{
-    for (i,j) in zip(a,b){
-        if i <= j { return true;}
-    }
-    false
-}
-
-pub fn gt( a : &Vec<f64>, b : &Vec<f64> ) -> bool{
-    for (i,j) in zip(a,b){
-        if i > j { return true;}
-    }
-    false
-}
-
-pub fn condition1(a : &Vec<f64>, b : &Vec<f64>, c : &Vec<f64>) -> bool{
-    for k in 0..a.len(){
-        if !((a[k] <= b[k] && a[k] != c[k]) || a[k] == 0.0) {
-            return false;
-        }
-    }
-    true
-}
-
-pub fn condition2(a : &Vec<f64>, b : &Vec<f64>, c : f64, d : f64, e : f64) -> bool{
-    for k in 0..a.len(){
-        if a[k] > c.max(d * b[k].abs()) / e { return true; }
-    }
-    false
-}
-
-pub fn vec_sum(a : &Vec<f64>, b : &Vec<f64>) -> Vec<f64>{
-    let mut sum = vec![];
-    for (i,j) in zip(a,b){
-        sum.push(i+j);
-    }
-    sum
-}
-
-pub fn vec_diff(a : &Vec<f64>, b : &Vec<f64>) -> Vec<f64>{
-    let mut diff = vec![];
-    for (i,j) in zip(a,b){
-        diff.push(i-j);
-    }
-    diff
-}
-
-pub fn vec_norm(a: &Vec<f64>) -> f64{
-    let mut sum = 0.0;
-    for comp in a {
-        sum += comp.powi(2);
-    }
-    sum.sqrt()
-}
-
-
-pub fn errsum_update(a : &mut Vec<f64>, b : & Vec<f64>, c : & Vec<f64>){
-    for k in 0..a.len(){
-        a[k] += b[k] - c[k];
-    }
-}
-
-pub fn area_update(a : &mut Vec<f64>, b : & Vec<f64>, c : & Vec<f64>){
-    for k in 0..a.len(){
-        a[k] += b[k] - c[k];
-    }
-}
-
-
-
-//  impl QuadIntegralMethod for QagVec {
-//      fn integrate(&self,f : &dyn Fn(f64)->f64, a : f64, b : f64, epsabs : f64, epsrel : f64) -> QuadIntegratorResult{
-//          QuadIntegratorResult::new_qag_vec( self.qintegrate(f,a,b,epsabs,epsrel))
-//      }
-//  }
-
-
-
-
-
-
 
 
 
 
 #[cfg(test)]
 mod tests {
-    use std::simd::Simd;
     use std::time::Instant;
-    use crate::funct_vector::FnVec;
-    use crate::qage_1dvec2::Qag_1dvec2;
-    use crate::qage_vec::QagVec;
+    use crate::qage::Qag;
+    use crate::qage_vec_nosort::QagVecNosort;
+    use crate::qage_vec_nosort_findmax::QagVecNosortFindmax;
+    use crate::qage_vec_nosort_findmax_iroff::QagVecNosortFindmaxIroff;
+    use crate::qk61::Qk61;
+    use crate::qk61_vec::Qk61Vec;
+    use crate::qk::Qk;
 
     #[test]
     fn test(){
-        let key = 6;
-        let limit = 100000;
-        let qag_vec = QagVec{key,limit};
-
-        let f1 = |x:f64|  x.cos();
-        let f2 = |x:f64| x.cos();
-        let f3 = |x:f64| x.cos() ;
-        let fun = FnVec{components : vec![Box::new(f1),Box::new(f2),Box::new(f3)]};
+        let f1 = |x:f64| x.cos();
+        let f2 = |x:f64| x.sin();
+        let f3 = |x:f64| f1(x) + f2(x);
+        let f4 = |x:f64| - 2.0 * f3(x);
 
         let a = 0.0;
-        let b = 100.0;
-        let epsabs = 1.0;
+        let b = 6000000.0;
+        let key = 6;
+        let epsabs = 1e-4;
         let epsrel = 0.0;
+        let limit = 1000000;
+        let qag = Qag {key,limit};
+        let qag_vec = QagVecNosortFindmax{key,limit};
+        let qag_vec_iroff = QagVecNosortFindmaxIroff{key,limit};
+        let qag_vec_nosort = QagVecNosort{key,limit};
+        let f = |x:f64| [f1(x),f2(x),f3(x),f4(x)];
 
-        let start = Instant::now();
-        let res = qag_vec.qintegrate(&fun,a,b,epsabs,epsrel);
-        println!("time : {:?} ... {:?}",start.elapsed(),res);
 
+        let mut res1;
+        let mut res2;
+        let mut res3;
+        let mut res4;
+        //let mut res_vec;
+        //let mut res_vec_iroff ;
+        let mut res_vec_nosort;
 
-
-        let qag_vec2 = Qag_1dvec2 {key,limit};
-        let start = Instant::now();
-        let res1 = qag_vec2.qintegrate(&f1,a,b,epsabs,epsrel);
-        let res2 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel);
-        let res3 = qag_vec2.qintegrate(&f3,a,b,epsabs,epsrel);
-        println!("time : {:?} ... {:?}",start.elapsed(),res1);
-        println!("{:?}",res2);
-        println!("{:?}",res3);
-
-        for k in 0..100{
+        for k in 0..1 {
             let start = Instant::now();
-            let res = qag_vec.qintegrate(&fun,a,b,epsabs,epsrel);
-            println!("vec time : {:?} ... {:?}",start.elapsed(),res);
-
-
-
-            let qag_vec2 = Qag_1dvec2 {key,limit};
+            res1 = qag.qintegrate(&f1, a, b,epsabs,epsrel);
+            res2 = qag.qintegrate(&f2,a,b,epsabs,epsrel);
+            res3 = qag.qintegrate(&f3,a,b,epsabs,epsrel);
+            res4 = qag.qintegrate(&f4,a,b,epsabs,epsrel);
+            println!("normal {:?}", start.elapsed());
+            //let start = Instant::now();
+            //res_vec = qag_vec.qintegrate(&f, a, b,epsabs,epsrel);
+            //println!("vec {:?}", start.elapsed());
+            //let start = Instant::now();
+            //res_vec_iroff = qag_vec_iroff.qintegrate(&f, a, b,epsabs,epsrel);
+            //println!("vec iroff {:?}", start.elapsed());
             let start = Instant::now();
-            let res1 = qag_vec2.qintegrate(&f1,a,b,epsabs,epsrel);
-            let res2 = qag_vec2.qintegrate(&f2,a,b,epsabs,epsrel);
-            let res3 = qag_vec2.qintegrate(&f3,a,b,epsabs,epsrel);
-            println!(" 1D time : {:?} ... {:?}",start.elapsed(),res1);
+            res_vec_nosort = qag_vec_nosort.qintegrate(&f, a, b,epsabs,epsrel);
+            println!("vec nosort {:?}", start.elapsed());
+            if k == 0{
+                println!("normal {:?},{:?},{:?},{:?}",res1.integration_result.result,
+                         res2.integration_result.result,res3.integration_result.result,
+                         res4.integration_result.result);
+                //println!("vec {:?}",res_vec.integration_result.result);
+                //println!("vec iroff {:?}",res_vec_iroff.integration_result.result);
+                println!("vec nosort {:?}",res_vec_nosort.integration_result.result);
+                println!("normal {:?},{:?},{:?},{:?}",res1.integration_result.last,
+                         res2.integration_result.last,res3.integration_result.last,
+                         res4.integration_result.last);
+                //println!("vec {:?}",res_vec.integration_result.last);
+                //println!("vec iroff{:?}",res_vec_iroff.integration_result.last);
+                println!("vec nosort{:?}",res_vec_nosort.integration_result.last);
+            }
         }
-        let a0 = [1,2,3,4];
-        let a = Simd::from(a0);
-        println!("{:?}",a);
 
     }
 }
+
+
