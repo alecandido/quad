@@ -365,8 +365,8 @@ mod tests {
         let epsrel = 0.0;
         let key = 6;
         let limit = 10000000;
-        let max = 1000;
-        let qag = Qag{key,limit};
+        let max = 50;
+        let qag1 = Qag2{key : 3,limit};
         let qag2 = Qag2{key,limit};
 
 
@@ -374,7 +374,7 @@ mod tests {
 
         for i in 0..max{
             let start = Instant::now();
-            let res = qag.qintegrate(&f, a, b, epsabs, epsrel).unwrap();
+            let res = qag1.qintegrate(&f, a, b, epsabs, epsrel).unwrap();
             if i > 10 { t1 += start.elapsed().as_secs_f64();}
             let start = Instant::now();
             let res2 = qag2.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
@@ -383,13 +383,15 @@ mod tests {
             if test && i == max-1 {
                 println!("{:?}",res.neval);
                 println!("{:?}",res2.neval);
+                println!("{:?}",res.result);
+                println!("{:?}",res2.result);
             }
         }
         t1 = t1 / ( max as f64 - 10.0);
         t2 = t2 / ( max as f64 - 10.0);
 
 
-        println!("qag : {:?} ; qag2 : {:?}", t1, t2);
+        println!("qag1 qk15 : {:?} ; qag2 qk61: {:?}", t1, t2);
     }
 
 }

@@ -225,7 +225,7 @@ mod tests {
     fn test(){
         let f = |x:f64| x.sin();
         let a = 0.0;
-        let b = 1.0;
+        let b = 100.0;
         let qks = Qk51Simd {};
         let qk = Qk51{};
 

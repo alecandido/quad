@@ -28,7 +28,13 @@ pub fn res_update(v : &mut[f64], w: &[f64], z : &[f64], y : &[f64]){
     }
 }
 
-#[derive(Debug)]
+pub fn add_res( v : &mut[f64], w : &[f64]){
+    for k  in 0..v.len(){
+        v[k] += w[k];
+    }
+}
+
+#[derive(Debug,Clone)]
 pub struct HeapItem {
     pub interval : (f64,f64),
     pub err : f64,
@@ -62,7 +68,7 @@ impl PartialOrd for HeapItem {
 
 
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Myf64{
     pub x : f64,
 }

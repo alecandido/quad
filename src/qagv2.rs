@@ -1,7 +1,12 @@
 use std::collections::{BinaryHeap, HashMap};
-use std::sync::{Arc, Mutex};
 use crate::constants::*;
 use crate::qag_vec_norm_integrator_result::QagVecNormIntegratorResult;
+use crate::qk15::qk15_quadrature;
+use crate::qk21::qk21_quadrature;
+use crate::qk31::qk31_quadrature;
+use crate::qk41::qk41_quadrature;
+use crate::qk51::qk51_quadrature;
+use crate::qk61::qk61_quadrature;
 use crate::qk61_vec_norm2::Qk61VecNorm2;
 use crate::result_state::*;
 
@@ -9,7 +14,7 @@ use crate::result_state::*;
 
 
 #[derive(Clone)]
-pub struct QagVecNormPar {
+pub struct Qagv2 {
     pub key : i32,
     pub limit : usize,
 }
@@ -119,169 +124,124 @@ pub struct QagVecNormPar {
 
 
 
-impl QagVecNormPar {
-    pub fn qintegrate<const N:usize>(&self, fun : &FnVecGen<N>, a : f64, b : f64, epsabs : f64, epsrel : f64)
+impl Qagv2 {
+    pub fn qintegrate<const N:usize>(&self, f : &dyn Fn(f64)->[f64; N], a : f64, b : f64, epsabs : f64, epsrel : f64)
                                      ->  QagVecNormIntegratorResult<N> {
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return QagVecNormIntegratorResult::new_error(ResultState::Invalid)
         }
 
-
-        //            first approximation to the integral
-
         let mut neval = 0;
         let mut last= 1 ;
-        let result = Arc::new(Mutex::new([0.0; N]));
-        let abserr = Arc::new(Mutex::new(0.0));
-        let rounderr  = Arc::new(Mutex::new(0.0));
-        let f = &fun.components;
-
-        let qk61 = Qk61VecNorm2 {};
 
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
         if self.key >= 7 { keyf = 6; }
-        match keyf {
-            6 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk61.integrate(&**f, a, b),
-            _ => (),
-        }
 
-        //           test on accuracy.
+        let (mut result, mut abserr, mut rounderr) = match keyf {
+            1 => qk15_quadrature(f, a, b),
+            2 => qk21_quadrature(f, a, b),
+            3 => qk31_quadrature(f, a, b),
+            4 => qk41_quadrature(f, a, b),
+            5 => qk51_quadrature(f, a, b),
+            6 => qk61_quadrature(f, a, b),
+            _ => ([0.0; N], 0.0, 0.0),
+        };
 
-        let mut errbnd = epsabs.max(epsrel * norm_vec(&*result.lock().unwrap()));
+        let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
 
-        let interval_cache = Arc::new(Mutex::new(HashMap::from([((Myf64{x:a},Myf64{x:b}),result.lock().unwrap().clone())])));
-        let heap = Arc::new(Mutex::new(BinaryHeap::new()));
-        heap.lock().unwrap().push(HeapItem::new((a,b),*abserr.lock().unwrap()));
+        let mut interval_cache = HashMap::from([((Myf64{x:a},Myf64{x:b}),result.clone())]);
+        let mut heap = BinaryHeap::new();
+        heap.push(HeapItem::new((a,b),abserr));
 
-        if *abserr.lock().unwrap() < *rounderr.lock().unwrap() {
-            return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
-        }
-
-
-        if *abserr.lock().unwrap() <= errbnd{
+        if abserr + rounderr <= errbnd{
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
             if keyf == 1 { neval = 30 * last as i32 + 15; }
-            return QagVecNormIntegratorResult::new(*result.lock().unwrap(),*abserr.lock().unwrap(),neval,last)
+            abserr = abserr + rounderr;
+            return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+        }
+
+        if abserr < rounderr {
+            return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
         }
 
         if self.limit == 1 {
             return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
-        //          initialization
-
-        //          main do-loop
-        //           bisect the subinterval with the largest error estimate.
-
-
-
-
         while last < self.limit{
-            let mut to_process = vec![];
+            let mut to_process = [(0.0,0.0,0.0,[0.0;N]);128];
             let mut err_sum = 0.0;
 
-            {
-                let mut heap = heap.lock().unwrap();
-                let mut interval_cache = interval_cache.lock().unwrap();
-                let abserr = abserr.lock().unwrap();
-
-                while to_process.len() < 128 && heap.len() != 0 {
-                    let old_interval = heap.pop().unwrap();
-                    let ((x, y), old_err) = (old_interval.interval, old_interval.err);
-                    let old_res = interval_cache.remove(&(Myf64 { x }, Myf64 { x: y })).unwrap();
-                    err_sum += old_err;
-                    to_process.push((x, y, old_err, old_res));
-                    if err_sum > *abserr - errbnd / 8.0 { break }
-                }
+            let mut k = 0;
+            while k < 128 && heap.len() != 0{
+                let old_interval = heap.pop().unwrap();
+                let ((x,y),old_err) = (old_interval.interval,old_interval.err);
+                let old_res = interval_cache.remove(&(Myf64{x}, Myf64{x:y})).unwrap();
+                err_sum += old_err;
+                to_process[k] = ((x,y,old_err,old_res));
+                k+=1;
+                if err_sum > abserr - errbnd / 8.0 { break}
             }
 
-            rayon::scope(|s| {
+            let mut k =0;
+            for comp in to_process{
+                if comp.0 != comp.1 { k += 1;}
+                else {break}
+            }
+
+            for i in 0..k {
+                last += 1;
+
+                let a1 = to_process[i].0;
+                let b1 = 0.5 * (to_process[i].0 + to_process[i].1);
+                let a2 = b1;
+                let b2 = to_process[i].1;
+
+                let ( (mut result1, mut abserr1, mut rounderr1),
+                (mut result2, mut abserr2, mut rounderr2))  =
+                    match keyf {
+                    1 => (qk15_quadrature(f, a1, b1),qk15_quadrature(f, a2, b2)),
+                    2 => (qk21_quadrature(f, a1, b1),qk21_quadrature(f, a2, b2)),
+                    3 => (qk31_quadrature(f, a1, b1),qk31_quadrature(f, a2, b2)),
+                    4 => (qk41_quadrature(f, a1, b1),qk41_quadrature(f, a2, b2)),
+                    5 => (qk51_quadrature(f, a1, b1),qk51_quadrature(f, a2, b2)),
+                    6 => (qk61_quadrature(f, a1, b1),qk61_quadrature(f, a2, b2)),
+                    _ => (([0.0; N], 0.0, 0.0),([0.0; N], 0.0, 0.0)),
+                };
+
+                res_update(&mut result, & result1, & result2, &to_process[i].3);
+
+                interval_cache.insert((Myf64{x:a1},Myf64{x:b1}),result1);
+                interval_cache.insert((Myf64{x:a2},Myf64{x:b2}),result2);
+
+                heap.push(HeapItem::new((a1,b1),abserr1));
+                heap.push(HeapItem::new((a2,b2),abserr2));
 
 
+                abserr += -to_process[i].2 + abserr1 + abserr2;
+                rounderr += rounderr1 + rounderr2;
+
+            }
+            errbnd = epsabs.max(epsrel * norm_vec(&result));
 
 
-                for comp in to_process {
-
-                    last += 1;
-                    let result = result.clone();
-                    let abserr = abserr.clone();
-                    let heap = heap.clone();
-                    let rounderr = rounderr.clone();
-                    let interval_cache = interval_cache.clone();
-                    let f = f.clone();
-
-
-                    s.spawn(move |_| {
-
-
-                        let mut result1 = [0.0; N];
-                        let mut abserr1 = 0.0;
-                        let mut rounderr1 = 0.0;
-
-                        let mut result2 = [0.0; N];
-                        let mut abserr2 = 0.0;
-                        let mut rounderr2 = 0.0;
-
-                        let a1 = comp.0;
-                        let b1 = 0.5 * (comp.0 + comp.1);
-                        let a2 = b1;
-                        let b2 = comp.1;
-
-                        let qk61 = Qk61VecNorm2 {};
-
-                        match keyf {
-                            6 => {
-                                (result1, abserr1, rounderr1) = qk61.integrate(&*f, a1, b1);
-                                (result2, abserr2, rounderr2) = qk61.integrate(&*f, a2, b2);
-                            },
-                            _ => (),
-                        }
-
-                        let mut result = result.lock().unwrap();
-                        res_update(&mut *result, &result1, &result2, &comp.3);
-                        drop(result);
-
-                        let mut interval_cache = interval_cache.lock().unwrap();
-                        interval_cache.insert((Myf64 { x: a1 }, Myf64 { x: b1 }), result1);
-                        interval_cache.insert((Myf64 { x: a2 }, Myf64 { x: b2 }), result2);
-                        drop(interval_cache);
-
-                        let mut heap = heap.lock().unwrap();
-                        heap.push(HeapItem::new((a1, b1), abserr1));
-                        heap.push(HeapItem::new((a2, b2), abserr2));
-                        drop(heap);
-
-
-                        *abserr.lock().unwrap() += -comp.2 + abserr1 + abserr2;
-                        *rounderr.lock().unwrap() += rounderr1 + rounderr2;
-                    })
-                }
-
-
-
-            });
-            let result = result.lock().unwrap();
-            let abserr = abserr.lock().unwrap();
-            let rounderr = rounderr.lock().unwrap();
-
-            errbnd = epsabs.max(epsrel * norm_vec(&*result));
-
-
-            if *abserr <= errbnd / 8.0{ break;}
-            if *abserr < *rounderr {
+            if abserr <= errbnd / 8.0{ break;}
+            if abserr < rounderr {
                 return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
 
 
-        let result = result.lock().unwrap().clone();
-        let abserr = abserr.lock().unwrap().clone();
+        if last >= self.limit {
+            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+        }
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
         if keyf == 1 { neval = 30 * last as i32 + 15; }
 
+        abserr = abserr + rounderr;
 
         return QagVecNormIntegratorResult::new(result,abserr,neval,last)
 
@@ -290,49 +250,60 @@ impl QagVecNormPar {
 
 
 
-
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
     use std::time::Instant;
-    use crate::constants::FnVecGen;
+    use crate::qag::Qag;
     use crate::qage_vec_norm3::QagVecNorm3;
-    use crate::qage_vec_norm_parall::QagVecNormPar;
+    use crate::qagv2::Qagv2;
 
     #[test]
     fn test(){
+
         let a = 0.0;
-        let b = 1.0e3;
+        let b = 100000.0;
         let key = 6;
         let limit = 1000000;
         let epsrel = 0.0;
         let epsabs = 1e-2;
-        let max = 10;
+        let max = 2000;
 
         let f = |x:f64| [x.cos(),x.sin(),x.cos(),x.sin()];
-        let fp = FnVecGen{ components : Arc::new(f)};
-        let qag = QagVecNorm3{key,limit};
-        let qag_par = QagVecNormPar{key,limit};
+        let qag3 = Qagv2{key,limit};
+        let qag = Qag{key,limit};
 
         let mut res;
-        let mut res_par;
+        let mut res2;
+
+        let mut t1 = 0.0;
+        let mut t2 = 0.0;
 
         for k in 0..max{
             let start = Instant::now();
-            res = qag.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("1 thread time : {:?}",start.elapsed());
+            res = qag3.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
+            if k > 10 { t1 += start.elapsed().as_secs_f64(); }
             let start = Instant::now();
-            res_par = qag_par.qintegrate(&fp,a,b,epsabs,epsrel);
-            println!("parallel time : {:?}",start.elapsed());
+            res2 = qag.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
+            if k > 10 { t2 += start.elapsed().as_secs_f64(); }
 
             if k == max-1{
                 println!("{:?}",res);
-                println!("{:?}",res_par);
+                println!("{:?}",res2);
             }
 
         }
 
+        t1 = t1 / (max as f64 - 10.0);
+        t2 = t2 / (max as f64 - 10.0);
 
+        println!("v2 time : {t1}");
+        println!("time : {t2}");
     }
+
+
+
+
+
 }
+
 

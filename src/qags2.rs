@@ -1,16 +1,22 @@
-use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
-use std::hash;
-use crate::qag_vec_norm_integrator_result::QagVecNormIntegratorResult;
-use crate::qk61_vec_norm2::*;
+use crate::constants::*;
+use crate::qags_integrator_result::QagsIntegratorResult;
+use crate::qk15::qk15_quadrature;
+use crate::qk21::qk21_quadrature;
+use crate::qk31::qk31_quadrature;
+use crate::qk41::qk41_quadrature;
+use crate::qk51::qk51_quadrature;
+use crate::qk61::qk61_quadrature;
 use crate::result_state::*;
+use crate::semi_infinite_function::{DoubleInfiniteFunction, SemiInfiniteFunction};
 
 
-
-#[derive(Clone)]
-pub struct QagVecNorm3 {
+#[derive(Clone,Debug)]
+pub struct Qags2 {
     pub key : i32,
     pub limit : usize,
+    pub points : Vec<f64>,
+    pub more_info : bool
 }
 
 ///           f      : f64
@@ -118,63 +124,97 @@ pub struct QagVecNorm3 {
 
 
 
-impl QagVecNorm3 {
-    pub fn qintegrate<const n :usize>(&self, f : &dyn Fn(f64)->[f64;n], a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                      ->  QagVecNormIntegratorResult<n> {
+impl Qags2 {
 
-        if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagVecNormIntegratorResult::new_error(ResultState::Invalid)
+    pub fn integrate<const N:usize,F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
+        ->  QagsIntegratorResult<N>
+        where F : Fn(f64) -> [f64;N] {
+        if b == f64::INFINITY && a.is_finite() {
+            let f2 = |x: f64| SemiInfiniteFunction(&f, x, a, b);
+            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
+        }
+        if a == f64::NEG_INFINITY && b.is_finite() {
+            let f2 = |x: f64| SemiInfiniteFunction(&f, x, b, a);
+            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
+        }
+        if a == f64::NEG_INFINITY && b == f64::INFINITY {
+            let f2 = |x: f64| DoubleInfiniteFunction(&f, x);
+            return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel)
         }
 
+        self.qintegrate(&f,a,b,epsabs,epsrel)
+    }
 
-        //            first approximation to the integral
+
+    pub fn qintegrate<const N:usize,F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
+        ->  QagsIntegratorResult<N>
+        where F : Fn(f64) -> [f64;N]{
+
+        if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
+            return QagsIntegratorResult::new_error(ResultState::Invalid)
+        }
+        let mut initial_intervals = vec![];
+
+        if self.points.is_empty() { initial_intervals.push((a,b)); }
+        else {
+            let mut prev = a ;
+            for p in &self.points{
+                initial_intervals.push((prev,*p));
+                prev = *p;
+            }
+            initial_intervals.push((prev,b));
+        }
+
 
         let mut neval = 0;
         let mut last= 1 ;
-        let mut result = [0.0;n];
-        let mut abserr = 0.0;
-        let mut rounderr  = 0.0;
-
-        let qk61 = Qk61VecNorm2 {};
-
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
         if self.key >= 7 { keyf = 6; }
-        match keyf {
-            6 => (result, abserr, rounderr) = qk61.integrate(f, a, b),
-            _ => (),
+
+        let mut interval_cache = HashMap::new();
+        let mut heap = BinaryHeap::new();
+        let mut result = [0.0;N];
+        let mut abserr = 0.0;
+        let mut rounderr = 0.0;
+
+        for comp in initial_intervals{
+            let (result_temp, abserr_temp, rounderr_temp) = match keyf {
+                1 => qk15_quadrature(f, comp.0, comp.1),
+                2 => qk21_quadrature(f, comp.0, comp.1),
+                3 => qk31_quadrature(f, comp.0, comp.1),
+                4 => qk41_quadrature(f, comp.0, comp.1),
+                5 => qk51_quadrature(f, comp.0, comp.1),
+                6 => qk61_quadrature(f, comp.0, comp.1),
+                _ => ([0.0; N], 0.0, 0.0),
+            };
+            add_res(&mut result,&result_temp);
+            abserr += abserr_temp;
+            rounderr += rounderr_temp;
+            heap.push(HeapItem::new((comp.0,comp.1),abserr_temp));
+            interval_cache.insert((Myf64{x:comp.0},Myf64{x:comp.1}),result_temp);
         }
 
-        //           test on accuracy.
 
         let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
 
-        let mut interval_cache = HashMap::from([((Myf64{x:a},Myf64{x:b}),result.clone())]);
-        let mut heap = BinaryHeap::new();
-        heap.push(HeapItem::new((a,b),abserr));
-
-        //  DA VEDERE !!!!!!!!!!!!!
-        //if abserr <= 50.0 * EPMACH * defabs[k] && abserr[k] > errbnd[k] {
-        //    return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
-        //}
 
 
-        if abserr <= errbnd{
+        if abserr + rounderr <= errbnd{
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
-            if keyf == 1 { neval = 30 * last as i32 - 15; }
-            return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+            if keyf == 1 { neval = 30 * last as i32 + 15; }
+            abserr = abserr + rounderr;
+            if self.more_info { return QagsIntegratorResult::new_more_info(result,abserr,neval,last,interval_cache, heap) }
+            else { return QagsIntegratorResult::new(result,abserr) }
         }
 
         if self.limit == 1 {
-            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagsIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
-        //          initialization
-
-        //          main do-loop
-        //           bisect the subinterval with the largest error estimate.
-
-
+        if abserr < rounderr {
+            return QagsIntegratorResult::new_error(ResultState::BadTolerance)
+        }
 
 
         while last < self.limit{
@@ -195,11 +235,11 @@ impl QagVecNorm3 {
             for comp in to_process{
                 last += 1;
 
-                let mut result1 = [0.0;n];
+                let mut result1 = [0.0; N];
                 let mut abserr1 = 0.0;
                 let mut rounderr1  = 0.0;
 
-                let mut result2 = [0.0;n];
+                let mut result2 = [0.0; N];
                 let mut abserr2 = 0.0;
                 let mut rounderr2  = 0.0;
 
@@ -210,9 +250,29 @@ impl QagVecNorm3 {
 
 
                 match keyf {
+                    1 => {
+                        (result1, abserr1, rounderr1) = qk15_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk15_quadrature(f, a2, b2);
+                    },
+                    2 => {
+                        (result1, abserr1, rounderr1) = qk21_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk21_quadrature(f, a2, b2);
+                    },
+                    3 => {
+                        (result1, abserr1, rounderr1) = qk31_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk31_quadrature(f, a2, b2);
+                    },
+                    4 => {
+                        (result1, abserr1, rounderr1) = qk41_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk41_quadrature(f, a2, b2);
+                    },
+                    5 => {
+                        (result1, abserr1, rounderr1) = qk51_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk51_quadrature(f, a2, b2);
+                    },
                     6 => {
-                        (result1, abserr1, rounderr1) = qk61.integrate(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk61.integrate(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk61_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk61_quadrature(f, a2, b2);
                     },
                     _ => (),
                 }
@@ -235,102 +295,71 @@ impl QagVecNorm3 {
 
             if abserr <= errbnd / 8.0{ break;}
             if abserr < rounderr {
-                return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
+                return QagsIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
 
 
         if last >= self.limit {
-            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagsIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
-        if keyf == 1 { neval = 30 * last as i32 - 15; }
+        if keyf == 1 { neval = 30 * last as i32 + 15; }
 
+        abserr = abserr + rounderr;
 
-        return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+        if self.more_info { return QagsIntegratorResult::new_more_info(result,abserr,neval,last,interval_cache, heap) }
+        else { return QagsIntegratorResult::new(result,abserr) }
 
     }
 }
 
 
-pub fn norm_vec(v : &[f64]) -> f64{
-    let mut norm = 0.0;
-    for comp in v{
-        norm += comp.powi(2);
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+    use crate::qag::Qag;
+    use crate::qage_vec_norm3::QagVecNorm3;
+    use crate::qags::Qags;
+
+    #[test]
+    fn test(){
+
+        let a = 0.0;
+        let b = 1000.0;
+        let key = 6;
+        let limit = 1000000;
+        let epsrel = 0.0;
+        let epsabs = 1.0;
+        let max = 4;
+
+        let f = |x:f64| [x.cos(),x.sin(),x.cos(),x.sin()];
+        let qag = Qag{key,limit};
+        let points = [250.0,500.0,750.0];
+        let qags = Qags{key,limit,points : points.to_vec()};
+
+        let mut res;
+        let mut res2;
+
+        for k in 0..max{
+            let start = Instant::now();
+            res = qags.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
+            println!("qags time : {:?}",start.elapsed());
+            let start = Instant::now();
+            res2 = qag.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
+            println!("qag time : {:?}",start.elapsed());
+
+            if k == max-1{
+                println!("{:?}",res);
+                println!("{:?}",res2);
+            }
+
+        }
     }
-    norm = norm.sqrt();
-    norm
+
+
 }
-
-pub fn res_update(v : &mut[f64], w: &[f64], z : &[f64], y : &[f64]){
-    for k  in 0..v.len(){
-        v[k] += w[k] + z[k] - y[k];
-    }
-}
-
-#[derive(Debug)]
-pub struct HeapItem {
-    interval : (f64,f64),
-    err : f64,
-}
-
-impl HeapItem {
-    pub fn new( interval : (f64,f64) , err : f64) -> Self{
-        Self{ interval,err}
-    }
-}
-
-impl Eq for HeapItem{}
-
-impl PartialEq for HeapItem{
-    fn eq(&self, other: &Self) -> bool {
-        self.err == other.err
-    }
-}
-
-impl Ord for HeapItem {
-    fn cmp(&self, other: &Self) -> Ordering {
-        (self.err).partial_cmp(&other.err).unwrap()
-    }
-}
-
-impl PartialOrd for HeapItem {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-
-
-#[derive(Debug)]
-pub struct Myf64{
-    x : f64,
-}
-impl Myf64 {
-    fn key(&self) -> u64 {
-        self.x.to_bits()
-    }
-}
-
-impl hash::Hash for Myf64 {
-    fn hash<H>(&self, state: &mut H)
-        where
-            H: hash::Hasher,
-    {
-        self.key().hash(state)
-    }
-}
-
-impl PartialEq for Myf64 {
-    fn eq(&self, other: &Myf64) -> bool {
-        self.key() == other.key()
-    }
-}
-
-impl Eq for Myf64{}
-
-
-
 
 
