@@ -1,15 +1,20 @@
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::{Arc, Mutex};
 use crate::constants::*;
-use crate::qag_vec_norm_integrator_result::QagVecNormIntegratorResult;
-use crate::qk61_vec_norm2::Qk61VecNorm2;
+use crate::qag_par_integrator_result::QagParIntegratorResult;
+use crate::qk15::qk15_array_quadrature;
+use crate::qk21::qk21_array_quadrature;
+use crate::qk31::qk31_array_quadrature;
+use crate::qk41::qk41_array_quadrature;
+use crate::qk51::qk51_array_quadrature;
+use crate::qk61::qk61_array_quadrature;
 use crate::result_state::*;
 
 
 
 
 #[derive(Clone)]
-pub struct QagVecNormPar {
+pub struct QagParScope {
     pub key : i32,
     pub limit : usize,
 }
@@ -119,12 +124,12 @@ pub struct QagVecNormPar {
 
 
 
-impl QagVecNormPar {
+impl QagParScope {
     pub fn qintegrate<const N:usize>(&self, fun : &FnVecGen<N>, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                     ->  QagVecNormIntegratorResult<N> {
+                                     ->  QagParIntegratorResult<N> {
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagVecNormIntegratorResult::new_error(ResultState::Invalid)
+            return QagParIntegratorResult::new_error(ResultState::Invalid)
         }
 
 
@@ -137,13 +142,16 @@ impl QagVecNormPar {
         let rounderr  = Arc::new(Mutex::new(0.0));
         let f = &fun.components;
 
-        let qk61 = Qk61VecNorm2 {};
-
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
         if self.key >= 7 { keyf = 6; }
         match keyf {
-            6 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk61.integrate(&**f, a, b),
+            1 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk15_array_quadrature(&**f, a, b),
+            2 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk21_array_quadrature(&**f, a, b),
+            3 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk31_array_quadrature(&**f, a, b),
+            4 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk41_array_quadrature(&**f, a, b),
+            5 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk51_array_quadrature(&**f, a, b),
+            6 => (*result.lock().unwrap(), *abserr.lock().unwrap(), *rounderr.lock().unwrap()) = qk61_array_quadrature(&**f, a, b),
             _ => (),
         }
 
@@ -156,18 +164,18 @@ impl QagVecNormPar {
         heap.lock().unwrap().push(HeapItem::new((a,b),*abserr.lock().unwrap()));
 
         if *abserr.lock().unwrap() < *rounderr.lock().unwrap() {
-            return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
+            return QagParIntegratorResult::new_error(ResultState::BadTolerance)
         }
 
 
         if *abserr.lock().unwrap() <= errbnd{
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
             if keyf == 1 { neval = 30 * last as i32 + 15; }
-            return QagVecNormIntegratorResult::new(*result.lock().unwrap(),*abserr.lock().unwrap(),neval,last)
+            return QagParIntegratorResult::new(*result.lock().unwrap(), *abserr.lock().unwrap(), neval, last)
         }
 
         if self.limit == 1 {
-            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagParIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         //          initialization
@@ -199,9 +207,6 @@ impl QagVecNormPar {
 
             rayon::scope(|s| {
 
-
-
-
                 for comp in to_process {
 
                     last += 1;
@@ -229,12 +234,30 @@ impl QagVecNormPar {
                         let a2 = b1;
                         let b2 = comp.1;
 
-                        let qk61 = Qk61VecNorm2 {};
-
                         match keyf {
+                            1 => {
+                                (result1, abserr1, rounderr1) = qk15_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk15_array_quadrature(&*f, a2, b2);
+                            },
+                            2 => {
+                                (result1, abserr1, rounderr1) = qk21_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk21_array_quadrature(&*f, a2, b2);
+                            },
+                            3 => {
+                                (result1, abserr1, rounderr1) = qk31_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk31_array_quadrature(&*f, a2, b2);
+                            },
+                            4 => {
+                                (result1, abserr1, rounderr1) = qk41_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk41_array_quadrature(&*f, a2, b2);
+                            },
+                            5 => {
+                                (result1, abserr1, rounderr1) = qk51_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk51_array_quadrature(&*f, a2, b2);
+                            },
                             6 => {
-                                (result1, abserr1, rounderr1) = qk61.integrate(&*f, a1, b1);
-                                (result2, abserr2, rounderr2) = qk61.integrate(&*f, a2, b2);
+                                (result1, abserr1, rounderr1) = qk61_array_quadrature(&*f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk61_array_quadrature(&*f, a2, b2);
                             },
                             _ => (),
                         }
@@ -271,7 +294,7 @@ impl QagVecNormPar {
 
             if *abserr <= errbnd / 8.0{ break;}
             if *abserr < *rounderr {
-                return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
+                return QagParIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
 
@@ -283,56 +306,9 @@ impl QagVecNormPar {
         if keyf == 1 { neval = 30 * last as i32 + 15; }
 
 
-        return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+        return QagParIntegratorResult::new(result, abserr, neval, last)
 
     }
 }
 
-
-
-
-#[cfg(test)]
-mod tests {
-    use std::sync::Arc;
-    use std::time::Instant;
-    use crate::constants::FnVecGen;
-    use crate::qage_vec_norm3::QagVecNorm3;
-    use crate::qage_vec_norm_parall::QagVecNormPar;
-
-    #[test]
-    fn test(){
-        let a = 0.0;
-        let b = 1.0e3;
-        let key = 6;
-        let limit = 1000000;
-        let epsrel = 0.0;
-        let epsabs = 1e-2;
-        let max = 10;
-
-        let f = |x:f64| [x.cos(),x.sin(),x.cos(),x.sin()];
-        let fp = FnVecGen{ components : Arc::new(f)};
-        let qag = QagVecNorm3{key,limit};
-        let qag_par = QagVecNormPar{key,limit};
-
-        let mut res;
-        let mut res_par;
-
-        for k in 0..max{
-            let start = Instant::now();
-            res = qag.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("1 thread time : {:?}",start.elapsed());
-            let start = Instant::now();
-            res_par = qag_par.qintegrate(&fp,a,b,epsabs,epsrel);
-            println!("parallel time : {:?}",start.elapsed());
-
-            if k == max-1{
-                println!("{:?}",res);
-                println!("{:?}",res_par);
-            }
-
-        }
-
-
-    }
-}
 

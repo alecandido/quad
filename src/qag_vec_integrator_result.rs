@@ -1,41 +1,41 @@
 use std::collections::{BinaryHeap, HashMap};
 use crate::constants::{HeapItem, Myf64};
-use crate::qags_integration_result::QagsIntegrationResult;
+use crate::qag_vec_integration_result::QagVecIntegrationResult;
 use crate::result_state::*;
 
 #[derive(Clone,Debug)]
-pub struct QagsIntegratorResult<const N:usize> {
+pub struct QagVecIntegratorResult {
     pub result_state : ResultState,
-    pub integration_result : QagsIntegrationResult<N>,
+    pub integration_result : QagVecIntegrationResult,
 }
 
 
 
-impl<const N:usize> QagsIntegratorResult<N> {
-    pub fn new(result : [f64; N], abserr : f64) -> Self {
+impl QagVecIntegratorResult{
+    pub fn new(result : Vec<f64>, abserr : f64) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagsIntegrationResult::new(result, abserr),
+            integration_result : QagVecIntegrationResult::new(result, abserr),
         }
     }
 
-    pub fn new_more_info(result : [f64; N], abserr : f64, neval : i32, last : usize,
-                         hash : HashMap<(Myf64,Myf64),[f64;N]>, heap : BinaryHeap<HeapItem>) -> Self {
+    pub fn new_more_info(result : Vec<f64>, abserr : f64, neval : i32, last : usize,
+                         hash : HashMap<(Myf64,Myf64),Vec<f64>>, heap : BinaryHeap<HeapItem>) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagsIntegrationResult::new_more_info(result,abserr,neval,last,hash,heap)
+            integration_result : QagVecIntegrationResult::new_more_info(result, abserr, neval, last, hash, heap)
         }
     }
 
     pub fn new_error(result_state : ResultState) -> Self{
         Self{
             result_state,
-            integration_result : QagsIntegrationResult::new_error(),
+            integration_result : QagVecIntegrationResult::new_error(),
         }
     }
 
 
-    pub fn unwrap(&self) -> QagsIntegrationResult<N> {
+    pub fn unwrap(&self) -> QagVecIntegrationResult {
         match self.result_state{
             ResultState::Success => self.integration_result.clone(),
             ResultState::Failure => panic!("Generic Fail"),

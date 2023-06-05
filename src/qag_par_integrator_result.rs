@@ -1,30 +1,30 @@
-use crate::qag_vec_norm_integration_result::QagVecNormIntegrationResult;
+use crate::qag_par_integration_result::QagParIntegrationResult;
 use crate::result_state::*;
 
 #[derive(Clone,Debug)]
-pub struct QagVecNormIntegratorResult<const N:usize> {
+pub struct QagParIntegratorResult<const N:usize> {
     pub result_state : ResultState,
-    pub integration_result : QagVecNormIntegrationResult<N>,
+    pub integration_result : QagParIntegrationResult<N>,
 }
 
 
 
-impl<const N:usize> QagVecNormIntegratorResult<N> {
+impl<const N:usize> QagParIntegratorResult<N> {
     pub fn new(result : [f64; N], abserr : f64, neval : i32, last : usize) -> Self {
         Self{
             result_state : ResultState::Success,
-            integration_result : QagVecNormIntegrationResult::new(result, abserr, neval,last),
+            integration_result : QagParIntegrationResult::new(result, abserr, neval, last),
         }
     }
     pub fn new_error(result_state : ResultState) -> Self{
         Self{
             result_state,
-            integration_result : QagVecNormIntegrationResult::new_error(),
+            integration_result : QagParIntegrationResult::new_error(),
         }
     }
 
 
-    pub fn unwrap(&self) -> QagVecNormIntegrationResult<N> {
+    pub fn unwrap(&self) -> QagParIntegrationResult<N> {
         match self.result_state{
             ResultState::Success => self.integration_result.clone(),
             ResultState::Failure => panic!("Generic Fail"),

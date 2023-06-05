@@ -1,11 +1,15 @@
+//use std::time::Instant;
 use crate::constants::*;
 
-pub fn qk_quadrature<const N:usize,const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wgk : &[f64], wg : &[f64])
-                                                      -> ([f64; N], f64, f64)
+pub fn qk_array_quadrature<const N:usize,const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wgk : &[f64], wg : &[f64])
+                                                            -> ([f64; N], f64, f64)
 where F : Fn(f64) -> [f64; N]{
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
     let centr: f64 = 0.5 * (b + a);
+
+
+    //let start = Instant::now();
 
     let mut fv1 = [[0.0; N]; M];
     let mut fv2 = [[0.0; N]; M];
@@ -15,6 +19,9 @@ where F : Fn(f64) -> [f64; N]{
     let mut resg = [0.0; N];
     let mut resk = fc.clone();
     let mut resabs = [0.0;N];
+
+    //println!("First initialization : {:?}",start.elapsed());
+
     if M % 2 == 1{
         resg = fc.clone();
     }
@@ -25,6 +32,8 @@ where F : Fn(f64) -> [f64; N]{
             resg[k] *= wg[(M+1)/2-1];
         }
     }
+
+    //println!("Second initialization : {:?}",start.elapsed());
 
 
     for j in 1..M/2 + 1 {
@@ -46,6 +55,8 @@ where F : Fn(f64) -> [f64; N]{
 
     }
 
+    //println!("First for : {:?}",start.elapsed());
+
     for j in 1..(M+1)/2 + 1 {
         let jtwm1 = 2 * j - 1;
         let absc = hlgth * xgk[jtwm1 - 1];
@@ -62,6 +73,8 @@ where F : Fn(f64) -> [f64; N]{
             resabs[k] += wgk[jtwm1 - 1] * (fval1[k].abs() + fval2[k].abs());
         }
     }
+
+    //println!("Second for : {:?}",start.elapsed());
 
     let mut reskh =resk.clone();
     for k  in 0..N {
@@ -114,6 +127,7 @@ where F : Fn(f64) -> [f64; N]{
         abserr = abserr.max(round_error);
     }
 
+    //println!("Return : {:?}",start.elapsed());
 
     (result, abserr, round_error)
 
@@ -121,28 +135,3 @@ where F : Fn(f64) -> [f64; N]{
 
 }
 
-
-
-
-
-
-
-
-#[cfg(test)]
-mod tests {
-    use crate::qk61_vec_norm2::*;
-    use crate::qk::qk_quadrature;
-
-    #[test]
-    fn test(){
-        let f = |x:f64| [x.cos(),x.sin()];
-        let qk = Qk61VecNorm2{};
-
-        let res = qk_quadrature(&f,0.0,1.0,&XGK,&WGK,&WG);
-        let res2 = qk.integrate(&f,0.0,1.0);
-
-        println!("{:?}",res);
-        println!("{:?}",res2);
-
-    }
-}

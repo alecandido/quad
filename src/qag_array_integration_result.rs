@@ -2,13 +2,13 @@ use std::collections::{BinaryHeap, HashMap};
 use crate::constants::{HeapItem, Myf64};
 
 #[derive(Debug,Clone)]
-pub struct QagsIntegrationResult<const N:usize> {
+pub struct QagArrayIntegrationResult<const N:usize> {
     pub result : [f64; N],
     pub abserr : f64,
     pub more_info : Option<MoreInfo<N>>,
 }
 
-impl<const N:usize> QagsIntegrationResult<N>{
+impl<const N:usize> QagArrayIntegrationResult<N>{
     pub fn new_more_info(result : [f64; N], abserr : f64, neval : i32, last : usize,
                hash : HashMap<(Myf64,Myf64),[f64;N]>, heap : BinaryHeap<HeapItem>) -> Self {
         Self{

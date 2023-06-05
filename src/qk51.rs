@@ -1,9 +1,16 @@
-use crate::qk::qk_quadrature;
+use crate::qk_array::qk_array_quadrature;
+use crate::qk_vec::qk_quadrature_vec;
 
-pub fn qk51_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
+pub fn qk51_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
     where F : Fn(f64) -> [f64; N]
 {
-    qk_quadrature(f,a,b,&XGK51,&WGK51,&WG51)
+    qk_array_quadrature(f, a, b, &XGK51, &WGK51, &WG51)
+}
+
+pub fn qk51_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+    where F : Fn(f64) -> Vec<f64>
+{
+    qk_quadrature_vec(f, a, b, &XGK51, &WGK51, &WG51)
 }
 
 const XGK51 : [f64;25] = [0.999262104992609834193457486540341, 0.995556969790498097908784946893902,
@@ -43,26 +50,3 @@ const WG51 : [f64;13] = [0.011393798501026287947902964113235, 0.0263549866150321
     0.123176053726715451203902873079050];
 
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qk51::qk51_quadrature;
-
-    #[test]
-    fn test(){
-        let f = |x:f64| [x.cos(),x.sin()];
-        let mut res;
-        let max = 1;
-
-        for k in 0..max{
-            res = qk51_quadrature(&f,0.0,100.0);
-
-            if k == max-1{
-                println!("{:?}",res);
-            }
-
-        }
-
-
-    }
-}

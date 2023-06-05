@@ -1,10 +1,18 @@
-use crate::qk::qk_quadrature;
+use crate::qk_array::qk_array_quadrature;
+use crate::qk_vec::qk_quadrature_vec;
 
-pub fn qk41_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
+pub fn qk41_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
     where F : Fn(f64) -> [f64; N]
 {
-    qk_quadrature(f,a,b,&XGK41,&WGK41,&WG41)
+    qk_array_quadrature(f, a, b, &XGK41, &WGK41, &WG41)
 }
+
+pub fn qk41_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+    where F : Fn(f64) -> Vec<f64>
+{
+    qk_quadrature_vec(f, a, b, &XGK41, &WGK41, &WG41)
+}
+
 const XGK41 : [f64;20] = [0.998859031588277663838315576545863, 0.993128599185094924786122388471320,
     0.981507877450250259193342994720217, 0.963971927277913791267666131197277,
     0.940822633831754753519982722212443, 0.912234428251325905867752441203298,

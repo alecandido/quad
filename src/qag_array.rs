@@ -1,21 +1,22 @@
 use std::collections::{BinaryHeap, HashMap};
 use crate::constants::*;
-use crate::qag_vec_norm_integrator_result::QagVecNormIntegratorResult;
-use crate::qk15::qk15_quadrature;
-use crate::qk21::qk21_quadrature;
-use crate::qk31::qk31_quadrature;
-use crate::qk41::qk41_quadrature;
-use crate::qk51::qk51_quadrature;
-use crate::qk61::qk61_quadrature;
-use crate::qk61_vec_norm2::Qk61VecNorm2;
+use crate::qag_array_integrator_result::QagArrayIntegratorResult;
+use crate::qk15::qk15_array_quadrature;
+use crate::qk21::qk21_array_quadrature;
+use crate::qk31::qk31_array_quadrature;
+use crate::qk41::qk41_array_quadrature;
+use crate::qk51::qk51_array_quadrature;
+use crate::qk61::qk61_array_quadrature;
 use crate::result_state::*;
-use crate::semi_infinite_function::{DoubleInfiniteFunction, SemiInfiniteFunction};
+use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 
 
-#[derive(Clone)]
-pub struct Qag {
+#[derive(Clone,Debug)]
+pub struct QagArray {
     pub key : i32,
     pub limit : usize,
+    pub points : Vec<f64>,
+    pub more_info : bool
 }
 
 ///           f      : f64
@@ -123,77 +124,96 @@ pub struct Qag {
 
 
 
-impl Qag {
+impl QagArray {
 
     pub fn integrate<const N:usize,F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                       ->  QagVecNormIntegratorResult<N>
+        ->  QagArrayIntegratorResult<N>
         where F : Fn(f64) -> [f64;N] {
         if b == f64::INFINITY && a.is_finite() {
-            let f2 = |x: f64| SemiInfiniteFunction(&f, x, a, b);
+            let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
             return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
         }
         if a == f64::NEG_INFINITY && b.is_finite() {
-            let f2 = |x: f64| SemiInfiniteFunction(&f, x, b, a);
+            let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
             return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
         }
         if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f2 = |x: f64| DoubleInfiniteFunction(&f, x);
+            let f2 = |x: f64| double_infinite_function(&f, x);
             return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel)
         }
-
-
-
 
         self.qintegrate(&f,a,b,epsabs,epsrel)
     }
 
 
     pub fn qintegrate<const N:usize,F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                     ->  QagVecNormIntegratorResult<N>
-    where F : Fn(f64) -> [f64;N]{
+        ->  QagArrayIntegratorResult<N>
+        where F : Fn(f64) -> [f64;N]{
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagVecNormIntegratorResult::new_error(ResultState::Invalid)
+            return QagArrayIntegratorResult::new_error(ResultState::Invalid)
         }
+        let mut initial_intervals = vec![];
+
+        if self.points.is_empty() { initial_intervals.push((a,b)); }
+        else {
+            let mut prev = a ;
+            for p in &self.points{
+                initial_intervals.push((prev,*p));
+                prev = *p;
+            }
+            initial_intervals.push((prev,b));
+        }
+
 
         let mut neval = 0;
         let mut last= 1 ;
-
         let mut keyf = self.key;
         if self.key <= 0 { keyf = 1; }
         if self.key >= 7 { keyf = 6; }
 
-        let (mut result, mut abserr, mut rounderr) = match keyf {
-            1 => qk15_quadrature(f, a, b),
-            2 => qk21_quadrature(f, a, b),
-            3 => qk31_quadrature(f, a, b),
-            4 => qk41_quadrature(f, a, b),
-            5 => qk51_quadrature(f, a, b),
-            6 => qk61_quadrature(f, a, b),
-            _ => ([0.0; N], 0.0, 0.0),
-        };
+        let mut interval_cache = HashMap::new();
+        let mut heap = BinaryHeap::new();
+        let mut result = [0.0;N];
+        let mut abserr = 0.0;
+        let mut rounderr = 0.0;
+
+        for comp in initial_intervals{
+            let (result_temp, abserr_temp, rounderr_temp) = match keyf {
+                1 => qk15_array_quadrature(f, comp.0, comp.1),
+                2 => qk21_array_quadrature(f, comp.0, comp.1),
+                3 => qk31_array_quadrature(f, comp.0, comp.1),
+                4 => qk41_array_quadrature(f, comp.0, comp.1),
+                5 => qk51_array_quadrature(f, comp.0, comp.1),
+                6 => qk61_array_quadrature(f, comp.0, comp.1),
+                _ => ([0.0; N], 0.0, 0.0),
+            };
+            add_res(&mut result,&result_temp);
+            abserr += abserr_temp;
+            rounderr += rounderr_temp;
+            heap.push(HeapItem::new((comp.0,comp.1),abserr_temp));
+            interval_cache.insert((Myf64{x:comp.0},Myf64{x:comp.1}),result_temp);
+        }
 
 
         let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
 
-        let mut interval_cache = HashMap::from([((Myf64{x:a},Myf64{x:b}),result.clone())]);
-        let mut heap = BinaryHeap::new();
-        heap.push(HeapItem::new((a,b),abserr));
 
 
         if abserr + rounderr <= errbnd{
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
             if keyf == 1 { neval = 30 * last as i32 + 15; }
             abserr = abserr + rounderr;
-            return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+            if self.more_info { return QagArrayIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
+            else { return QagArrayIntegratorResult::new(result, abserr) }
         }
 
         if self.limit == 1 {
-            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagArrayIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         if abserr < rounderr {
-            return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
+            return QagArrayIntegratorResult::new_error(ResultState::BadTolerance)
         }
 
 
@@ -231,28 +251,28 @@ impl Qag {
 
                 match keyf {
                     1 => {
-                        (result1, abserr1, rounderr1) = qk15_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk15_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk15_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk15_array_quadrature(f, a2, b2);
                     },
                     2 => {
-                        (result1, abserr1, rounderr1) = qk21_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk21_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk21_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk21_array_quadrature(f, a2, b2);
                     },
                     3 => {
-                        (result1, abserr1, rounderr1) = qk31_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk31_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk31_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk31_array_quadrature(f, a2, b2);
                     },
                     4 => {
-                        (result1, abserr1, rounderr1) = qk41_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk41_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk41_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk41_array_quadrature(f, a2, b2);
                     },
                     5 => {
-                        (result1, abserr1, rounderr1) = qk51_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk51_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk51_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk51_array_quadrature(f, a2, b2);
                     },
                     6 => {
-                        (result1, abserr1, rounderr1) = qk61_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk61_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk61_array_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk61_array_quadrature(f, a2, b2);
                     },
                     _ => (),
                 }
@@ -275,13 +295,13 @@ impl Qag {
 
             if abserr <= errbnd / 8.0{ break;}
             if abserr < rounderr {
-                return QagVecNormIntegratorResult::new_error(ResultState::BadTolerance)
+                return QagArrayIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
 
 
         if last >= self.limit {
-            return QagVecNormIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagArrayIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
@@ -289,149 +309,12 @@ impl Qag {
 
         abserr = abserr + rounderr;
 
-        return QagVecNormIntegratorResult::new(result,abserr,neval,last)
+        if self.more_info { return QagArrayIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
+        else { return QagArrayIntegratorResult::new(result, abserr) }
 
     }
 }
 
 
-
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qag::Qag;
-    use crate::qage_vec_norm3::QagVecNorm3;
-
-    #[test]
-    fn test(){
-
-        let a = 0.0;
-        let b = 1.0e7;
-        let key = 6;
-        let limit = 1000000;
-        let epsrel = 0.0;
-        let epsabs = 1.0;
-        let max = 25;
-
-        let f = |x:f64| [x.cos(),x.sin(),x.cos(),x.sin()];
-        let qag3 = QagVecNorm3{key,limit};
-        let qag = Qag{key,limit};
-
-        let mut res;
-        let mut res2;
-
-        for k in 0..max{
-            let start = Instant::now();
-            res = qag3.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk struct time : {:?}",start.elapsed());
-            let start = Instant::now();
-            res2 = qag.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk nostruct time : {:?}",start.elapsed());
-
-            if k == max-1{
-                println!("{:?}",res);
-                println!("{:?}",res2);
-            }
-
-        }
-    }
-
-
-    #[test]
-    fn keys() {
-
-        let a = 0.0;
-        let b = 1.0;
-        let limit = 1000000;
-        let epsrel = 0.0;
-        let epsabs = 7e-3;
-        let max = 2;
-
-        let f = |x:f64| [(1.0/(x*x)).cos(),(1.0/(x*x)).sin(),(1.0/(x*x)).cos(),(1.0/(x*x)).sin()];
-        let qag1 = Qag{key : 1,limit};
-        let qag2 = Qag{key : 2,limit};
-        let qag3 = Qag{key : 3,limit};
-        let qag4 = Qag{key : 4,limit};
-        let qag5 = Qag{key : 5,limit};
-        let qag6 = Qag{key : 6,limit};
-
-
-        let mut res;
-        let mut res2;
-        let mut res3;
-        let mut res4;
-        let mut res5;
-        let mut res6;
-
-
-        for k in 0..max{
-            let start = Instant::now();
-            res = qag1.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 15 : {:?}",start.elapsed());
-            let start = Instant::now();
-            res2 = qag2.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 21 : {:?}",start.elapsed());
-            let start = Instant::now();
-            res3 = qag3.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 31 : {:?}",start.elapsed());
-            let start = Instant::now();
-            res4 = qag4.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 41 : {:?}",start.elapsed());
-            let start = Instant::now();
-            res5 = qag5.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 51 : {:?}",start.elapsed());
-            let start = Instant::now();
-            res6 = qag6.qintegrate(&f,a,b,epsabs,epsrel).unwrap();
-            println!("qk 61 : {:?}",start.elapsed());
-
-            if k == max-1{
-                println!("{:?}",res);
-                println!("{:?}",res2);
-                println!("{:?}",res3);
-                println!("{:?}",res4);
-                println!("{:?}",res5);
-                println!("{:?}",res6);
-            }
-
-        }
-
-
-    }
-
-
-    #[test]
-    fn SemiInfinite() {
-        let a = 0.0;
-        let b = f64::INFINITY;
-        let limit = 1000000;
-        let epsrel = 0.0;
-        let epsabs = 1e-2;
-
-        let f = |x:f64| [(1.0/(x*x)).sin()];
-        let qag = Qag{key : 1,limit};
-
-        let res = qag.integrate(&f,a,b,epsabs,epsrel);
-        println!("{:?}",res.unwrap());
-    }
-
-
-    #[test]
-    fn DoubleInfinite() {
-        let a = f64::NEG_INFINITY;
-        let b = f64::INFINITY;
-        let limit = 1000000;
-        let epsrel = 0.0;
-        let epsabs = 1e-2;
-
-        let f = |x:f64| [(1.0/(x*x)).sin()];
-        let qag = Qag{key : 1,limit};
-
-        let res = qag.integrate(&f,a,b,epsabs,epsrel);
-        println!("{:?}",res.unwrap());
-    }
-
-
-
-}
 
 

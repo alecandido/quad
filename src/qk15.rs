@@ -1,10 +1,24 @@
-use crate::qk::qk_quadrature;
+use crate::qk_array::qk_array_quadrature;
+use crate::qk_vec::qk_quadrature_vec;
 
-pub fn qk15_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
+pub fn qk15_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
     where F : Fn(f64) -> [f64; N]
 {
-    qk_quadrature(f,a,b,&XGK15,&WGK15,&WG15)
+    qk_array_quadrature(f, a, b, &XGK15, &WGK15, &WG15)
 }
+
+//pub fn qk15_quadrature_v<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+//    where F : Fn(f64) -> Vec<f64>
+//{
+//    qk_quadrature_v(f,a,b,&XGK15,&WGK15,&WG15)
+//}
+pub fn qk15_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+    where F : Fn(f64) -> Vec<f64>
+{
+    qk_quadrature_vec(f, a, b, &XGK15, &WGK15, &WG15)
+}
+
+
 const XGK15 : [f64;7] = [0.991455371120812639206854697526329, 0.949107912342758524526189684047851,
     0.864864423359769072789712788640926, 0.741531185599394439863864773280788,
     0.586087235467691130294144838258730, 0.405845151377397166906606412076961,
@@ -17,3 +31,5 @@ const WGK15 : [f64;8] = [0.022935322010529224963732008058970, 0.0630920926299785
 
 const WG15 : [f64;4] = [0.129484966168869693270611432679082, 0.279705391489276667901467771423780,
     0.381830050505118944950369775488975, 0.417959183673469387755102040816327];
+
+

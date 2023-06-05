@@ -1,9 +1,16 @@
-use crate::qk::qk_quadrature;
+use crate::qk_array::qk_array_quadrature;
+use crate::qk_vec::qk_quadrature_vec;
 
-pub fn qk21_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
+pub fn qk21_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
     where F : Fn(f64) -> [f64; N]
 {
-    qk_quadrature(f,a,b,&XGK21,&WGK21,&WG21)
+    qk_array_quadrature(f, a, b, &XGK21, &WGK21, &WG21)
+}
+
+pub fn qk21_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+    where F : Fn(f64) -> Vec<f64>
+{
+    qk_quadrature_vec(f, a, b, &XGK21, &WGK21, &WG21)
 }
 
 const XGK21 : [f64;10] = [0.995657163025808080735527280689003, 0.973906528517171720077964012084452,

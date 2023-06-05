@@ -1,9 +1,16 @@
-use crate::qk::qk_quadrature;
+use crate::qk_array::qk_array_quadrature;
+use crate::qk_vec::qk_quadrature_vec;
 
-pub fn qk61_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
+pub fn qk61_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
     where F : Fn(f64) -> [f64; N]
 {
-    qk_quadrature(f,a,b,&XGK61,&WGK61,&WG61)
+    qk_array_quadrature(f, a, b, &XGK61, &WGK61, &WG61)
+}
+
+pub fn qk61_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+    where F : Fn(f64) -> Vec<f64>
+{
+    qk_quadrature_vec(f, a, b, &XGK61, &WGK61, &WG61)
 }
 
 const XGK61 : [f64;30] = [0.999484410050490637571325895705811, 0.996893484074649540271630050918695,
@@ -49,35 +56,3 @@ const WG61 : [f64;15] = [0.007968192496166605615465883474674, 0.0184664683110909
     0.102852652893558840341285636705415];
 
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qk61::qk61_quadrature;
-    use crate::qk61_vec_norm2::*;
-
-    #[test]
-    fn test(){
-        let f = |x:f64| [x.cos(),x.sin()];
-        let qk = Qk61VecNorm2{};
-        let mut res;
-        let mut res2;
-        let max = 100;
-
-        for k in 0..max{
-            let start = Instant::now();
-            res = qk61_quadrature(&f,0.0,100.0);
-            println!("no struct {:?}",start.elapsed());
-            let start = Instant::now();
-            res2 = qk.integrate(&f,0.0,100.0);
-            println!("struct {:?}",start.elapsed());
-
-            if k == max-1{
-                println!("{:?}",res);
-                println!("{:?}",res2);
-            }
-
-        }
-
-
-    }
-}
