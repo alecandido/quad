@@ -20,6 +20,10 @@ crate-type = ["cdylib"]
 version = "0.15.1"
 features = ["extension-module"]
 
+[build-dependencies]
+bindgen = "0.65.1"
+cc = "1.0.79"
+
 [dev-dependencies]
 GSL = "6.0.0"
 bindgen = "0.65.1"
