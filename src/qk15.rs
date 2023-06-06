@@ -33,3 +33,45 @@ const WG15 : [f64;4] = [0.129484966168869693270611432679082, 0.27970539148927666
     0.381830050505118944950369775488975, 0.417959183673469387755102040816327];
 
 
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+    use crate::qk15::{qk15_array_quadrature, qk15_vec_quadrature};
+
+    #[test]
+    fn test(){
+        let a = 0.0;
+        let b = 1.0;
+        let f_array = |x:f64| [x.cos(),x.sin()];
+        let f_vec = |x:f64| vec![x.cos(),x.sin()];
+
+        let max = 100;
+
+        let mut res_array;
+        let mut res_vec;
+
+        let (mut t1,mut t2) = (0.0,0.0);
+
+        for i in 0..max {
+            let time = Instant::now();
+            res_array = qk15_array_quadrature(&f_array,a,b);
+            if i > 10 { t1 += time.elapsed().as_secs_f64(); }
+
+            let time = Instant::now();
+            res_vec = qk15_vec_quadrature(&f_vec,a,b);
+            if i > 10 { t2 += time.elapsed().as_secs_f64(); }
+
+            if i == max -1 {
+                println!("array res : {:?}", res_array);
+                println!("vec res : {:?}", res_vec);
+            }
+        }
+
+        t1 /= max as f64 - 10.0;
+        t2 /= max as f64 - 10.0;
+
+        println!("array time : {t1}; vec time : {t2}");
+
+    }
+}

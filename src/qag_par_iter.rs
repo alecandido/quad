@@ -272,7 +272,13 @@ impl QagParIter {
             if abserr < rounderr {
                 return QagParIntegratorResult::new_error(ResultState::BadTolerance)
             }
+
+            if last >= self.limit {
+                return QagParIntegratorResult::new_error(ResultState::MaxIteration)
+            }
+
         }
+
 
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
@@ -302,20 +308,20 @@ mod tests {
     use std::sync::Arc;
     use std::time::Instant;
     use crate::constants::FnVecGen;
-    use crate::qage_par_scope::QagParScope;
+    use crate::qag_array::QagArray;
     use crate::qag_par_iter::QagParIter;
 
     #[test]
     fn test() {
         let a = 0.0;
-        let b = 1000000.0;
+        let b = 5000000.0;
         let epsrel = 0.0;
         let epsabs = 1.0e-2;
         let limit = 100000;
         let key = 6;
-        let max = 100;
+        let max = 30;
 
-        let qag1 = QagParScope {key,limit};
+        let qag1 = QagArray {key,limit, points: vec![], more_info: false };
         let qag2 = QagParIter {key,limit};
 
         let f1 = |x:f64| [x.cos(),x.sin()];
@@ -324,20 +330,27 @@ mod tests {
         let mut res1;
         let mut res2;
 
+        let (mut t1,mut t2) = (0.0,0.0);
+
 
         for k in 0..max{
             let start = Instant::now();
-            res1 = qag1.qintegrate(&f,a,b,epsabs,epsrel);
-            println!("scope {:?}",start.elapsed());
+            res1 = qag1.qintegrate(&f1,a,b,epsabs,epsrel);
+            if k > 10 { t1 += start.elapsed().as_secs_f64();}
             let start = Instant::now();
             res2 = qag2.qintegrate(&f,a,b,epsabs,epsrel);
-            println!("pariter {:?}",start.elapsed());
+            if k > 10 { t2 += start.elapsed().as_secs_f64();}
 
             if k == max-1{
                 println!("{:?}",res1);
                 println!("{:?}",res2);
             }
         }
+
+        t1 /= max as f64 - 10.0;
+        t2 /= max as f64 - 10.0;
+
+        println!("no parallel time : {t1} ; parallel time : {t2}");
 
 
 

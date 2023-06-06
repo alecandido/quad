@@ -1,6 +1,5 @@
 pub mod constants;
 pub mod qag_par_integrator_result;
-pub mod qage_par_scope;
 pub mod result_state;
 pub mod qk_array;
 pub mod qk61;

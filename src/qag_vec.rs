@@ -324,7 +324,7 @@ mod tests {
     use crate::qag_vec::QagVec;
 
     #[test]
-    fn arrayvsvec(){
+    fn test(){
         let key = 6;
         let limit = 100000;
         let a = 0.0;
@@ -359,6 +359,8 @@ mod tests {
             let start = Instant::now();
             let res_v = qag_v.qintegrate(&f_v,a,b,epsabs,epsrel);
             if k > 10{ t2 += start.elapsed().as_secs_f64();};
+
+            println!("tarray : {t1} -- tvec : {t2}");
             if k == max-1{
                 println!("res array : {:?}",res_a);
                 println!("res vec : {:?}",res_v);
@@ -368,8 +370,8 @@ mod tests {
         t1 /= max as f64 - 10.0;
         t2 /= max as f64 - 10.0;
 
-        println!("{:?}",t1);
-        println!("{:?}",t2);
+        println!("array time : {:?}",t1);
+        println!("vec time : {:?}",t2);
 
     }
 

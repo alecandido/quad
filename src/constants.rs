@@ -1,12 +1,14 @@
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
+use pyo3::PyAny;
 
 
 #[derive(Clone)]
 pub struct FnVecGen<const N:usize>{
     pub components : Arc< dyn Fn(f64)->[f64; N] + Send + Sync>
 }
+
 
 pub const EPMACH : f64 = f64::EPSILON;          // the largest relative spacing.
 pub const UFLOW : f64 = f64::MIN_POSITIVE;      // the smallest positive magnitude.

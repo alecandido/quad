@@ -1,3 +1,4 @@
+use std::time::Instant;
 use crate::qk_array::qk_array_quadrature;
 use crate::qk_vec::qk_quadrature_vec;
 
@@ -41,3 +42,46 @@ const WG41 : [f64;10] = [0.017614007139152118311861962351853, 0.0406014298003869
     0.101930119817240435036750135480350, 0.118194531961518417312377377711382,
     0.131688638449176626898494499748163, 0.142096109318382051329298325067165,
     0.149172986472603746787828737001969, 0.152753387130725850698084331955098];
+
+
+#[cfg(test)]
+mod tests {
+    use std::time::Instant;
+    use crate::qk41::{qk41_array_quadrature, qk41_vec_quadrature};
+
+#[test]
+fn test(){
+    let a = 0.0;
+    let b = 1.0;
+    let f_array = |x:f64| [x.cos(),x.sin()];
+    let f_vec = |x:f64| vec![x.cos(),x.sin()];
+
+    let max = 100;
+
+    let mut res_array;
+    let mut res_vec;
+
+    let (mut t1,mut t2) = (0.0,0.0);
+
+    for i in 0..max {
+        let time = Instant::now();
+        res_array = qk41_array_quadrature(&f_array,a,b);
+        if i > 10 { t1 += time.elapsed().as_secs_f64(); }
+
+        let time = Instant::now();
+        res_vec = qk41_vec_quadrature(&f_vec,a,b);
+        if i > 10 { t2 += time.elapsed().as_secs_f64(); }
+
+        if i == max -1 {
+            println!("array res : {:?}", res_array);
+            println!("vec res : {:?}", res_vec);
+        }
+    }
+
+    t1 /= max as f64 - 10.0;
+    t2 /= max as f64 - 10.0;
+
+    println!("array time : {t1}; vec time : {t2}");
+
+}
+}

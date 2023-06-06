@@ -146,41 +146,6 @@ pub fn qk_quadrature_vec<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M]
 }
 
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
 
-    #[test]
-    fn arrayvsvec(){
-        for i in 0..10 {
-            let time = Instant::now();
-            let mut a = [0.0; 1000];
-            for k in 0..1000 {
-                a[k] = k as f64;
-            }
-            println!("array : {:?}", time.elapsed());
 
-            let time = Instant::now();
-            let mut b = Vec::with_capacity(1000);
-            for k in 0..1000 {
-                b.push(k as f64);
-            }
-            println!("vec : {:?}", time.elapsed());
-
-            let time = Instant::now();
-            let mut c = [0.0; 1000].to_vec();
-            for k in 0..1000 {
-                c[k] = k as f64;
-            }
-            println!("vec 2 : {:?}", time.elapsed());
-
-            print!("sum1 : {:?}", a.iter().sum::<f64>());
-            print!("sum2: {:?}", b.iter().sum::<f64>());
-            print!("sum3: {:?}", c.iter().sum::<f64>());
-            println!("{i}");
-
-        }
-
-    }
-}
 
