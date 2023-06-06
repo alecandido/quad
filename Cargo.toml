@@ -18,21 +18,9 @@ name = "quad"
 # crate-type = ["cdylib", "rlib"]
 crate-type = ["cdylib"]
 
-
-
-
 [dependencies.pyo3]
 version = "0.15.1"
 features = ["extension-module"]
 
-
-
 [dependencies]
 rayon = "1.6"
-
-
-[profile.dev]
-opt-level = 3
-
-[profile.release]
-opt-level = 3
