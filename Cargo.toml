@@ -7,8 +7,6 @@ license = "GPL-3.0-or-later"
 readme = "README.md"
 description = "Quadrature integration"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [lib]
 name = "quad"
 # "cdylib" is necessary to produce a shared library for Python to import from.
@@ -21,6 +19,15 @@ crate-type = ["cdylib"]
 [dependencies.pyo3]
 version = "0.15.1"
 features = ["extension-module"]
+
+[dev-dependencies]
+GSL = "6.0.0"
+bindgen = "0.65.1"
+blas = "0.22.0"
+cblas = "0.4.0"
+cc = "1.0.79"
+cty = "0.2.2"
+openblas-src = "0.10.8"
 
 [dependencies]
 rayon = "1.6"
