@@ -1,18 +1,18 @@
 use std::collections::{BinaryHeap, HashMap};
 use crate::constants::*;
-use crate::qag_vec_integrator_result::QagVecIntegratorResult;
-use crate::qk15::qk15_vec_quadrature;
-use crate::qk21::qk21_vec_quadrature;
-use crate::qk31::qk31_vec_quadrature;
-use crate::qk41::qk41_vec_quadrature;
-use crate::qk51::qk51_vec_quadrature;
-use crate::qk61::qk61_vec_quadrature;
+use crate::qag_integrator_result::QagIntegratorResult;
+use crate::qk15::qk15_quadrature;
+use crate::qk21::qk21_quadrature;
+use crate::qk31::qk31_quadrature;
+use crate::qk41::qk41_quadrature;
+use crate::qk51::qk51_quadrature;
+use crate::qk61::qk61_quadrature;
 use crate::result_state::*;
-use crate::semi_infinite_function::{double_infinite_function_vec, semi_infinite_function_vec};
+use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 
 
 #[derive(Clone,Debug)]
-pub struct QagVec {
+pub struct Qag {
     pub key : i32,
     pub limit : usize,
     pub points : Vec<f64>,
@@ -124,21 +124,21 @@ pub struct QagVec {
 
 
 
-impl QagVec {
+impl Qag {
 
     pub fn integrate<F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                      ->  QagVecIntegratorResult
+                                      -> QagIntegratorResult
         where F : Fn(f64) -> Vec<f64> {
         if b == f64::INFINITY && a.is_finite() {
-            let f2 = |x: f64| semi_infinite_function_vec(&f, x, a, b);
+            let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
             return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
         }
         if a == f64::NEG_INFINITY && b.is_finite() {
-            let f2 = |x: f64| semi_infinite_function_vec(&f, x, b, a);
+            let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
             return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
         }
         if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f2 = |x: f64| double_infinite_function_vec(&f, x);
+            let f2 = |x: f64| double_infinite_function(&f, x);
             return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel)
         }
 
@@ -147,11 +147,11 @@ impl QagVec {
 
 
     pub fn qintegrate<F>(&self, f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                                       ->  QagVecIntegratorResult
+                                       -> QagIntegratorResult
         where F : Fn(f64) -> Vec<f64>{
 
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagVecIntegratorResult::new_error(ResultState::Invalid)
+            return QagIntegratorResult::new_error(ResultState::Invalid)
         }
         let mut initial_intervals = vec![];
 
@@ -182,12 +182,12 @@ impl QagVec {
 
         for comp in initial_intervals{
             let (result_temp, abserr_temp, rounderr_temp) = match keyf {
-                1 => qk15_vec_quadrature(f, comp.0, comp.1),
-                2 => qk21_vec_quadrature(f, comp.0, comp.1),
-                3 => qk31_vec_quadrature(f, comp.0, comp.1),
-                4 => qk41_vec_quadrature(f, comp.0, comp.1),
-                5 => qk51_vec_quadrature(f, comp.0, comp.1),
-                6 => qk61_vec_quadrature(f, comp.0, comp.1),
+                1 => qk15_quadrature(f, comp.0, comp.1),
+                2 => qk21_quadrature(f, comp.0, comp.1),
+                3 => qk31_quadrature(f, comp.0, comp.1),
+                4 => qk41_quadrature(f, comp.0, comp.1),
+                5 => qk51_quadrature(f, comp.0, comp.1),
+                6 => qk61_quadrature(f, comp.0, comp.1),
                 _ => (vec![0.0; n], 0.0, 0.0),
             };
             add_res(&mut result,&result_temp);
@@ -206,16 +206,16 @@ impl QagVec {
             if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
             if keyf == 1 { neval = 30 * last as i32 + 15; }
             abserr = abserr + rounderr;
-            if self.more_info { return QagVecIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
-            else { return QagVecIntegratorResult::new(result, abserr) }
+            if self.more_info { return QagIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
+            else { return QagIntegratorResult::new(result, abserr) }
         }
 
         if self.limit == 1 {
-            return QagVecIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         if abserr < rounderr {
-            return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
+            return QagIntegratorResult::new_error(ResultState::BadTolerance)
         }
 
 
@@ -253,28 +253,28 @@ impl QagVec {
 
                 match keyf {
                     1 => {
-                        (result1, abserr1, rounderr1) = qk15_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk15_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk15_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk15_quadrature(f, a2, b2);
                     },
                     2 => {
-                        (result1, abserr1, rounderr1) = qk21_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk21_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk21_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk21_quadrature(f, a2, b2);
                     },
                     3 => {
-                        (result1, abserr1, rounderr1) = qk31_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk31_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk31_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk31_quadrature(f, a2, b2);
                     },
                     4 => {
-                        (result1, abserr1, rounderr1) = qk41_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk41_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk41_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk41_quadrature(f, a2, b2);
                     },
                     5 => {
-                        (result1, abserr1, rounderr1) = qk51_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk51_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk51_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk51_quadrature(f, a2, b2);
                     },
                     6 => {
-                        (result1, abserr1, rounderr1) = qk61_vec_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk61_vec_quadrature(f, a2, b2);
+                        (result1, abserr1, rounderr1) = qk61_quadrature(f, a1, b1);
+                        (result2, abserr2, rounderr2) = qk61_quadrature(f, a2, b2);
                     },
                     _ => (),
                 }
@@ -297,13 +297,13 @@ impl QagVec {
 
             if abserr <= errbnd / 8.0{ break;}
             if abserr < rounderr {
-                return QagVecIntegratorResult::new_error(ResultState::BadTolerance)
+                return QagIntegratorResult::new_error(ResultState::BadTolerance)
             }
         }
 
 
         if last >= self.limit {
-            return QagVecIntegratorResult::new_error(ResultState::MaxIteration)
+            return QagIntegratorResult::new_error(ResultState::MaxIteration)
         }
 
         if keyf != 1 { neval = (10 * keyf + 1) * (2 * last as i32 - 1); }
@@ -311,71 +311,13 @@ impl QagVec {
 
         abserr = abserr + rounderr;
 
-        if self.more_info { return QagVecIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
-        else { return QagVecIntegratorResult::new(result, abserr) }
+        if self.more_info { return QagIntegratorResult::new_more_info(result, abserr, neval, last, interval_cache, heap) }
+        else { return QagIntegratorResult::new(result, abserr) }
 
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qag_array::QagArray;
-    use crate::qag_vec::QagVec;
 
-    #[test]
-    fn test(){
-        let key = 6;
-        let limit = 100000;
-        let a = 0.0;
-        let b = 10000.0;
-        let epsrel = 0.0;
-        let epsabs = 1.0e-3;
-        let max = 100;
-
-
-        let qag_a = QagArray{
-            key,
-            limit,
-            points: vec![],
-            more_info: false,
-        };
-        let qag_v = QagVec{
-            key,
-            limit,
-            points: vec![],
-            more_info: false,
-        };
-
-        let (mut t1, mut t2) = (0.0,0.0);
-
-        let f_a = |x:f64| [x.cos(),x.sin(),x.cos(),x.sin()];
-        let f_v = |x:f64| vec![x.cos(),x.sin(),x.cos(),x.sin()];
-
-        for k in 0..max{
-            let start = Instant::now();
-            let res_a = qag_a.qintegrate(&f_a,a,b,epsabs,epsrel);
-            if k > 10{ t1 += start.elapsed().as_secs_f64();};
-            let start = Instant::now();
-            let res_v = qag_v.qintegrate(&f_v,a,b,epsabs,epsrel);
-            if k > 10{ t2 += start.elapsed().as_secs_f64();};
-
-            println!("tarray : {t1} -- tvec : {t2}");
-            if k == max-1{
-                println!("res array : {:?}",res_a);
-                println!("res vec : {:?}",res_v);
-            }
-        }
-
-        t1 /= max as f64 - 10.0;
-        t2 /= max as f64 - 10.0;
-
-        println!("array time : {:?}",t1);
-        println!("vec time : {:?}",t2);
-
-    }
-
-}
 
 
 

@@ -2,17 +2,17 @@ use std::collections::{BinaryHeap, HashMap};
 use crate::constants::{HeapItem, Myf64};
 
 #[derive(Debug,Clone)]
-pub struct QagVecIntegrationResult {
+pub struct QagIntegrationResult {
     pub result : Vec<f64>,
     pub abserr : f64,
-    pub more_info : Option<MoreInfoVec>,
+    pub more_info : Option<MoreInfo>,
 }
 
-impl QagVecIntegrationResult{
+impl QagIntegrationResult{
     pub fn new_more_info(result : Vec<f64>, abserr : f64, neval : i32, last : usize,
                          hash : HashMap<(Myf64,Myf64),Vec<f64>>, heap : BinaryHeap<HeapItem>) -> Self {
         Self{
-            result, abserr, more_info : Some(MoreInfoVec::new(neval,last,hash,heap))
+            result, abserr, more_info : Some(MoreInfo::new(neval, last, hash, heap))
         }
     }
 
@@ -30,14 +30,14 @@ impl QagVecIntegrationResult{
 }
 
 #[derive(Debug,Clone)]
-pub struct MoreInfoVec{
+pub struct MoreInfo {
     pub neval : i32,
     pub last : usize,
     pub hash : HashMap<(Myf64,Myf64),Vec<f64>>,
     pub heap : BinaryHeap<HeapItem>,
 }
 
-impl MoreInfoVec{
+impl MoreInfo {
     pub fn new(neval : i32, last : usize, hash : HashMap<(Myf64,Myf64),Vec<f64>>,
                heap : BinaryHeap<HeapItem>) -> Self {
         Self{

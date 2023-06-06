@@ -1,12 +1,11 @@
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
-use pyo3::PyAny;
 
 
 #[derive(Clone)]
-pub struct FnVecGen<const N:usize>{
-    pub components : Arc< dyn Fn(f64)->[f64; N] + Send + Sync>
+pub struct FnVec{
+    pub components : Arc< dyn Fn(f64)->Vec<f64> + Send + Sync>
 }
 
 

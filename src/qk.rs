@@ -1,8 +1,8 @@
 //use std::time::Instant;
 use crate::constants::*;
 
-pub fn qk_quadrature_vec<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wgk : &[f64], wg : &[f64])
-                                            -> (Vec<f64>, f64, f64)
+pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wgk : &[f64], wg : &[f64])
+                                        -> (Vec<f64>, f64, f64)
     where F : Fn(f64) -> Vec<f64>{
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();

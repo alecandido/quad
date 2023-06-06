@@ -1,17 +1,9 @@
-use std::time::Instant;
-use crate::qk_array::qk_array_quadrature;
-use crate::qk_vec::qk_quadrature_vec;
+use crate::qk::qk_quadrature;
 
-pub fn qk61_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
-    where F : Fn(f64) -> [f64; N]
-{
-    qk_array_quadrature(f, a, b, &XGK61, &WGK61, &WG61)
-}
-
-pub fn qk61_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+pub fn qk61_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
     where F : Fn(f64) -> Vec<f64>
 {
-    qk_quadrature_vec(f, a, b, &XGK61, &WGK61, &WG61)
+    qk_quadrature(f, a, b, &XGK61, &WGK61, &WG61)
 }
 
 const XGK61 : [f64;30] = [0.999484410050490637571325895705811, 0.996893484074649540271630050918695,
@@ -56,45 +48,3 @@ const WG61 : [f64;15] = [0.007968192496166605615465883474674, 0.0184664683110909
     0.099593420586795267062780282103569, 0.101762389748405504596428952168554,
     0.102852652893558840341285636705415];
 
-
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qk61::{qk61_array_quadrature, qk61_vec_quadrature};
-
-
-    #[test]
-    fn test() {
-        let a = 0.0;
-        let b = 1.0;
-        let f_array = |x: f64| [x.cos(), x.sin()];
-        let f_vec = |x: f64| vec![x.cos(), x.sin()];
-
-        let max = 100;
-
-        let mut res_array;
-        let mut res_vec;
-
-        let (mut t1, mut t2) = (0.0, 0.0);
-
-        for i in 0..max {
-            let time = Instant::now();
-            res_array = qk61_array_quadrature(&f_array, a, b);
-            if i > 10 { t1 += time.elapsed().as_secs_f64(); }
-
-            let time = Instant::now();
-            res_vec = qk61_vec_quadrature(&f_vec, a, b);
-            if i > 10 { t2 += time.elapsed().as_secs_f64(); }
-
-            if i == max - 1 {
-                println!("array res : {:?}", res_array);
-                println!("vec res : {:?}", res_vec);
-            }
-        }
-
-        t1 /= max as f64 - 10.0;
-        t2 /= max as f64 - 10.0;
-
-        println!("array time : {t1}; vec time : {t2}");
-    }
-}

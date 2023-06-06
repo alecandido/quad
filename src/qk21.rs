@@ -1,16 +1,9 @@
-use crate::qk_array::qk_array_quadrature;
-use crate::qk_vec::qk_quadrature_vec;
+use crate::qk::qk_quadrature;
 
-pub fn qk21_array_quadrature<const N:usize,F>(f: F, a: f64, b: f64) -> ([f64; N], f64, f64)
-    where F : Fn(f64) -> [f64; N]
-{
-    qk_array_quadrature(f, a, b, &XGK21, &WGK21, &WG21)
-}
-
-pub fn qk21_vec_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+pub fn qk21_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
     where F : Fn(f64) -> Vec<f64>
 {
-    qk_quadrature_vec(f, a, b, &XGK21, &WGK21, &WG21)
+    qk_quadrature(f, a, b, &XGK21, &WGK21, &WG21)
 }
 
 const XGK21 : [f64;10] = [0.995657163025808080735527280689003, 0.973906528517171720077964012084452,
@@ -30,45 +23,3 @@ const WGK21 : [f64;11] = [0.011694638867371874278064396062192, 0.032558162307964
 const WG21 : [f64;5] = [0.066671344308688137593568809893332, 0.149451349150580593145776339657697,
     0.219086362515982043995534934228163, 0.269266719309996355091226921569469,
     0.295524224714752870173892994651338];
-
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-    use crate::qk21::{qk21_array_quadrature, qk21_vec_quadrature};
-
-    #[test]
-    fn test(){
-        let a = 0.0;
-        let b = 1.0;
-        let f_array = |x:f64| [x.cos(),x.sin()];
-        let f_vec = |x:f64| vec![x.cos(),x.sin()];
-
-        let max = 100;
-
-        let mut res_array;
-        let mut res_vec;
-
-        let (mut t1,mut t2) = (0.0,0.0);
-
-        for i in 0..max {
-            let time = Instant::now();
-            res_array = qk21_array_quadrature(&f_array,a,b);
-            if i > 10 { t1 += time.elapsed().as_secs_f64(); }
-
-            let time = Instant::now();
-            res_vec = qk21_vec_quadrature(&f_vec,a,b);
-            if i > 10 { t2 += time.elapsed().as_secs_f64(); }
-
-            if i == max -1 {
-                println!("array res : {:?}", res_array);
-                println!("vec res : {:?}", res_vec);
-            }
-        }
-
-        t1 /= max as f64 - 10.0;
-        t2 /= max as f64 - 10.0;
-
-        println!("array time : {t1}; vec time : {t2}");
-
-    }
-}
