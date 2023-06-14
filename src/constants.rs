@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 
 #[derive(Clone)]
-pub struct FnVec{
-    pub components : Arc< dyn Fn(f64)->Vec<f64> + Send + Sync>
+pub struct FnVec<'a>{
+    pub components : Arc< dyn Fn(f64)->Vec<f64> + Send + Sync + 'a>
 }
 
 

@@ -13,17 +13,12 @@ mod qag_integrator_result;
 mod qag;
 mod qag_par;
 
-use std::cell::UnsafeCell;
-use std::{thread, time};
-use std::time::Instant;
-use pyo3::ffi::PyCFunction;
+use std::sync::Arc;
 use pyo3::prelude::*;
-use pyo3::types::PyFunction;
-use rayon::{current_num_threads, current_thread_index};
-use rayon::prelude::IntoParallelRefIterator;
-use crate::constants::Myf64;
+use crate::constants::{FnVec, Myf64};
 use crate::qag::Qag;
-use rayon::iter::ParallelIterator;
+use crate::qag_integrator_result::QagIntegratorResult;
+use crate::qag_par::QagPar;
 
 
 fn lambda_eval(ob : &PyAny, z : f64) -> Vec<f64>{
@@ -44,12 +39,22 @@ fn lambda_eval_par(ob : &Py<PyAny>, z : f64) -> Vec<f64>{
     f(z)})
 }
 
+/*
+fn lambda_eval_par_gil(py: Python, ob : &Py<PyAny>, z : f64) -> Vec<f64> {
+        let f = |x:f64| {
+            let y = (x, );
+            ob.call1(py, y).unwrap().extract::<Vec<f64>>(py).unwrap()
+        };
+        f(z)
+}
+ */
+
+
 
 #[pyfunction]
-fn qag(ob : &PyAny, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, key : Option<i32>, limit : Option<usize>,
-       points : Option<Vec<f64>>, more_info : Option<bool>)
-       -> Py<QagsResult> {
-
+fn qag_nopar(ob : &PyAny, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, key : Option<i32>, limit : Option<usize>,
+             points : Option<Vec<f64>>, more_info : Option<bool>)
+             -> Py<QagsResult> {
     let pointss = {
         if points.is_some() {
             points.unwrap()
@@ -79,8 +84,6 @@ fn qag(ob : &PyAny, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, 
         else { false }
     };
 
-
-
     let out = Python::with_gil(|py| {
         let qag = Qag {key : keyy,limit : limitt, points : pointss, more_info : more_infoo};
 
@@ -109,8 +112,9 @@ fn qag(ob : &PyAny, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, 
 }
 
 
+
 #[pyfunction]
-fn qag_par(py: Python<'_>, ob : Py<PyAny>, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, key : Option<i32>, limit : Option<usize>,
+fn qag_par(ob : Py<PyAny>, a: f64, b: f64, epsabs : Option<f64>, epsrel : Option<f64>, key : Option<i32>, limit : Option<usize>,
            points : Option<Vec<f64>>, more_info : Option<bool>)
            -> QagsResult {
 
@@ -143,15 +147,19 @@ fn qag_par(py: Python<'_>, ob : Py<PyAny>, a: f64, b: f64, epsabs : Option<f64>,
         else { false }
     };
 
-    let qag = Qag {key : keyy,limit : limitt, points : pointss, more_info : more_infoo};
+
+    let qag = QagPar {key : keyy,limit : limitt, points : pointss, more_info : more_infoo};
 
     let f = |x:f64| {
         lambda_eval_par(&ob, x)
     };
 
+    let fun = FnVec{ components : Arc::new(f)};
+
+    Python::with_gil(|py| {
     py.allow_threads(|| {
 
-        let res = qag.qintegrate(&f, a, b, epsabss, epsrell).unwrap();
+        let res = qag.qintegrate(&fun, a, b, epsabss, epsrell).unwrap();
 
         let (result,abserr,more_inf) = (res.result,res.abserr,res.more_info);
         if more_inf.is_none(){
@@ -173,35 +181,13 @@ fn qag_par(py: Python<'_>, ob : Py<PyAny>, a: f64, b: f64, epsabs : Option<f64>,
 
         }
 
-    })
+    })})
 }
-
-
-
-
-
-#[pyfunction]
-fn test(py: Python<'_>,ob : Py<PyAny>) -> () {
-    let points = vec![0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0];
-    py.allow_threads(|| {
-        let res = points.par_iter().map(|x| {
-            Python::with_gil(|py| {
-                let y = (*x,);
-                ob.call1(py, y).expect("REASON").extract::<f64>(py).unwrap()
-            } )
-        }).collect::<Vec<f64>>();
-        println!("{:?}",res);
-    });
-}
-
-
-
-
 
 
 
 #[pyclass]
-struct QagsResult {
+pub struct QagsResult {
     #[pyo3(get, set)]
     pub result : Vec<f64>,
     #[pyo3(get, set)]
@@ -215,11 +201,24 @@ struct QagsResult {
 /// import the module.
 #[pymodule]
 fn quad(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(qag, m)?)?;
+    m.add_function(wrap_pyfunction!(qag_nopar, m)?)?;
     m.add_function(wrap_pyfunction!(qag_par, m)?)?;
-    m.add_function(wrap_pyfunction!(test, m)?)?;
     Ok(())
 }
 
 
 
+pub fn integrate<F>(f : &F, a : f64, b : f64, epsabs : f64, epsrel : f64, key : i32, limit : usize,
+                    points : Vec<f64>, more_info : bool) -> QagIntegratorResult
+    where F : Fn(f64) -> Vec<f64> {
+
+    let qag = Qag { key,limit,points,more_info};
+    qag.integrate(&f,a,b,epsabs,epsrel)
+}
+
+pub fn integrate_par(f : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64, key : i32, limit : usize,
+                    points : Vec<f64>, more_info : bool) -> QagIntegratorResult {
+
+    let qag = QagPar { key,limit,points,more_info};
+    qag.qintegrate(&f,a,b,epsabs,epsrel)
+}

@@ -10,7 +10,6 @@ use crate::qk41::qk41_quadrature;
 use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
 use crate::result_state::*;
-use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 
 
 #[derive(Clone)]
@@ -258,6 +257,7 @@ impl QagPar {
             last += to_process.len();
 
             let new_result : (Vec<_>,Vec<_>) = to_process.par_iter().map(|comp| {
+
                 let mut result1 = vec![0.0; n];
                 let mut abserr1 = 0.0;
                 let mut rounderr1 = 0.0;
