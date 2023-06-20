@@ -1,0 +1,18 @@
+[package]
+name = "quad-py"
+description = "Quad python bindings"
+authors = [
+  "Alessandro Candido <candido.ale@gmail.com>",
+  "Alex Raiteri <alex.raiteri@studenti.unimi.it>",
+]
+readme = "../README.md"
+
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+
+[dependencies]
