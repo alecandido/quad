@@ -1,9 +1,17 @@
 //use std::time::Instant;
 use crate::constants::*;
 
-pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wgk : &[f64], wg : &[f64])
-                                        -> (Vec<f64>, f64, f64)
-    where F : Fn(f64) -> Vec<f64>{
+pub fn qk_quadrature<const M: usize, F>(
+    f: F,
+    a: f64,
+    b: f64,
+    xgk: &[f64; M],
+    wgk: &[f64],
+    wg: &[f64],
+) -> (Vec<f64>, f64, f64)
+where
+    F: Fn(f64) -> Vec<f64>,
+{
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
     let centr: f64 = 0.5 * (b + a);
@@ -12,32 +20,31 @@ pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wg
 
     let fc = f(centr);
     let dim = fc.len();
-    let mut fv1 = Vec::with_capacity(dim*M);
-    let mut fv2 = Vec::with_capacity(dim*M);
-    let mut resg : Vec<f64> = Vec::with_capacity(dim);
-    let mut resk : Vec<f64> = fc.clone();
+    let mut fv1 = Vec::with_capacity(dim * M);
+    let mut fv2 = Vec::with_capacity(dim * M);
+    let mut resg: Vec<f64> = Vec::with_capacity(dim);
+    let mut resk: Vec<f64> = fc.clone();
     let mut resabs = Vec::with_capacity(dim);
 
     //println!("First initialization : {:?}",start.elapsed());
 
     if M % 2 == 1 {
-        resg.extend( &fc);
-    }
-    else {
-        resg.extend(& vec![0.0; dim]);
+        resg.extend(&fc);
+    } else {
+        resg.extend(&vec![0.0; dim]);
     }
     for k in 0..dim {
         //resk.push( fc[k] * wgk[M]);
         resk[k] *= wgk[M];
         resabs.push(resk[k].abs());
         if M % 2 == 1 {
-            resg[k] *= wg[(M+1)/2-1];
+            resg[k] *= wg[(M + 1) / 2 - 1];
         }
     }
 
     //println!("Second initialization : {:?}",start.elapsed());
 
-    for j in 1..M/2 + 1 {
+    for j in 1..M / 2 + 1 {
         let jtw1 = 2 * j - 1;
         let jtw2 = 2 * j;
 
@@ -54,61 +61,65 @@ pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wg
         //  fsum1.extend(&fv1[(jtw1-1) * dim..jtw1 * dim]);
         //  fsum2.extend(&fv1[(jtw2-1) * dim..jtw2 * dim]);
 
-        let mut fsum1 = fv1[(jtw1-1) * dim..jtw1 * dim].to_vec();
-        let mut fsum2 = fv1[(jtw2-1) * dim..jtw2 * dim].to_vec();
+        let mut fsum1 = fv1[(jtw1 - 1) * dim..jtw1 * dim].to_vec();
+        let mut fsum2 = fv1[(jtw2 - 1) * dim..jtw2 * dim].to_vec();
 
         for k in 0..dim {
             //fsum1.push(fv1[(jtw1-1) * dim + k] + fv2[(jtw1-1) * dim + k]);
             //fsum2.push(fv1[(jtw2-1) * dim + k] + fv2[(jtw2-1) * dim + k]);
-            fsum1[k] += fv2[(jtw1-1) * dim + k];
-            fsum2[k] += fv2[(jtw2-1) * dim + k];
+            fsum1[k] += fv2[(jtw1 - 1) * dim + k];
+            fsum2[k] += fv2[(jtw2 - 1) * dim + k];
         }
 
         for k in 0..dim {
             resg[k] += wg[j - 1] * fsum2[k];
-            resk[k] += wgk[jtw1 - 1] * fsum1[k] + wgk[jtw2 - 1] * fsum2[k] ;
-            resabs[k] += wgk[jtw1 - 1] * (fv1[(jtw1-1) * dim + k].abs() + fv2[(jtw1-1) * dim + k].abs())
-                + wgk[jtw2 - 1] * ( fv1[(jtw2-1) * dim + k].abs() + fv2[(jtw2-1) * dim + k].abs());
+            resk[k] += wgk[jtw1 - 1] * fsum1[k] + wgk[jtw2 - 1] * fsum2[k];
+            resabs[k] += wgk[jtw1 - 1]
+                * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs())
+                + wgk[jtw2 - 1]
+                    * (fv1[(jtw2 - 1) * dim + k].abs() + fv2[(jtw2 - 1) * dim + k].abs());
         }
     }
 
-    if M/2 != (M+1)/2 {
+    if M / 2 != (M + 1) / 2 {
         let jtw1 = M;
         let absc = hlgth * xgk[jtw1 - 1];
         fv1.append(&mut f(centr - absc));
         fv2.append(&mut f(centr + absc));
 
-        let mut fsum = fv1[(jtw1-1) * dim..jtw1 * dim].to_vec();
+        let mut fsum = fv1[(jtw1 - 1) * dim..jtw1 * dim].to_vec();
 
         for k in 0..dim {
-            fsum[k] +=  fv2[(jtw1-1) * dim + k];
+            fsum[k] += fv2[(jtw1 - 1) * dim + k];
         }
         for k in 0..dim {
-            resk[k] += wgk[jtw1 - 1] * fsum[k] ;
-            resabs[k] += wgk[jtw1 - 1] * (fv1[(jtw1-1) * dim + k].abs() + fv2[(jtw1-1) * dim + k].abs());
+            resk[k] += wgk[jtw1 - 1] * fsum[k];
+            resabs[k] +=
+                wgk[jtw1 - 1] * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs());
         }
     }
 
     //println!("Only for : {:?}",start.elapsed());
 
-    let mut reskh =resk.clone();
-    for k  in 0..dim {
+    let mut reskh = resk.clone();
+    for k in 0..dim {
         reskh[k] *= 0.5;
     }
 
     let mut resasc = vec![0.0; dim];
     for k in 0..dim {
-        resasc[k] = wgk[M] * ( fc[k] - reskh[k] ).abs();
+        resasc[k] = wgk[M] * (fc[k] - reskh[k]).abs();
     }
 
     for j in 1..M + 1 {
         for k in 0..dim {
-            resasc[k] += wgk[j - 1] * ((fv1[(j - 1)*dim + k] - reskh[k]).abs() + (fv2[(j - 1)*dim + k] -
-                reskh[k]).abs());
+            resasc[k] += wgk[j - 1]
+                * ((fv1[(j - 1) * dim + k] - reskh[k]).abs()
+                    + (fv2[(j - 1) * dim + k] - reskh[k]).abs());
         }
     }
 
-    let mut  result = resk.clone();
+    let mut result = resk.clone();
 
     for k in 0..dim {
         result[k] *= hlgth;
@@ -121,7 +132,7 @@ pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wg
     let mut resasc_scalar = 0.0;
 
     for k in 0..dim {
-        abserr +=  (((resk[k] - resg[k]) * hlgth).abs()).powi(2);
+        abserr += (((resk[k] - resg[k]) * hlgth).abs()).powi(2);
         resabs_scalar += resabs[k].powi(2);
         resasc_scalar += resasc[k].powi(2);
     }
@@ -144,8 +155,3 @@ pub fn qk_quadrature<const M : usize,F>(f: F, a: f64, b: f64, xgk : &[f64;M], wg
 
     (result, abserr, round_error)
 }
-
-
-
-
-
