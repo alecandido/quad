@@ -9,20 +9,14 @@ description = "Quadrature integration"
 
 [lib]
 name = "quad"
-# "cdylib" is necessary to produce a shared library for Python to import from.
-#
-# Downstream Rust code (including code in `bin/`, `examples/`, and `tests/`) will not be able
-# to `use python_bidings;` unless the "rlib" or "lib" crate type is also included, e.g.:
-# crate-type = ["cdylib", "rlib"]
 crate-type = ["cdylib"]
 
 [dependencies.pyo3]
 version = "0.15.1"
 features = ["extension-module"]
 
-[build-dependencies]
-bindgen = "0.65.1"
-cc = "1.0.79"
+[dependencies]
+rayon = "1.6"
 
 [dev-dependencies]
 GSL = "6.0.0"
@@ -32,6 +26,3 @@ cblas = "0.4.0"
 cc = "1.0.79"
 cty = "0.2.2"
 openblas-src = "0.10.8"
-
-[dependencies]
-rayon = "1.6"
