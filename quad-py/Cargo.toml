@@ -14,5 +14,13 @@ license.workspace = true
 repository.workspace = true
 version.workspace = true
 
+[lib]
+name = "quad"
+crate-type = ["cdylib"]
 
 [dependencies]
+quad = { path = "../quad", version = "0.1.0" }
+
+[dependencies.pyo3]
+version = "0.15.1"
+features = ["extension-module"]
