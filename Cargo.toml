@@ -9,7 +9,7 @@ description = "Quadrature integration"
 
 [lib]
 name = "quad"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies.pyo3]
 version = "0.15.1"
