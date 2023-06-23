@@ -30,3 +30,8 @@ documentation = ""
 [tool.maturin]
 bindings = "pyo3"
 strip = true
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py", "bench_*.py"]
+python_functions = ["test_*", "bench_*"]
+testpaths = ["tests", "benches"]
