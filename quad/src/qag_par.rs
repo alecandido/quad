@@ -11,6 +11,7 @@ use crate::qk61::qk61_quadrature;
 use crate::result_state::*;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct QagPar {
@@ -123,10 +124,8 @@ pub struct QagPar {
 ///
 
 impl QagPar {
-    /*
-       pub fn integrate<F>(&self, fun : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                           -> QagIntegratorResult
-           where F : Fn(f64) -> Vec<f64> + ?Sized {
+       pub fn integrate(&self, fun : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
+                           -> QagIntegratorResult {
            if b == f64::INFINITY && a.is_finite() {
                let f = &fun.components;
                let f3 =  |x: f64| semi_infinite_function(&**f, x, a, b);
@@ -147,8 +146,6 @@ impl QagPar {
 
            self.qintegrate(&fun,a,b,epsabs,epsrel)
        }
-
-    */
 
     pub fn qintegrate(
         &self,
