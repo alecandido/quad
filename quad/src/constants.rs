@@ -2,54 +2,51 @@ use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
 
-
 #[derive(Clone)]
-pub struct FnVec{
-    pub components : Arc< dyn Fn(f64)->Vec<f64> + Send + Sync>
+pub struct FnVec {
+    pub components: Arc<dyn Fn(f64) -> Vec<f64> + Send + Sync>,
 }
 
+pub const EPMACH: f64 = f64::EPSILON; // the largest relative spacing.
+pub const UFLOW: f64 = f64::MIN_POSITIVE; // the smallest positive magnitude.
+                                          //pub const OFLOW : f64 = f64::MAX;               // oflow is the largest positive magnitude.
 
-pub const EPMACH : f64 = f64::EPSILON;          // the largest relative spacing.
-pub const UFLOW : f64 = f64::MIN_POSITIVE;      // the smallest positive magnitude.
-//pub const OFLOW : f64 = f64::MAX;               // oflow is the largest positive magnitude.
-
-
-pub fn norm_vec(v : &[f64]) -> f64{
+pub fn norm_vec(v: &[f64]) -> f64 {
     let mut norm = 0.0;
-    for comp in v{
+    for comp in v {
         norm += comp.powi(2);
     }
     norm = norm.sqrt();
     norm
 }
 
-pub fn res_update(v : &mut[f64], w: &[f64], z : &[f64], y : &[f64]){
-    for k  in 0..v.len(){
+pub fn res_update(v: &mut [f64], w: &[f64], z: &[f64], y: &[f64]) {
+    for k in 0..v.len() {
         v[k] += w[k] + z[k] - y[k];
     }
 }
 
-pub fn add_res( v : &mut[f64], w : &[f64]){
-    for k  in 0..v.len(){
+pub fn add_res(v: &mut [f64], w: &[f64]) {
+    for k in 0..v.len() {
         v[k] += w[k];
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct HeapItem {
-    pub interval : (f64,f64),
-    pub err : f64,
+    pub interval: (f64, f64),
+    pub err: f64,
 }
 
 impl HeapItem {
-    pub fn new( interval : (f64,f64) , err : f64) -> Self{
-        Self{ interval,err}
+    pub fn new(interval: (f64, f64), err: f64) -> Self {
+        Self { interval, err }
     }
 }
 
-impl Eq for HeapItem{}
+impl Eq for HeapItem {}
 
-impl PartialEq for HeapItem{
+impl PartialEq for HeapItem {
     fn eq(&self, other: &Self) -> bool {
         self.err == other.err
     }
@@ -67,11 +64,9 @@ impl PartialOrd for HeapItem {
     }
 }
 
-
-
-#[derive(Debug,Clone)]
-pub struct Myf64{
-    pub x : f64,
+#[derive(Debug, Clone)]
+pub struct Myf64 {
+    pub x: f64,
 }
 impl Myf64 {
     fn key(&self) -> u64 {
@@ -81,8 +76,8 @@ impl Myf64 {
 
 impl hash::Hash for Myf64 {
     fn hash<H>(&self, state: &mut H)
-        where
-            H: hash::Hasher,
+    where
+        H: hash::Hasher,
     {
         self.key().hash(state)
     }
@@ -94,4 +89,4 @@ impl PartialEq for Myf64 {
     }
 }
 
-impl Eq for Myf64{}
+impl Eq for Myf64 {}

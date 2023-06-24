@@ -1,0 +1,21 @@
+[package]
+name = "quad"
+description = "Quadrature integration"
+authors = [
+  "Alessandro Candido <candido.ale@gmail.com>",
+  "Alex Raiteri <alex.raiteri@studenti.unimi.it>",
+]
+readme = "../README.md"
+
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+rayon = "1.6"
+
+[dev-dependencies]
+GSL = "6.0.0"
