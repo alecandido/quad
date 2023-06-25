@@ -203,6 +203,8 @@ impl QagPar {
         let mut result = vec![0.0; n];
         let mut abserr = 0.0;
         let mut rounderr = 0.0;
+        let mut iroff1 = 0;
+        let mut iroff2 = 0;
 
         let mut keyf = self.key;
         if self.key <= 0 {
@@ -266,22 +268,26 @@ impl QagPar {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
+            let mut old_result = vec![0.0;n];
 
             while to_process.len() < 128 && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
+                if x.abs().max(y.abs()) <= (1.0 + 100.0 * EPMACH) * (((x+y)/2.0).abs() + 1000.0 * UFLOW) {
+                    return  QagIntegratorResult::new_error(ResultState::BadFunction);
+                }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
                     .unwrap();
                 err_sum += old_err;
-                sub_vec(&mut result, &old_res);
+                add_vec(&mut old_result, &old_res);
                 to_process.push((x, y));
                 if err_sum > abserr - errbnd / 8.0 {
                     break;
                 }
             }
 
-            abserr -= err_sum;
+            //abserr -= err_sum;
             last += to_process.len();
 
             let new_result: (Vec<_>, Vec<_>) = pool.install(|| {
@@ -336,10 +342,13 @@ impl QagPar {
                     .collect()
             });
 
+            let mut new_res = vec![0.0;n];
+            let mut new_abserr = 0.0;
+
             for k in 0..new_result.0.len() {
-                add_vec(&mut result, &new_result.0[k].2);
-                add_vec(&mut result, &new_result.1[k].2);
-                abserr += new_result.0[k].3 + new_result.1[k].3;
+                add_vec(&mut new_res, &new_result.0[k].2);
+                add_vec(&mut new_res, &new_result.1[k].2);
+                new_abserr += new_result.0[k].3 + new_result.1[k].3;
                 rounderr += new_result.0[k].4 + new_result.1[k].4;
                 interval_cache.insert(
                     (
@@ -372,19 +381,38 @@ impl QagPar {
                     new_result.1[k].3,
                 ));
             }
+            if {
+                let mut bool = true;
+                for k in 0..old_result.len(){
+                    if !((old_result[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs() &&
+                        new_abserr >= 0.99 * err_sum) {
+                        bool = false;
+                    }
+                }
+                bool
+            }{
+                iroff1 += 1;
+            }
+            if last > 10 && new_abserr > err_sum {
+                iroff2 += 1;
+            }
+            sub_vec(&mut result, &old_result);
+            add_vec(&mut result, &new_res);
+            abserr += new_abserr - err_sum;
 
             errbnd = epsabs.max(epsrel * norm_vec(&result));
 
             if abserr <= errbnd / 8.0 {
                 break;
             }
-            if abserr < rounderr {
+            if abserr < rounderr || iroff1 >= 6 || iroff2 >= 20{
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
 
             if last >= self.limit {
                 return QagIntegratorResult::new_error(ResultState::MaxIteration);
             }
+
         }
 
         if keyf != 1 {
@@ -455,7 +483,7 @@ mod tests {
             more_info: false,
         };
 
-        let f1 = |x: f64| vec![x.cos(), x.sin()];
+        let f1 = |x: f64| vec![x.sin()/x];
         let f = FnVec {
             components: Arc::new(f1.clone()),
         };
@@ -472,7 +500,7 @@ mod tests {
                 t1 += start.elapsed().as_secs_f64();
             }
             let start = Instant::now();
-            res2 = qag2.qintegrate(&f, a, b, epsabs, epsrel);
+            res2 = qag2.integrate(&f, a, f64::INFINITY, epsabs, epsrel);
             if k > 10 {
                 t2 += start.elapsed().as_secs_f64();
             }
