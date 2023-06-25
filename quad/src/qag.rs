@@ -162,14 +162,18 @@ impl Qag {
             return QagIntegratorResult::new_error(ResultState::Invalid);
         }
         let mut initial_intervals = vec![];
+        let mut points = self.points.clone();
+        points.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-        if self.points.is_empty() {
+        if points.is_empty() {
             initial_intervals.push((a, b));
         } else {
             let mut prev = a;
-            for p in &self.points {
-                initial_intervals.push((prev, *p));
-                prev = *p;
+            for p in points {
+                if p > a && p < b{
+                    initial_intervals.push((prev, p));
+                    prev = p;
+                }
             }
             initial_intervals.push((prev, b));
         }

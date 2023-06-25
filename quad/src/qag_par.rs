@@ -11,12 +11,14 @@ use crate::qk61::qk61_quadrature;
 use crate::result_state::*;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct QagPar {
     pub key: i32,
     pub limit: usize,
     pub points: Vec<f64>,
+    pub number_of_thread: usize,
     pub more_info: bool,
 }
 
@@ -122,10 +124,8 @@ pub struct QagPar {
 ///
 
 impl QagPar {
-    /*
-       pub fn integrate<F>(&self, fun : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                           -> QagIntegratorResult
-           where F : Fn(f64) -> Vec<f64> + ?Sized {
+       pub fn integrate(&self, fun : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
+                           -> QagIntegratorResult {
            if b == f64::INFINITY && a.is_finite() {
                let f = &fun.components;
                let f3 =  |x: f64| semi_infinite_function(&**f, x, a, b);
@@ -147,8 +147,6 @@ impl QagPar {
            self.qintegrate(&fun,a,b,epsabs,epsrel)
        }
 
-    */
-
     pub fn qintegrate(
         &self,
         fun: &FnVec,
@@ -161,18 +159,23 @@ impl QagPar {
             return QagIntegratorResult::new_error(ResultState::Invalid);
         }
 
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(self.number_of_thread).build().unwrap();
         let f = &fun.components;
         let n: usize = f(0.0).len();
 
         let mut initial_intervals = vec![];
+        let mut points = self.points.clone();
+        points.sort_by(|a, b| a.partial_cmp(b).unwrap());
 
-        if self.points.is_empty() {
+        if points.is_empty() {
             initial_intervals.push((a, b));
         } else {
             let mut prev = a;
-            for p in &self.points {
-                initial_intervals.push((prev, *p));
-                prev = *p;
+            for p in points {
+                if p > a && p < b{
+                    initial_intervals.push((prev, p));
+                    prev = p;
+                }
             }
             initial_intervals.push((prev, b));
         }
@@ -266,7 +269,7 @@ impl QagPar {
             abserr -= err_sum;
             last += to_process.len();
 
-            let new_result: (Vec<_>, Vec<_>) = to_process
+            let new_result: (Vec<_>, Vec<_>) = pool.install(|| to_process
                 .par_iter()
                 .map(|comp| {
                     let mut result1 = vec![0.0; n];
@@ -314,7 +317,7 @@ impl QagPar {
                         (a2, b2, result2, abserr2, rounderr2),
                     )
                 })
-                .collect();
+                .collect());
 
             for k in 0..new_result.0.len() {
                 add_vec(&mut result, &new_result.0[k].2);
@@ -424,13 +427,14 @@ mod tests {
         let qag1 = Qag {
             key,
             limit,
-            points: vec![],
+            points: vec![10000.0,0.0,7000.0,5000.0,2000.0],
             more_info: false,
         };
         let qag2 = QagPar {
             key,
             limit,
-            points: vec![],
+            points: vec![10000.0,0.0,7000.0,5000.0,2000.0],
+            number_of_thread : 1,
             more_info: false,
         };
 
