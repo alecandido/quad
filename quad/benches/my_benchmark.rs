@@ -2,10 +2,12 @@ use criterion::BenchmarkId;
 use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
 use quad::constants::FnVec;
-use quad::qag::*;
+use quad::*;
 use rgsl::*;
 use std::sync::Arc;
 use std::{thread, time};
+
+const NUM_THREADS: usize = 4;
 
 fn qag_delay(c: &mut Criterion) {
     let mut group = c.benchmark_group("Qag");
@@ -62,6 +64,7 @@ fn qag_delay(c: &mut Criterion) {
                     inp.4,
                     inp.5,
                     [0.0; 0].to_vec(),
+                    NUM_THREADS,
                     inp.6,
                 )
             });
@@ -143,6 +146,7 @@ fn fn_lenght(c: &mut Criterion) {
                     inp.4,
                     inp.5,
                     [0.0; 0].to_vec(),
+                    NUM_THREADS,
                     inp.6,
                 )
             });
@@ -208,6 +212,7 @@ fn number_of_interval_subdivision(c: &mut Criterion) {
                     inp.4,
                     inp.5,
                     [0.0; 0].to_vec(),
+                    NUM_THREADS,
                     inp.6,
                 )
             });
@@ -280,6 +285,7 @@ fn key(c: &mut Criterion) {
                     z,
                     inp.5,
                     [0.0; 0].to_vec(),
+                    NUM_THREADS,
                     inp.6,
                 )
             });
