@@ -268,13 +268,15 @@ impl QagPar {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
-            let mut old_result = vec![0.0;n];
+            let mut old_result = vec![0.0; n];
 
             while to_process.len() < 128 && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
-                if x.abs().max(y.abs()) <= (1.0 + 100.0 * EPMACH) * (((x+y)/2.0).abs() + 1000.0 * UFLOW) {
-                    return  QagIntegratorResult::new_error(ResultState::BadFunction);
+                if x.abs().max(y.abs())
+                    <= (1.0 + 100.0 * EPMACH) * (((x + y) / 2.0).abs() + 1000.0 * UFLOW)
+                {
+                    return QagIntegratorResult::new_error(ResultState::BadFunction);
                 }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
@@ -342,7 +344,7 @@ impl QagPar {
                     .collect()
             });
 
-            let mut new_res = vec![0.0;n];
+            let mut new_res = vec![0.0; n];
             let mut new_abserr = 0.0;
 
             for k in 0..new_result.0.len() {
@@ -383,14 +385,15 @@ impl QagPar {
             }
             if {
                 let mut bool = true;
-                for k in 0..old_result.len(){
-                    if !((old_result[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs() &&
-                        new_abserr >= 0.99 * err_sum) {
+                for k in 0..old_result.len() {
+                    if !((old_result[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs()
+                        && new_abserr >= 0.99 * err_sum)
+                    {
                         bool = false;
                     }
                 }
                 bool
-            }{
+            } {
                 iroff1 += 1;
             }
             if last > 10 && new_abserr > err_sum {
@@ -405,14 +408,13 @@ impl QagPar {
             if abserr <= errbnd / 8.0 {
                 break;
             }
-            if abserr < rounderr || iroff1 >= 6 || iroff2 >= 20{
+            if abserr < rounderr || iroff1 >= 6 || iroff2 >= 20 {
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
 
             if last >= self.limit {
                 return QagIntegratorResult::new_error(ResultState::MaxIteration);
             }
-
         }
 
         if keyf != 1 {
@@ -483,7 +485,7 @@ mod tests {
             more_info: false,
         };
 
-        let f1 = |x: f64| vec![x.sin()/x];
+        let f1 = |x: f64| vec![x.sin() / x];
         let f = FnVec {
             components: Arc::new(f1.clone()),
         };
