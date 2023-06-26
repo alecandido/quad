@@ -170,7 +170,7 @@ impl Qag {
         } else {
             let mut prev = a;
             for p in points {
-                if p > a && p < b{
+                if p > a && p < b {
                     initial_intervals.push((prev, p));
                     prev = p;
                 }

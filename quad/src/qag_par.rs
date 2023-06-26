@@ -124,28 +124,40 @@ pub struct QagPar {
 ///
 
 impl QagPar {
-       pub fn integrate(&self, fun : &FnVec, a : f64, b : f64, epsabs : f64, epsrel : f64)
-                           -> QagIntegratorResult {
-           if b == f64::INFINITY && a.is_finite() {
-               let f = &fun.components;
-               let f3 =  |x: f64| semi_infinite_function(&**f, x, a, b);
-               let f2 = FnVec{ components : Arc::new(f3.clone())};
-               return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
-           }
-           if a == f64::NEG_INFINITY && b.is_finite() {
-               let f = &fun.components;
-               let f3 =  |x: f64| semi_infinite_function(&**f, x, b, a);
-               let f2 = FnVec{ components : Arc::new(f3.clone())};
-               return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel)
-           }
-           if a == f64::NEG_INFINITY && b == f64::INFINITY {
-               let f = &fun.components;
-               let f2 = FnVec{ components : Arc::new(|x: f64| double_infinite_function(&**f, x))};
-               return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel)
-           }
+    pub fn integrate(
+        &self,
+        fun: &FnVec,
+        a: f64,
+        b: f64,
+        epsabs: f64,
+        epsrel: f64,
+    ) -> QagIntegratorResult {
+        if b == f64::INFINITY && a.is_finite() {
+            let f = &fun.components;
+            let f3 = |x: f64| semi_infinite_function(&**f, x, a, b);
+            let f2 = FnVec {
+                components: Arc::new(f3.clone()),
+            };
+            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+        }
+        if a == f64::NEG_INFINITY && b.is_finite() {
+            let f = &fun.components;
+            let f3 = |x: f64| semi_infinite_function(&**f, x, b, a);
+            let f2 = FnVec {
+                components: Arc::new(f3.clone()),
+            };
+            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+        }
+        if a == f64::NEG_INFINITY && b == f64::INFINITY {
+            let f = &fun.components;
+            let f2 = FnVec {
+                components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
+            };
+            return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
+        }
 
-           self.qintegrate(&fun,a,b,epsabs,epsrel)
-       }
+        self.qintegrate(&fun, a, b, epsabs, epsrel)
+    }
 
     pub fn qintegrate(
         &self,
@@ -159,7 +171,10 @@ impl QagPar {
             return QagIntegratorResult::new_error(ResultState::Invalid);
         }
 
-        let pool = rayon::ThreadPoolBuilder::new().num_threads(self.number_of_thread).build().unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(self.number_of_thread)
+            .build()
+            .unwrap();
         let f = &fun.components;
         let n: usize = f(0.0).len();
 
@@ -172,7 +187,7 @@ impl QagPar {
         } else {
             let mut prev = a;
             for p in points {
-                if p > a && p < b{
+                if p > a && p < b {
                     initial_intervals.push((prev, p));
                     prev = p;
                 }
@@ -269,55 +284,57 @@ impl QagPar {
             abserr -= err_sum;
             last += to_process.len();
 
-            let new_result: (Vec<_>, Vec<_>) = pool.install(|| to_process
-                .par_iter()
-                .map(|comp| {
-                    let mut result1 = vec![0.0; n];
-                    let mut abserr1 = 0.0;
-                    let mut rounderr1 = 0.0;
+            let new_result: (Vec<_>, Vec<_>) = pool.install(|| {
+                to_process
+                    .par_iter()
+                    .map(|comp| {
+                        let mut result1 = vec![0.0; n];
+                        let mut abserr1 = 0.0;
+                        let mut rounderr1 = 0.0;
 
-                    let mut result2 = vec![0.0; n];
-                    let mut abserr2 = 0.0;
-                    let mut rounderr2 = 0.0;
+                        let mut result2 = vec![0.0; n];
+                        let mut abserr2 = 0.0;
+                        let mut rounderr2 = 0.0;
 
-                    let a1 = comp.0;
-                    let b1 = 0.5 * (comp.0 + comp.1);
-                    let a2 = b1;
-                    let b2 = comp.1;
+                        let a1 = comp.0;
+                        let b1 = 0.5 * (comp.0 + comp.1);
+                        let a2 = b1;
+                        let b2 = comp.1;
 
-                    match keyf {
-                        1 => {
-                            (result1, abserr1, rounderr1) = qk15_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk15_quadrature(&**f, a2, b2);
+                        match keyf {
+                            1 => {
+                                (result1, abserr1, rounderr1) = qk15_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk15_quadrature(&**f, a2, b2);
+                            }
+                            2 => {
+                                (result1, abserr1, rounderr1) = qk21_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk21_quadrature(&**f, a2, b2);
+                            }
+                            3 => {
+                                (result1, abserr1, rounderr1) = qk31_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk31_quadrature(&**f, a2, b2);
+                            }
+                            4 => {
+                                (result1, abserr1, rounderr1) = qk41_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk41_quadrature(&**f, a2, b2);
+                            }
+                            5 => {
+                                (result1, abserr1, rounderr1) = qk51_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk51_quadrature(&**f, a2, b2);
+                            }
+                            6 => {
+                                (result1, abserr1, rounderr1) = qk61_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk61_quadrature(&**f, a2, b2);
+                            }
+                            _ => (),
                         }
-                        2 => {
-                            (result1, abserr1, rounderr1) = qk21_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk21_quadrature(&**f, a2, b2);
-                        }
-                        3 => {
-                            (result1, abserr1, rounderr1) = qk31_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk31_quadrature(&**f, a2, b2);
-                        }
-                        4 => {
-                            (result1, abserr1, rounderr1) = qk41_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk41_quadrature(&**f, a2, b2);
-                        }
-                        5 => {
-                            (result1, abserr1, rounderr1) = qk51_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk51_quadrature(&**f, a2, b2);
-                        }
-                        6 => {
-                            (result1, abserr1, rounderr1) = qk61_quadrature(&**f, a1, b1);
-                            (result2, abserr2, rounderr2) = qk61_quadrature(&**f, a2, b2);
-                        }
-                        _ => (),
-                    }
-                    (
-                        (a1, b1, result1, abserr1, rounderr1),
-                        (a2, b2, result2, abserr2, rounderr2),
-                    )
-                })
-                .collect());
+                        (
+                            (a1, b1, result1, abserr1, rounderr1),
+                            (a2, b2, result2, abserr2, rounderr2),
+                        )
+                    })
+                    .collect()
+            });
 
             for k in 0..new_result.0.len() {
                 add_vec(&mut result, &new_result.0[k].2);
@@ -427,14 +444,14 @@ mod tests {
         let qag1 = Qag {
             key,
             limit,
-            points: vec![10000.0,0.0,7000.0,5000.0,2000.0],
+            points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
             more_info: false,
         };
         let qag2 = QagPar {
             key,
             limit,
-            points: vec![10000.0,0.0,7000.0,5000.0,2000.0],
-            number_of_thread : 1,
+            points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
+            number_of_thread: 1,
             more_info: false,
         };
 
