@@ -289,7 +289,6 @@ impl QagPar {
                 }
             }
 
-            //abserr -= err_sum;
             last += to_process.len();
 
             let new_result: (Vec<_>, Vec<_>) = pool.install(|| {
