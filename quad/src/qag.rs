@@ -131,55 +131,29 @@ impl Qag {
     where
         F: Fn(f64) -> Vec<f64>,
     {
-        if b == f64::INFINITY && a.is_finite() {
-            let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
-            let mut points = self.points.clone();
-            points.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let mut points_transformed = vec![0.0; 0];
-            for point in points {
-                points_transformed.push(1.0 / (point - a + 1.0));
-            }
+        if b == f64::INFINITY && a.is_finite()
+            || a == f64::NEG_INFINITY && b.is_finite()
+            || a == f64::NEG_INFINITY && b == f64::INFINITY
+        {
+            let points = points_transformed(self.points.clone(), a, b);
             let qag = Qag {
                 key: self.key,
                 limit: self.limit,
-                points: points_transformed,
+                points,
                 more_info: self.more_info,
             };
-            return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b.is_finite() {
-            let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
-            let mut points = self.points.clone();
-            points.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let mut points_transformed = vec![0.0; 0];
-            for point in points {
-                points_transformed.push(1.0 / (b - point + 1.0));
-            }
-            let qag = Qag {
-                key: self.key,
-                limit: self.limit,
-                points: points_transformed,
-                more_info: self.more_info,
-            };
-            return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f2 = |x: f64| double_infinite_function(&f, x);
-            let mut points = self.points.clone();
-            points.sort_by(|a, b| a.partial_cmp(b).unwrap());
-            let mut points_transformed = vec![0.0; 0];
-            for point in points {
-                points_transformed.push(point.signum() / (point.abs() + 1.0));
-            }
-            let qag = Qag {
-                key: self.key,
-                limit: self.limit,
-                points: points_transformed,
-                more_info: self.more_info,
-            };
-            return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
-        }
 
+            if b == f64::INFINITY && a.is_finite() {
+                let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b.is_finite() {
+                let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
+                let f2 = |x: f64| double_infinite_function(&f, x);
+                return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
+            };
+        }
         self.qintegrate(&f, a, b, epsabs, epsrel)
     }
 

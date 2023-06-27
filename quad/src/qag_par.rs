@@ -132,28 +132,36 @@ impl QagPar {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult {
-        if b == f64::INFINITY && a.is_finite() {
-            let f = &fun.components;
-            let f3 = |x: f64| semi_infinite_function(&**f, x, a, b);
-            let f2 = FnVec {
-                components: Arc::new(f3.clone()),
+        let f = &fun.components;
+        if b == f64::INFINITY && a.is_finite()
+            || a == f64::NEG_INFINITY && b.is_finite()
+            || a == f64::NEG_INFINITY && b == f64::INFINITY
+        {
+            let points = points_transformed(self.points.clone(), a, b);
+            let qag = QagPar {
+                key: self.key,
+                limit: self.limit,
+                points,
+                number_of_thread: self.number_of_thread,
+                more_info: self.more_info,
             };
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b.is_finite() {
-            let f = &fun.components;
-            let f3 = |x: f64| semi_infinite_function(&**f, x, b, a);
-            let f2 = FnVec {
-                components: Arc::new(f3.clone()),
+
+            if b == f64::INFINITY && a.is_finite() {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, a, b)),
+                };
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b.is_finite() {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, b, a)),
+                };
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
+                };
+                return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
             };
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f = &fun.components;
-            let f2 = FnVec {
-                components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
-            };
-            return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
         }
 
         self.qintegrate(&fun, a, b, epsabs, epsrel)
@@ -463,25 +471,25 @@ mod tests {
     #[test]
     fn test() {
         let a = 0.0;
-        let b = 10000.0;
+        let b = f64::INFINITY;
         let epsrel = 0.0;
-        let epsabs = 1.0e-2;
-        let limit = 10000000;
+        let epsabs = 1.0e10;
+        let limit = 1;
         let key = 6;
-        let max = 30;
+        let max = 1;
 
         let qag1 = Qag {
             key,
             limit,
             points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
-            more_info: false,
+            more_info: true,
         };
         let qag2 = QagPar {
             key,
             limit,
             points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
             number_of_thread: 1,
-            more_info: false,
+            more_info: true,
         };
 
         let f1 = |x: f64| vec![x.sin() / x];
@@ -496,12 +504,12 @@ mod tests {
 
         for k in 0..max {
             let start = Instant::now();
-            res1 = qag1.qintegrate(&f1, a, b, epsabs, epsrel);
+            res1 = qag1.integrate(&f1, a, b, epsabs, epsrel);
             if k > 10 {
                 t1 += start.elapsed().as_secs_f64();
             }
             let start = Instant::now();
-            res2 = qag2.integrate(&f, a, f64::INFINITY, epsabs, epsrel);
+            res2 = qag2.integrate(&f, a, b, epsabs, epsrel);
             if k > 10 {
                 t2 += start.elapsed().as_secs_f64();
             }

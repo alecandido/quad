@@ -1,3 +1,4 @@
+use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
@@ -30,6 +31,26 @@ pub fn add_res(v: &mut [f64], w: &[f64]) {
     for k in 0..v.len() {
         v[k] += w[k];
     }
+}
+
+pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
+    points.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut points_transformed = vec![0.0; 0];
+    if b == f64::INFINITY && a.is_finite() {
+        for point in &points {
+            points_transformed.push(1.0 / (*point - a + 1.0));
+        }
+    } else if a == f64::NEG_INFINITY && b.is_finite() {
+        for point in &points {
+            points_transformed.push(1.0 / (b - *point + 1.0));
+        }
+    }
+    if a == f64::NEG_INFINITY && b == f64::INFINITY {
+        for point in &points {
+            points_transformed.push(point.signum() / (point.abs() + 1.0));
+        }
+    }
+    points_transformed
 }
 
 #[derive(Debug, Clone)]
