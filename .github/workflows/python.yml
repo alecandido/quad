@@ -23,10 +23,8 @@ jobs:
 
       - name: Install built wheel
         run: |
-          ls
-          ls quad-py
-          ls target/wheels/
-          pip install quad --no-index --find-links target/wheels/ --force-reinstall
+          ls quad-py/dist/
+          pip install quad --no-index --find-links quad-py/dist/ --force-reinstall
 
       - name: Test
         run: |
