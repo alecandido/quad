@@ -25,7 +25,8 @@ jobs:
         run: |
           ls
           ls quad-py
-          pip install quad --no-index --find-links dist --force-reinstall
+          ls target/wheels/
+          pip install quad --no-index --find-links target/wheels/ --force-reinstall
 
       - name: Test
         run: |
