@@ -18,6 +18,9 @@ version.workspace = true
 name = "my_benchmark"
 harness = false
 
+[lib]
+bench = false
+
 [dependencies]
 rayon = "1.6"
 
