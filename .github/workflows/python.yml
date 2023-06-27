@@ -23,8 +23,7 @@ jobs:
 
       - name: Install built wheel
         run: |
-          ls quad-py/dist/
-          pip install quad --find-links quad-py/dist/ --force-reinstall
+          pip install 'quad[test]' --find-links quad-py/dist/ --force-reinstall
 
       - name: Test
         run: |
