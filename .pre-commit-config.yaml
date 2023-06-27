@@ -2,6 +2,8 @@
 # See https://pre-commit.com/hooks.html for more hooks
 ci:
   autofix_prs: false
+  skip:
+    - fmt
 repos:
   - repo: https://github.com/pre-commit/pre-commit
     rev: v3.3.3
