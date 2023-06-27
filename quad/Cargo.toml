@@ -14,8 +14,16 @@ license.workspace = true
 repository.workspace = true
 version.workspace = true
 
+[[bench]]
+name = "my_benchmark"
+harness = false
+
+[lib]
+bench = false
+
 [dependencies]
 rayon = "1.6"
 
 [dev-dependencies]
 GSL = "6.0.0"
+criterion = "0.5.1"
