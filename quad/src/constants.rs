@@ -10,7 +10,6 @@ pub struct FnVec<'a> {
 
 pub const EPMACH: f64 = f64::EPSILON; // the largest relative spacing.
 pub const UFLOW: f64 = f64::MIN_POSITIVE; // the smallest positive magnitude.
-                                          //pub const OFLOW : f64 = f64::MAX;               // oflow is the largest positive magnitude.
 
 pub fn norm_vec(v: &[f64]) -> f64 {
     let mut norm = 0.0;
@@ -36,17 +35,12 @@ pub fn add_res(v: &mut [f64], w: &[f64]) {
 pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut points_transformed = vec![0.0; 0];
-    if b == f64::INFINITY && a.is_finite() {
-        for point in &points {
+    for point in &points {
+        if b == f64::INFINITY && a.is_finite() {
             points_transformed.push(1.0 / (*point - a + 1.0));
-        }
-    } else if a == f64::NEG_INFINITY && b.is_finite() {
-        for point in &points {
+        } else if a == f64::NEG_INFINITY && b.is_finite() {
             points_transformed.push(1.0 / (b - *point + 1.0));
-        }
-    }
-    if a == f64::NEG_INFINITY && b == f64::INFINITY {
-        for point in &points {
+        } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
             points_transformed.push(point.signum() / (point.abs() + 1.0));
         }
     }
