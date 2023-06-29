@@ -98,6 +98,3 @@ def test_vs_scipy_quad():
 
     print(f"\nratio: {scipy_time / quad_time * 100:.2f}%")
     print("distances:", (scipy_res - quad_res) / (scipy_err + quad_err))
-
-
-test_vs_scipy_quad_vec()
