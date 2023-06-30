@@ -47,6 +47,17 @@ pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points_transformed
 }
 
+pub fn iroff1_flag(old_res: &[f64], new_res: &[f64], new_abserr: f64, old_abserr: f64) -> bool {
+    for k in 0..old_res.len() {
+        if !((old_res[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs()
+            && new_abserr >= 0.99 * old_abserr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 #[derive(Debug, Clone)]
 pub struct HeapItem {
     pub interval: (f64, f64),

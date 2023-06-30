@@ -390,17 +390,7 @@ impl QagPar {
                     new_result.1[k].3,
                 ));
             }
-            if {
-                let mut bool = true;
-                for k in 0..old_result.len() {
-                    if !((old_result[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs()
-                        && new_abserr >= 0.99 * err_sum)
-                    {
-                        bool = false;
-                    }
-                }
-                bool
-            } {
+            if iroff1_flag(&old_result, &new_res, new_abserr, err_sum) {
                 iroff1 += 1;
             }
             if last > 10 && new_abserr > err_sum {
