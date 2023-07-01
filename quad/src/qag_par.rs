@@ -405,7 +405,7 @@ impl QagPar {
             if abserr <= errbnd / 8.0 {
                 break;
             }
-            if abserr < rounderr || iroff1 >= 6 || iroff2 >= 20 {
+            if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
 

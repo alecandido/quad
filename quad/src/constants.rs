@@ -10,6 +10,10 @@ pub struct FnVec<'a> {
 
 pub const EPMACH: f64 = f64::EPSILON; // the largest relative spacing.
 pub const UFLOW: f64 = f64::MIN_POSITIVE; // the smallest positive magnitude.
+pub const IROFF_PARAMETER1: f64 = 0.00001;
+pub const IROFF_PARAMETER2: f64 = 0.99;
+pub const IROFF1_THRESHOLD: i32 = 6;
+pub const IROFF2_THRESHOLD: i32 = 20;
 
 pub fn norm_vec(v: &[f64]) -> f64 {
     let mut norm = 0.0;
@@ -49,8 +53,8 @@ pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
 
 pub fn iroff1_flag(old_res: &[f64], new_res: &[f64], new_abserr: f64, old_abserr: f64) -> bool {
     for k in 0..old_res.len() {
-        if !((old_res[k] - new_res[k]).abs() <= 0.00001 * new_res[k].abs()
-            && new_abserr >= 0.99 * old_abserr)
+        if !((old_res[k] - new_res[k]).abs() <= IROFF_PARAMETER1 * new_res[k].abs()
+            && new_abserr >= IROFF_PARAMETER2 * old_abserr)
         {
             return false;
         }
