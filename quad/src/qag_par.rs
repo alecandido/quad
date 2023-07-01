@@ -281,9 +281,7 @@ impl QagPar {
             while to_process.len() < 128 && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
-                if x.abs().max(y.abs())
-                    <= (1.0 + 100.0 * EPMACH) * (((x + y) / 2.0).abs() + 1000.0 * UFLOW)
-                {
+                if bad_function_flag(x, y) {
                     return QagIntegratorResult::new_error(ResultState::BadFunction);
                 }
                 let old_res = interval_cache

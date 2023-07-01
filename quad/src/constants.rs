@@ -14,6 +14,8 @@ pub const IROFF_PARAMETER1: f64 = 0.00001;
 pub const IROFF_PARAMETER2: f64 = 0.99;
 pub const IROFF1_THRESHOLD: i32 = 6;
 pub const IROFF2_THRESHOLD: i32 = 20;
+pub const BAD_FUNCTION_PARAMETER1: f64 = 100.0;
+pub const BAD_FUNCTION_PARAMETER2: f64 = 1000.0;
 
 pub fn norm_vec(v: &[f64]) -> f64 {
     let mut norm = 0.0;
@@ -60,6 +62,16 @@ pub fn iroff1_flag(old_res: &[f64], new_res: &[f64], new_abserr: f64, old_abserr
         }
     }
     return true;
+}
+
+pub fn bad_function_flag(x: f64, y: f64) -> bool {
+    if x.abs().max(y.abs())
+        <= (1.0 + BAD_FUNCTION_PARAMETER1 * EPMACH)
+            * (((x + y) / 2.0).abs() + BAD_FUNCTION_PARAMETER2 * UFLOW)
+    {
+        return true;
+    }
+    false
 }
 
 #[derive(Debug, Clone)]
