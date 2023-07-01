@@ -42,13 +42,14 @@ pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut points_transformed = vec![0.0; 0];
     for point in &points {
-        if b == f64::INFINITY && a.is_finite() {
-            points_transformed.push(1.0 / (*point - a + 1.0));
+        points_transformed.push(if b == f64::INFINITY && a.is_finite() {
+            1.0 / (*point - a + 1.0)
         } else if a == f64::NEG_INFINITY && b.is_finite() {
-            points_transformed.push(1.0 / (b - *point + 1.0));
-        } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            points_transformed.push(point.signum() / (point.abs() + 1.0));
-        }
+            1.0 / (b - *point + 1.0)
+        } else {
+            // if a == f64::NEG_INFINITY && b == f64::INFINITY
+            point.signum() / (point.abs() + 1.0)
+        });
     }
     points_transformed
 }
