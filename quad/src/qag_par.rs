@@ -513,4 +513,33 @@ mod tests {
 
         assert_eq!(res.result_state, Invalid);
     }
+
+    #[test]
+    fn known_integral() {
+        let a = 0.0;
+        let b = 10000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-3;
+        let limit = 10000;
+        let key = 6;
+        let correct_result = [1.0 - 10000.0_f64.cos(), 10000.0_f64.sin()];
+
+        let qag = QagPar {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            number_of_thread: 8,
+            more_info: true,
+        };
+
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+
+        assert!(
+            res.integration_result.result[0] - correct_result[0] < epsabs
+                && res.integration_result.result[1] - correct_result[1] < epsabs
+        );
+    }
 }
