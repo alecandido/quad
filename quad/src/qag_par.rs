@@ -437,8 +437,8 @@ impl QagPar {
 mod tests {
     use crate::constants::FnVec;
     use crate::qag_par::QagPar;
-    use std::sync::Arc;
     use crate::result_state::ResultState::*;
+    use std::sync::Arc;
 
     #[test]
     fn max_iteration1() {
@@ -452,17 +452,17 @@ mod tests {
         let qag = QagPar {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             number_of_thread: 8,
             more_info: true,
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,MaxIteration);
+        assert_eq!(res.result_state, MaxIteration);
     }
     #[test]
     fn max_iteration2() {
@@ -476,17 +476,17 @@ mod tests {
         let qag = QagPar {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             number_of_thread: 8,
             more_info: true,
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,MaxIteration);
+        assert_eq!(res.result_state, MaxIteration);
     }
 
     #[test]
@@ -501,16 +501,16 @@ mod tests {
         let qag = QagPar {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             number_of_thread: 8,
             more_info: true,
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,Invalid);
+        assert_eq!(res.result_state, Invalid);
     }
 }

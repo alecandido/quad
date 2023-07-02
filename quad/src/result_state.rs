@@ -1,4 +1,4 @@
-#[derive(Clone, Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ResultState {
     Success,
     Failure,

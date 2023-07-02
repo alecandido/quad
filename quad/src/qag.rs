@@ -128,8 +128,8 @@ impl Qag {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult
-        where
-            F: Fn(f64) -> Vec<f64>,
+    where
+        F: Fn(f64) -> Vec<f64>,
     {
         if b == f64::INFINITY && a.is_finite()
             || a == f64::NEG_INFINITY && b.is_finite()
@@ -165,8 +165,8 @@ impl Qag {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult
-        where
-            F: Fn(f64) -> Vec<f64>,
+    where
+        F: Fn(f64) -> Vec<f64>,
     {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return QagIntegratorResult::new_error(ResultState::Invalid);
@@ -431,14 +431,14 @@ mod tests {
         let qag = Qag {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(),x.cos()];
+        let f = |x: f64| vec![x.sin(), x.cos()];
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,MaxIteration);
+        assert_eq!(res.result_state, MaxIteration);
     }
     #[test]
     fn max_iteration2() {
@@ -452,14 +452,14 @@ mod tests {
         let qag = Qag {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(),x.cos()];
+        let f = |x: f64| vec![x.sin(), x.cos()];
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,MaxIteration);
+        assert_eq!(res.result_state, MaxIteration);
     }
 
     #[test]
@@ -474,15 +474,13 @@ mod tests {
         let qag = Qag {
             key,
             limit,
-            points: vec![0.0;0],
+            points: vec![0.0; 0],
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(),x.cos()];
+        let f = |x: f64| vec![x.sin(), x.cos()];
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        assert_eq!(res.result_state,Invalid);
+        assert_eq!(res.result_state, Invalid);
     }
-
-
 }
