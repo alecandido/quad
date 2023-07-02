@@ -183,8 +183,6 @@ impl QagPar {
             .num_threads(self.number_of_thread)
             .build()
             .unwrap();
-        let f = &fun.components;
-        let n: usize = f(0.0).len();
 
         let mut initial_intervals = vec![];
         let mut points = self.points.clone();
@@ -203,9 +201,10 @@ impl QagPar {
             initial_intervals.push((prev, b));
         }
 
+        let f = &fun.components;
+        let n: usize = f(0.0).len();
         let mut neval = 0;
         let mut last = 1;
-
         let mut interval_cache = HashMap::new();
         let mut heap = BinaryHeap::new();
         let mut result = vec![0.0; n];
@@ -213,7 +212,6 @@ impl QagPar {
         let mut rounderr = 0.0;
         let mut iroff1 = 0;
         let mut iroff2 = 0;
-
         let mut keyf = self.key;
         if self.key <= 0 {
             keyf = 1;
@@ -238,8 +236,6 @@ impl QagPar {
             heap.push(HeapItem::new((comp.0, comp.1), abserr_temp));
             interval_cache.insert((Myf64 { x: comp.0 }, Myf64 { x: comp.1 }), result_temp);
         }
-
-        //           test on accuracy.
 
         let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
 
@@ -277,8 +273,9 @@ impl QagPar {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
             let mut old_result = vec![0.0; n];
+            let mut max_new_divison = self.limit - last;
 
-            while to_process.len() < 128 && heap.len() != 0 {
+            while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
                 if bad_function_flag(x, y) {
@@ -406,10 +403,10 @@ impl QagPar {
             if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
+        }
 
-            if last >= self.limit {
-                return QagIntegratorResult::new_error(ResultState::MaxIteration);
-            }
+        if abserr > errbnd / 8.0 && last >= self.limit {
+            return QagIntegratorResult::new_error(ResultState::MaxIteration);
         }
 
         if keyf != 1 {
@@ -436,18 +433,6 @@ impl QagPar {
     }
 }
 
-fn sub_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] -= b[k];
-    }
-}
-
-fn add_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] += b[k];
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::constants::FnVec;
@@ -459,12 +444,12 @@ mod tests {
     #[test]
     fn test() {
         let a = 0.0;
-        let b = f64::INFINITY;
+        let b = 10000.0;
         let epsrel = 0.0;
-        let epsabs = 1.0e10;
-        let limit = 1;
+        let epsabs = 1.0e-2;
+        let limit = 157;
         let key = 6;
-        let max = 1;
+        let max = 100;
 
         let qag1 = Qag {
             key,

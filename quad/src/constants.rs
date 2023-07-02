@@ -75,6 +75,18 @@ pub fn bad_function_flag(x: f64, y: f64) -> bool {
     false
 }
 
+pub fn sub_vec(a: &mut [f64], b: &[f64]) {
+    for k in 0..a.len() {
+        a[k] -= b[k];
+    }
+}
+
+pub fn add_vec(a: &mut [f64], b: &[f64]) {
+    for k in 0..a.len() {
+        a[k] += b[k];
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HeapItem {
     pub interval: (f64, f64),
