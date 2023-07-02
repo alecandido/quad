@@ -128,8 +128,8 @@ impl Qag {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult
-    where
-        F: Fn(f64) -> Vec<f64>,
+        where
+            F: Fn(f64) -> Vec<f64>,
     {
         if b == f64::INFINITY && a.is_finite()
             || a == f64::NEG_INFINITY && b.is_finite()
@@ -165,8 +165,8 @@ impl Qag {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult
-    where
-        F: Fn(f64) -> Vec<f64>,
+        where
+            F: Fn(f64) -> Vec<f64>,
     {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return QagIntegratorResult::new_error(ResultState::Invalid);
@@ -259,7 +259,7 @@ impl Qag {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
             let mut old_result = vec![0.0; n];
-            let mut max_new_divison = self.limit - last;
+            let max_new_divison = self.limit - last;
 
             while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
@@ -412,4 +412,77 @@ impl Qag {
             return QagIntegratorResult::new(result, abserr);
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::qag::Qag;
+    use crate::result_state::ResultState::*;
+
+    #[test]
+    fn max_iteration1() {
+        let a = 0.0;
+        let b = 10000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-2;
+        let limit = 1;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0;0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(),x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+
+        assert_eq!(res.result_state,MaxIteration);
+    }
+    #[test]
+    fn max_iteration2() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-2;
+        let limit = 30;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0;0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(),x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+
+        assert_eq!(res.result_state,MaxIteration);
+    }
+
+    #[test]
+    fn invalid() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 1.0e-30;
+        let epsabs = 0.0;
+        let limit = 30;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0;0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(),x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+
+        assert_eq!(res.result_state,Invalid);
+    }
+
+
 }

@@ -273,7 +273,7 @@ impl QagPar {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
             let mut old_result = vec![0.0; n];
-            let mut max_new_divison = self.limit - last;
+            let max_new_divison = self.limit - last;
 
             while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
@@ -436,66 +436,81 @@ impl QagPar {
 #[cfg(test)]
 mod tests {
     use crate::constants::FnVec;
-    use crate::qag::Qag;
     use crate::qag_par::QagPar;
     use std::sync::Arc;
-    use std::time::Instant;
+    use crate::result_state::ResultState::*;
 
     #[test]
-    fn test() {
+    fn max_iteration1() {
         let a = 0.0;
         let b = 10000.0;
         let epsrel = 0.0;
         let epsabs = 1.0e-2;
-        let limit = 157;
+        let limit = 1;
         let key = 6;
-        let max = 100;
 
-        let qag1 = Qag {
+        let qag = QagPar {
             key,
             limit,
-            points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
-            more_info: true,
-        };
-        let qag2 = QagPar {
-            key,
-            limit,
-            points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
-            number_of_thread: 1,
+            points: vec![0.0;0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f1 = |x: f64| vec![x.sin() / x];
         let f = FnVec {
-            components: Arc::new(f1.clone()),
+            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+
+        assert_eq!(res.result_state,MaxIteration);
+    }
+    #[test]
+    fn max_iteration2() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-2;
+        let limit = 30;
+        let key = 6;
+
+        let qag = QagPar {
+            key,
+            limit,
+            points: vec![0.0;0],
+            number_of_thread: 8,
+            more_info: true,
         };
 
-        let mut res1;
-        let mut res2;
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        let (mut t1, mut t2) = (0.0, 0.0);
+        assert_eq!(res.result_state,MaxIteration);
+    }
 
-        for k in 0..max {
-            let start = Instant::now();
-            res1 = qag1.integrate(&f1, a, b, epsabs, epsrel);
-            if k > 10 {
-                t1 += start.elapsed().as_secs_f64();
-            }
-            let start = Instant::now();
-            res2 = qag2.integrate(&f, a, b, epsabs, epsrel);
-            if k > 10 {
-                t2 += start.elapsed().as_secs_f64();
-            }
+    #[test]
+    fn invalid() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 1.0e-30;
+        let epsabs = 0.0;
+        let limit = 30;
+        let key = 6;
 
-            if k == max - 1 {
-                println!("{:?}", res1);
-                println!("{:?}", res2);
-            }
-        }
+        let qag = QagPar {
+            key,
+            limit,
+            points: vec![0.0;0],
+            number_of_thread: 8,
+            more_info: true,
+        };
 
-        t1 /= max as f64 - 10.0;
-        t2 /= max as f64 - 10.0;
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(),x.cos()]),
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
 
-        println!("no parallel time : {t1} ; parallel time : {t2}");
+        assert_eq!(res.result_state,Invalid);
     }
 }

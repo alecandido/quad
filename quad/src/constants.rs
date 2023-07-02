@@ -1,4 +1,3 @@
-use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
@@ -68,7 +67,7 @@ pub fn iroff1_flag(old_res: &[f64], new_res: &[f64], new_abserr: f64, old_abserr
 pub fn bad_function_flag(x: f64, y: f64) -> bool {
     if x.abs().max(y.abs())
         <= (1.0 + BAD_FUNCTION_PARAMETER1 * EPMACH)
-            * (((x + y) / 2.0).abs() + BAD_FUNCTION_PARAMETER2 * UFLOW)
+        * (((x + y) / 2.0).abs() + BAD_FUNCTION_PARAMETER2 * UFLOW)
     {
         return true;
     }
@@ -131,8 +130,8 @@ impl Myf64 {
 
 impl hash::Hash for Myf64 {
     fn hash<H>(&self, state: &mut H)
-    where
-        H: hash::Hasher,
+        where
+            H: hash::Hasher,
     {
         self.key().hash(state)
     }
