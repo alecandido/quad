@@ -26,7 +26,7 @@ fn qag_vec(
         if limit.is_some() {
             limit.unwrap()
         } else {
-            1000
+            50
         }
     };
     let keyy = {
@@ -40,14 +40,14 @@ fn qag_vec(
         if epsabs.is_some() {
             epsabs.unwrap()
         } else {
-            1e-4
+            1.49e-8
         }
     };
     let epsrell = {
         if epsrel.is_some() {
             epsrel.unwrap()
         } else {
-            1e-4
+            1.49e-8
         }
     };
     let more_infoo = {

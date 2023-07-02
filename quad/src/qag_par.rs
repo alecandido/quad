@@ -132,28 +132,36 @@ impl QagPar {
         epsabs: f64,
         epsrel: f64,
     ) -> QagIntegratorResult {
-        if b == f64::INFINITY && a.is_finite() {
-            let f = &fun.components;
-            let f3 = |x: f64| semi_infinite_function(&**f, x, a, b);
-            let f2 = FnVec {
-                components: Arc::new(f3.clone()),
+        let f = &fun.components;
+        if b == f64::INFINITY && a.is_finite()
+            || a == f64::NEG_INFINITY && b.is_finite()
+            || a == f64::NEG_INFINITY && b == f64::INFINITY
+        {
+            let points = points_transformed(self.points.clone(), a, b);
+            let qag = QagPar {
+                key: self.key,
+                limit: self.limit,
+                points,
+                number_of_thread: self.number_of_thread,
+                more_info: self.more_info,
             };
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b.is_finite() {
-            let f = &fun.components;
-            let f3 = |x: f64| semi_infinite_function(&**f, x, b, a);
-            let f2 = FnVec {
-                components: Arc::new(f3.clone()),
+
+            if b == f64::INFINITY && a.is_finite() {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, a, b)),
+                };
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b.is_finite() {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, b, a)),
+                };
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
+                };
+                return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
             };
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f = &fun.components;
-            let f2 = FnVec {
-                components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
-            };
-            return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
         }
 
         self.qintegrate(&fun, a, b, epsabs, epsrel)
@@ -175,8 +183,6 @@ impl QagPar {
             .num_threads(self.number_of_thread)
             .build()
             .unwrap();
-        let f = &fun.components;
-        let n: usize = f(0.0).len();
 
         let mut initial_intervals = vec![];
         let mut points = self.points.clone();
@@ -195,15 +201,17 @@ impl QagPar {
             initial_intervals.push((prev, b));
         }
 
+        let f = &fun.components;
+        let n: usize = f(0.0).len();
         let mut neval = 0;
         let mut last = 1;
-
         let mut interval_cache = HashMap::new();
         let mut heap = BinaryHeap::new();
         let mut result = vec![0.0; n];
         let mut abserr = 0.0;
         let mut rounderr = 0.0;
-
+        let mut iroff1 = 0;
+        let mut iroff2 = 0;
         let mut keyf = self.key;
         if self.key <= 0 {
             keyf = 1;
@@ -228,8 +236,6 @@ impl QagPar {
             heap.push(HeapItem::new((comp.0, comp.1), abserr_temp));
             interval_cache.insert((Myf64 { x: comp.0 }, Myf64 { x: comp.1 }), result_temp);
         }
-
-        //           test on accuracy.
 
         let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
 
@@ -266,22 +272,26 @@ impl QagPar {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
+            let mut old_result = vec![0.0; n];
+            let mut max_new_divison = self.limit - last;
 
-            while to_process.len() < 128 && heap.len() != 0 {
+            while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
+                if bad_function_flag(x, y) {
+                    return QagIntegratorResult::new_error(ResultState::BadFunction);
+                }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
                     .unwrap();
                 err_sum += old_err;
-                sub_vec(&mut result, &old_res);
+                add_vec(&mut old_result, &old_res);
                 to_process.push((x, y));
                 if err_sum > abserr - errbnd / 8.0 {
                     break;
                 }
             }
 
-            abserr -= err_sum;
             last += to_process.len();
 
             let new_result: (Vec<_>, Vec<_>) = pool.install(|| {
@@ -336,10 +346,13 @@ impl QagPar {
                     .collect()
             });
 
+            let mut new_res = vec![0.0; n];
+            let mut new_abserr = 0.0;
+
             for k in 0..new_result.0.len() {
-                add_vec(&mut result, &new_result.0[k].2);
-                add_vec(&mut result, &new_result.1[k].2);
-                abserr += new_result.0[k].3 + new_result.1[k].3;
+                add_vec(&mut new_res, &new_result.0[k].2);
+                add_vec(&mut new_res, &new_result.1[k].2);
+                new_abserr += new_result.0[k].3 + new_result.1[k].3;
                 rounderr += new_result.0[k].4 + new_result.1[k].4;
                 interval_cache.insert(
                     (
@@ -372,19 +385,28 @@ impl QagPar {
                     new_result.1[k].3,
                 ));
             }
+            if iroff1_flag(&old_result, &new_res, new_abserr, err_sum) {
+                iroff1 += 1;
+            }
+            if last > 10 && new_abserr > err_sum {
+                iroff2 += 1;
+            }
+            sub_vec(&mut result, &old_result);
+            add_vec(&mut result, &new_res);
+            abserr += new_abserr - err_sum;
 
             errbnd = epsabs.max(epsrel * norm_vec(&result));
 
             if abserr <= errbnd / 8.0 {
                 break;
             }
-            if abserr < rounderr {
+            if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
+        }
 
-            if last >= self.limit {
-                return QagIntegratorResult::new_error(ResultState::MaxIteration);
-            }
+        if abserr > errbnd / 8.0 && last >= self.limit {
+            return QagIntegratorResult::new_error(ResultState::MaxIteration);
         }
 
         if keyf != 1 {
@@ -411,18 +433,6 @@ impl QagPar {
     }
 }
 
-fn sub_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] -= b[k];
-    }
-}
-
-fn add_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] += b[k];
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::constants::FnVec;
@@ -437,25 +447,25 @@ mod tests {
         let b = 10000.0;
         let epsrel = 0.0;
         let epsabs = 1.0e-2;
-        let limit = 10000000;
+        let limit = 157;
         let key = 6;
-        let max = 30;
+        let max = 100;
 
         let qag1 = Qag {
             key,
             limit,
             points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
-            more_info: false,
+            more_info: true,
         };
         let qag2 = QagPar {
             key,
             limit,
             points: vec![10000.0, 0.0, 7000.0, 5000.0, 2000.0],
             number_of_thread: 1,
-            more_info: false,
+            more_info: true,
         };
 
-        let f1 = |x: f64| vec![x.cos(), x.sin()];
+        let f1 = |x: f64| vec![x.sin() / x];
         let f = FnVec {
             components: Arc::new(f1.clone()),
         };
@@ -467,12 +477,12 @@ mod tests {
 
         for k in 0..max {
             let start = Instant::now();
-            res1 = qag1.qintegrate(&f1, a, b, epsabs, epsrel);
+            res1 = qag1.integrate(&f1, a, b, epsabs, epsrel);
             if k > 10 {
                 t1 += start.elapsed().as_secs_f64();
             }
             let start = Instant::now();
-            res2 = qag2.qintegrate(&f, a, b, epsabs, epsrel);
+            res2 = qag2.integrate(&f, a, b, epsabs, epsrel);
             if k > 10 {
                 t2 += start.elapsed().as_secs_f64();
             }

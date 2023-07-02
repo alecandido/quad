@@ -131,19 +131,29 @@ impl Qag {
     where
         F: Fn(f64) -> Vec<f64>,
     {
-        if b == f64::INFINITY && a.is_finite() {
-            let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b.is_finite() {
-            let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
-            return self.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
-        }
-        if a == f64::NEG_INFINITY && b == f64::INFINITY {
-            let f2 = |x: f64| double_infinite_function(&f, x);
-            return self.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
-        }
+        if b == f64::INFINITY && a.is_finite()
+            || a == f64::NEG_INFINITY && b.is_finite()
+            || a == f64::NEG_INFINITY && b == f64::INFINITY
+        {
+            let points = points_transformed(self.points.clone(), a, b);
+            let qag = Qag {
+                key: self.key,
+                limit: self.limit,
+                points,
+                more_info: self.more_info,
+            };
 
+            if b == f64::INFINITY && a.is_finite() {
+                let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b.is_finite() {
+                let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
+                return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
+            } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
+                let f2 = |x: f64| double_infinite_function(&f, x);
+                return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
+            };
+        }
         self.qintegrate(&f, a, b, epsabs, epsrel)
     }
 
@@ -178,8 +188,16 @@ impl Qag {
             initial_intervals.push((prev, b));
         }
 
+        let n: usize = f(0.0).len();
         let mut neval = 0;
         let mut last = 1;
+        let mut interval_cache = HashMap::new();
+        let mut heap = BinaryHeap::new();
+        let mut result = vec![0.0; n];
+        let mut abserr = 0.0;
+        let mut rounderr = 0.0;
+        let mut iroff1 = 0;
+        let mut iroff2 = 0;
         let mut keyf = self.key;
         if self.key <= 0 {
             keyf = 1;
@@ -187,14 +205,6 @@ impl Qag {
         if self.key >= 7 {
             keyf = 6;
         }
-
-        let n: usize = f(0.0).len();
-
-        let mut interval_cache = HashMap::new();
-        let mut heap = BinaryHeap::new();
-        let mut result = vec![0.0; n];
-        let mut abserr = 0.0;
-        let mut rounderr = 0.0;
 
         for comp in initial_intervals {
             let (result_temp, abserr_temp, rounderr_temp) = match keyf {
@@ -248,23 +258,30 @@ impl Qag {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
+            let mut old_result = vec![0.0; n];
+            let mut max_new_divison = self.limit - last;
 
-            while to_process.len() < 128 && heap.len() != 0 {
+            while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
+                if bad_function_flag(x, y) {
+                    return QagIntegratorResult::new_error(ResultState::BadFunction);
+                }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
                     .unwrap();
                 err_sum += old_err;
-                to_process.push((x, y, old_err, old_res));
+                add_vec(&mut old_result, &old_res);
+                to_process.push((x, y));
                 if err_sum > abserr - errbnd / 8.0 {
                     break;
                 }
             }
 
-            for comp in to_process {
-                last += 1;
+            last += to_process.len();
+            let mut new_result: (Vec<_>, Vec<_>) = (vec![], vec![]);
 
+            for comp in to_process {
                 let mut result1 = vec![0.0; n];
                 let mut abserr1 = 0.0;
                 let mut rounderr1 = 0.0;
@@ -306,28 +323,70 @@ impl Qag {
                     _ => (),
                 }
 
-                res_update(&mut result, &result1, &result2, &comp.3);
-
-                interval_cache.insert((Myf64 { x: a1 }, Myf64 { x: b1 }), result1);
-                interval_cache.insert((Myf64 { x: a2 }, Myf64 { x: b2 }), result2);
-
-                heap.push(HeapItem::new((a1, b1), abserr1));
-                heap.push(HeapItem::new((a2, b2), abserr2));
-
-                abserr += -comp.2 + abserr1 + abserr2;
-                rounderr += rounderr1 + rounderr2;
+                new_result.0.push((a1, b1, result1, abserr1, rounderr1));
+                new_result.1.push((a2, b2, result2, abserr2, rounderr2));
             }
+
+            let mut new_res = vec![0.0; n];
+            let mut new_abserr = 0.0;
+
+            for k in 0..new_result.0.len() {
+                add_vec(&mut new_res, &new_result.0[k].2);
+                add_vec(&mut new_res, &new_result.1[k].2);
+                new_abserr += new_result.0[k].3 + new_result.1[k].3;
+                rounderr += new_result.0[k].4 + new_result.1[k].4;
+                interval_cache.insert(
+                    (
+                        Myf64 {
+                            x: new_result.0[k].0,
+                        },
+                        Myf64 {
+                            x: new_result.0[k].1,
+                        },
+                    ),
+                    new_result.0[k].2.clone(),
+                );
+                interval_cache.insert(
+                    (
+                        Myf64 {
+                            x: new_result.1[k].0,
+                        },
+                        Myf64 {
+                            x: new_result.1[k].1,
+                        },
+                    ),
+                    new_result.1[k].2.clone(),
+                );
+                heap.push(HeapItem::new(
+                    (new_result.0[k].0, new_result.0[k].1),
+                    new_result.0[k].3,
+                ));
+                heap.push(HeapItem::new(
+                    (new_result.1[k].0, new_result.1[k].1),
+                    new_result.1[k].3,
+                ));
+            }
+            if iroff1_flag(&old_result, &new_res, new_abserr, err_sum) {
+                iroff1 += 1;
+            }
+            if last > 10 && new_abserr > err_sum {
+                iroff2 += 1;
+            }
+            sub_vec(&mut result, &old_result);
+            add_vec(&mut result, &new_res);
+            abserr += new_abserr - err_sum;
+
             errbnd = epsabs.max(epsrel * norm_vec(&result));
 
             if abserr <= errbnd / 8.0 {
                 break;
             }
-            if abserr < rounderr {
+            if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
                 return QagIntegratorResult::new_error(ResultState::BadTolerance);
             }
         }
 
-        if last >= self.limit {
+        if abserr > errbnd / 8.0 && last >= self.limit {
             return QagIntegratorResult::new_error(ResultState::MaxIteration);
         }
 
