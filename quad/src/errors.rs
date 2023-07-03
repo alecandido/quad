@@ -1,13 +1,29 @@
+use std::fmt;
+
 #[derive(Clone, Debug, PartialEq)]
-pub enum ResultState {
-    Success,
-    Failure,
+pub enum QagError {
     Invalid,
     MaxIteration,
     BadTolerance,
     BadFunction,
     Diverge,
 }
+
+impl fmt::Display for QagError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let error_message : &str;
+        match self{
+            QagError::Invalid=> error_message = INVALID_ERROR_MESSAGE,
+            QagError::MaxIteration => error_message = MAX_ITERATION_ERROR_MESSAGE,
+            QagError::BadTolerance=> error_message = BAD_TOLERANCE_ERROR_MESSAGE,
+            QagError::BadFunction=> error_message = BAD_FUNCTION_ERROR_MESSAGE,
+            QagError::Diverge=> error_message = DIVERGE_ERROR_MESSAGE,
+        }
+        write!(f, "{}", error_message)
+    }
+}
+
+
 
 pub const MAX_ITERATION_ERROR_MESSAGE: &str =
     "Maximum number of subdivisions allowed has been achieved.

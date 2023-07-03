@@ -1,17 +1,17 @@
 use ::rayon::prelude::*;
 
 use crate::constants::*;
-use crate::qag_integrator_result::QagIntegratorResult;
 use crate::qk15::qk15_quadrature;
 use crate::qk21::qk21_quadrature;
 use crate::qk31::qk31_quadrature;
 use crate::qk41::qk41_quadrature;
 use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
-use crate::result_state::*;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
+use crate::errors::QagError;
+use crate::qag_integration_result::QagIntegrationResult;
 
 #[derive(Clone)]
 pub struct QagPar {
@@ -131,7 +131,7 @@ impl QagPar {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> QagIntegratorResult {
+    ) -> Result<QagIntegrationResult,QagError> {
         let f = &fun.components;
         if b == f64::INFINITY && a.is_finite()
             || a == f64::NEG_INFINITY && b.is_finite()
@@ -174,9 +174,9 @@ impl QagPar {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> QagIntegratorResult {
+    ) -> Result<QagIntegrationResult,QagError> {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagIntegratorResult::new_error(ResultState::Invalid);
+            return Err(QagError::Invalid);
         }
 
         let pool = rayon::ThreadPoolBuilder::new()
@@ -248,25 +248,25 @@ impl QagPar {
             }
             abserr = abserr + rounderr;
             if self.more_info {
-                return QagIntegratorResult::new_more_info(
+                return Ok(QagIntegrationResult::new_more_info(
                     result,
                     abserr,
                     neval,
                     last,
                     interval_cache,
                     heap,
-                );
+                ))
             } else {
-                return QagIntegratorResult::new(result, abserr);
+                return Ok(QagIntegrationResult::new(result, abserr));
             }
         }
 
         if self.limit == 1 {
-            return QagIntegratorResult::new_error(ResultState::MaxIteration);
+            return Err(QagError::MaxIteration);
         }
 
         if abserr < rounderr {
-            return QagIntegratorResult::new_error(ResultState::BadTolerance);
+            return Err(QagError::BadTolerance);
         }
 
         while last < self.limit {
@@ -279,7 +279,7 @@ impl QagPar {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
                 if bad_function_flag(x, y) {
-                    return QagIntegratorResult::new_error(ResultState::BadFunction);
+                    return Err(QagError::BadFunction);
                 }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
@@ -401,12 +401,12 @@ impl QagPar {
                 break;
             }
             if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
-                return QagIntegratorResult::new_error(ResultState::BadTolerance);
+                return Err(QagError::BadTolerance);
             }
         }
 
         if abserr > errbnd / 8.0 && last >= self.limit {
-            return QagIntegratorResult::new_error(ResultState::MaxIteration);
+            return Err(QagError::MaxIteration);
         }
 
         if keyf != 1 {
@@ -419,16 +419,16 @@ impl QagPar {
         abserr = abserr + rounderr;
 
         if self.more_info {
-            return QagIntegratorResult::new_more_info(
+            return Ok(QagIntegrationResult::new_more_info(
                 result,
                 abserr,
                 neval,
                 last,
                 interval_cache,
                 heap,
-            );
+            ));
         } else {
-            return QagIntegratorResult::new(result, abserr);
+            return Ok(QagIntegrationResult::new(result, abserr));
         }
     }
 }
@@ -437,8 +437,8 @@ impl QagPar {
 mod tests {
     use crate::constants::FnVec;
     use crate::qag_par::QagPar;
-    use crate::result_state::ResultState::*;
     use std::sync::Arc;
+    use crate::errors::QagError;
 
     #[test]
     fn max_iteration1() {
@@ -461,8 +461,9 @@ mod tests {
             components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
 
-        assert_eq!(res.result_state, MaxIteration);
+        assert_eq!(error, QagError::MaxIteration);
     }
     #[test]
     fn max_iteration2() {
@@ -485,8 +486,9 @@ mod tests {
             components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
 
-        assert_eq!(res.result_state, MaxIteration);
+        assert_eq!(error, QagError::MaxIteration);
     }
 
     #[test]
@@ -510,8 +512,9 @@ mod tests {
             components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
 
-        assert_eq!(res.result_state, Invalid);
+        assert_eq!(error, QagError::Invalid);
     }
 
     #[test]
@@ -535,11 +538,11 @@ mod tests {
         let f = FnVec {
             components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
         };
-        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
 
         assert!(
-            res.integration_result.result[0] - correct_result[0] < epsabs
-                && res.integration_result.result[1] - correct_result[1] < epsabs
+            res.result[0] - correct_result[0] < epsabs
+                && res.result[1] - correct_result[1] < epsabs
         );
     }
 }
