@@ -1,6 +1,8 @@
 use ::rayon::prelude::*;
 
 use crate::constants::*;
+use crate::errors::QagError;
+use crate::qag_integration_result::QagIntegrationResult;
 use crate::qk15::qk15_quadrature;
 use crate::qk21::qk21_quadrature;
 use crate::qk31::qk31_quadrature;
@@ -10,8 +12,6 @@ use crate::qk61::qk61_quadrature;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
-use crate::errors::QagError;
-use crate::qag_integration_result::QagIntegrationResult;
 
 #[derive(Clone)]
 pub struct QagPar {
@@ -131,7 +131,7 @@ impl QagPar {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult,QagError> {
+    ) -> Result<QagIntegrationResult, QagError> {
         let f = &fun.components;
         if b == f64::INFINITY && a.is_finite()
             || a == f64::NEG_INFINITY && b.is_finite()
@@ -174,7 +174,7 @@ impl QagPar {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult,QagError> {
+    ) -> Result<QagIntegrationResult, QagError> {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return Err(QagError::Invalid);
         }
@@ -255,7 +255,7 @@ impl QagPar {
                     last,
                     interval_cache,
                     heap,
-                ))
+                ));
             } else {
                 return Ok(QagIntegrationResult::new(result, abserr));
             }
@@ -436,9 +436,9 @@ impl QagPar {
 #[cfg(test)]
 mod tests {
     use crate::constants::FnVec;
+    use crate::errors::QagError;
     use crate::qag_par::QagPar;
     use std::sync::Arc;
-    use crate::errors::QagError;
 
     #[test]
     fn max_iteration1() {

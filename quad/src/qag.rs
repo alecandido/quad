@@ -1,4 +1,6 @@
 use crate::constants::*;
+use crate::errors::QagError;
+use crate::qag_integration_result::QagIntegrationResult;
 use crate::qk15::qk15_quadrature;
 use crate::qk21::qk21_quadrature;
 use crate::qk31::qk31_quadrature;
@@ -7,8 +9,6 @@ use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
-use crate::errors::QagError;
-use crate::qag_integration_result::QagIntegrationResult;
 
 #[derive(Clone, Debug)]
 pub struct Qag {
@@ -127,7 +127,7 @@ impl Qag {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult,QagError>
+    ) -> Result<QagIntegrationResult, QagError>
     where
         F: Fn(f64) -> Vec<f64>,
     {
@@ -164,7 +164,7 @@ impl Qag {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult,QagError>
+    ) -> Result<QagIntegrationResult, QagError>
     where
         F: Fn(f64) -> Vec<f64>,
     {
@@ -241,7 +241,7 @@ impl Qag {
                     last,
                     interval_cache,
                     heap,
-                ))
+                ));
             } else {
                 return Ok(QagIntegrationResult::new(result, abserr));
             }
