@@ -2,8 +2,8 @@ use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 
 use quad::constants::Myf64;
-use quad::qag::Qag;
 use quad::errors::*;
+use quad::qag::Qag;
 
 #[pyfunction]
 fn qag_vec(
@@ -68,24 +68,29 @@ fn qag_vec(
     };
     let f = |x: f64| lambda_eval(ob, x);
     let res = qag.qintegrate(&f, a, b, epsabss, epsrell);
-    if res.is_err(){
-        match res.unwrap_err(){
+    if res.is_err() {
+        match res.unwrap_err() {
             QagError::Invalid => return Err(PyErr::new::<PyTypeError, _>(INVALID_ERROR_MESSAGE)),
-            QagError::MaxIteration => return Err(PyErr::new::<PyTypeError, _>(MAX_ITERATION_ERROR_MESSAGE)),
-            QagError::BadTolerance => return Err(PyErr::new::<PyTypeError, _>(BAD_TOLERANCE_ERROR_MESSAGE)),
-            QagError::BadFunction => return Err(PyErr::new::<PyTypeError, _>(BAD_FUNCTION_ERROR_MESSAGE)),
+            QagError::MaxIteration => {
+                return Err(PyErr::new::<PyTypeError, _>(MAX_ITERATION_ERROR_MESSAGE))
+            }
+            QagError::BadTolerance => {
+                return Err(PyErr::new::<PyTypeError, _>(BAD_TOLERANCE_ERROR_MESSAGE))
+            }
+            QagError::BadFunction => {
+                return Err(PyErr::new::<PyTypeError, _>(BAD_FUNCTION_ERROR_MESSAGE))
+            }
             QagError::Diverge => return Err(PyErr::new::<PyTypeError, _>(DIVERGE_ERROR_MESSAGE)),
         }
     }
     let res = res.unwrap();
     let (result, abserr, more_inf) = (res.result, res.abserr, res.more_info);
     if more_inf.is_none() {
-            return Ok(QagsResult {
-                result,
-                abserr,
-                more_info: None,
-            },
-        )
+        return Ok(QagsResult {
+            result,
+            abserr,
+            more_info: None,
+        });
     } else {
         let mut more_inf_py: Vec<(f64, f64, f64, Vec<f64>)> = vec![];
         let more_inf_unwrapped = more_inf.unwrap();
@@ -98,11 +103,10 @@ fn qag_vec(
             more_inf_py.push((x, y, old_err, old_res));
         }
         Ok(QagsResult {
-                result,
-                abserr,
-                more_info: Some((neval, last, more_inf_py)),
-            },
-        )
+            result,
+            abserr,
+            more_info: Some((neval, last, more_inf_py)),
+        })
     }
 }
 
