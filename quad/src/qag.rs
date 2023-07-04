@@ -511,4 +511,59 @@ mod tests {
                 && res.result[1] - correct_result[1] < epsabs
         );
     }
+    #[test]
+    fn semi_infinite() {
+        let a = 0.0;
+        let b = f64::INFINITY;
+        let c = f64::NEG_INFINITY;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-12;
+        let limit = 10000;
+        let key = 6;
+        let correct_result = [0.4,0.6];
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin().powi(2)/x.abs().exp(), x.cos().powi(2)/x.abs().exp()];
+        let res1 = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        let res2 = qag.integrate(&f, c, a, epsabs, epsrel).unwrap();
+
+        assert!(
+            res1.result[0] - correct_result[0] < epsabs
+                && res1.result[1] - correct_result[1] < epsabs
+        );
+        assert!(
+            res2.result[0] - correct_result[0] < epsabs
+                && res2.result[1] - correct_result[1] < epsabs
+        );
+    }
+    #[test]
+    fn double_infinite() {
+        let a = f64::NEG_INFINITY;
+        let b = f64::INFINITY;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-10;
+        let limit = 10000;
+        let key = 6;
+        let correct_result = [1.2879903316984565533522585284072106913,1.5974];
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin().powi(2)/x.abs().exp2(), x.cos().powi(2)/x.abs().exp2()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        assert!(
+            res.result[0] - correct_result[0] < epsabs
+                && res.result[1] - correct_result[1] < epsabs
+        );
+    }
 }
