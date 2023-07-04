@@ -518,32 +518,34 @@ mod tests {
     }
 
     #[test]
-    fn known_integral() {
+    fn key() {
         let a = 0.0;
         let b = 10000.0;
         let epsrel = 0.0;
         let epsabs = 1.0e-3;
         let limit = 10000;
-        let key = 6;
         let correct_result = [1.0 - 10000.0_f64.cos(), 10000.0_f64.sin()];
 
-        let qag = QagPar {
-            key,
-            limit,
-            points: vec![0.0; 0],
-            number_of_thread: 8,
-            more_info: true,
-        };
+        for key in 1..7{
+            let qag = QagPar {
+                key,
+                limit,
+                points: vec![0.0; 0],
+                number_of_thread: 8,
+                more_info: true,
+            };
 
-        let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
-        };
-        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+            let f = FnVec {
+                components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+            };
+            let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
 
-        assert!(
-            res.result[0] - correct_result[0] < epsabs
-                && res.result[1] - correct_result[1] < epsabs
-        );
+            assert!(
+                res.result[0] - correct_result[0] < epsabs
+                    && res.result[1] - correct_result[1] < epsabs
+            );
+        }
+
     }
     #[test]
     fn semi_infinite() {
