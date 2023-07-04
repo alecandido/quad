@@ -435,7 +435,7 @@ impl QagPar {
 
 #[cfg(test)]
 mod tests {
-    use crate::constants::FnVec;
+    use crate::constants::{FnVec, Myf64};
     use crate::errors::QagError;
     use crate::qag_par::QagPar;
     use std::sync::Arc;
@@ -609,5 +609,33 @@ mod tests {
             res.result[0] - correct_result[0] < epsabs
                 && res.result[1] - correct_result[1] < epsabs
         );
+    }
+    #[test]
+    fn additional_points() {
+        let a = 0.0;
+        let b = 1.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0;
+        let limit = 10000;
+        let key = 6;
+        let points = vec![0.0,0.2,0.4,0.6,0.8,1.0];
+
+        let qag = QagPar {
+            key,
+            limit,
+            points: points.clone(),
+            number_of_thread: 8,
+            more_info: true,
+        };
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.cos(),x.sin()]),
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        let mut res_hash = res.more_info.unwrap().hash.clone();
+        assert_eq!(res_hash.len(),qag.points.len()-1 );
+        for k in 0..points.len()-1{
+            res_hash.remove(&((Myf64{x : points[k]},Myf64{x : points[k+1]})));
+        }
+        assert_eq!(res_hash.len(), 0 );
     }
 }
