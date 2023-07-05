@@ -1,4 +1,3 @@
-use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;

@@ -1,12 +1,12 @@
 use crate::constants::*;
-use crate::qag_integrator_result::QagIntegratorResult;
+use crate::errors::QagError;
+use crate::qag_integration_result::QagIntegrationResult;
 use crate::qk15::qk15_quadrature;
 use crate::qk21::qk21_quadrature;
 use crate::qk31::qk31_quadrature;
 use crate::qk41::qk41_quadrature;
 use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
-use crate::result_state::*;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
 
@@ -127,7 +127,7 @@ impl Qag {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> QagIntegratorResult
+    ) -> Result<QagIntegrationResult, QagError>
     where
         F: Fn(f64) -> Vec<f64>,
     {
@@ -164,12 +164,12 @@ impl Qag {
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> QagIntegratorResult
+    ) -> Result<QagIntegrationResult, QagError>
     where
         F: Fn(f64) -> Vec<f64>,
     {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
-            return QagIntegratorResult::new_error(ResultState::Invalid);
+            return Err(QagError::Invalid);
         }
         let mut initial_intervals = vec![];
         let mut points = self.points.clone();
@@ -234,38 +234,38 @@ impl Qag {
             }
             abserr = abserr + rounderr;
             if self.more_info {
-                return QagIntegratorResult::new_more_info(
+                return Ok(QagIntegrationResult::new_more_info(
                     result,
                     abserr,
                     neval,
                     last,
                     interval_cache,
                     heap,
-                );
+                ));
             } else {
-                return QagIntegratorResult::new(result, abserr);
+                return Ok(QagIntegrationResult::new(result, abserr));
             }
         }
 
         if self.limit == 1 {
-            return QagIntegratorResult::new_error(ResultState::MaxIteration);
+            return Err(QagError::MaxIteration);
         }
 
         if abserr < rounderr {
-            return QagIntegratorResult::new_error(ResultState::BadTolerance);
+            return Err(QagError::BadTolerance);
         }
 
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
             let mut old_result = vec![0.0; n];
-            let mut max_new_divison = self.limit - last;
+            let max_new_divison = self.limit - last;
 
             while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
                 if bad_function_flag(x, y) {
-                    return QagIntegratorResult::new_error(ResultState::BadFunction);
+                    return Err(QagError::BadFunction);
                 }
                 let old_res = interval_cache
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
@@ -382,12 +382,12 @@ impl Qag {
                 break;
             }
             if abserr < rounderr || iroff1 >= IROFF1_THRESHOLD || iroff2 >= IROFF2_THRESHOLD {
-                return QagIntegratorResult::new_error(ResultState::BadTolerance);
+                return Err(QagError::BadTolerance);
             }
         }
 
         if abserr > errbnd / 8.0 && last >= self.limit {
-            return QagIntegratorResult::new_error(ResultState::MaxIteration);
+            return Err(QagError::MaxIteration);
         }
 
         if keyf != 1 {
@@ -400,16 +400,208 @@ impl Qag {
         abserr = abserr + rounderr;
 
         if self.more_info {
-            return QagIntegratorResult::new_more_info(
+            return Ok(QagIntegrationResult::new_more_info(
                 result,
                 abserr,
                 neval,
                 last,
                 interval_cache,
                 heap,
-            );
+            ));
         } else {
-            return QagIntegratorResult::new(result, abserr);
+            return Ok(QagIntegrationResult::new(result, abserr));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::constants::Myf64;
+    use crate::errors::QagError;
+    use crate::qag::Qag;
+
+    #[test]
+    fn max_iteration1() {
+        let a = 0.0;
+        let b = 10000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-2;
+        let limit = 1;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(), x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
+
+        assert_eq!(error, QagError::MaxIteration);
+    }
+    #[test]
+    fn max_iteration2() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-2;
+        let limit = 30;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(), x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
+
+        assert_eq!(error, QagError::MaxIteration);
+    }
+
+    #[test]
+    fn invalid() {
+        let a = 0.0;
+        let b = 1000000.0;
+        let epsrel = 1.0e-30;
+        let epsabs = 0.0;
+        let limit = 30;
+        let key = 6;
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.sin(), x.cos()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel);
+        let error = res.unwrap_err();
+
+        assert_eq!(error, QagError::Invalid);
+    }
+    #[test]
+    fn key() {
+        let a = 0.0;
+        let b = 10000.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-3;
+        let limit = 10000;
+        let correct_result = [1.0 - 10000.0_f64.cos(), 10000.0_f64.sin()];
+
+        for key in 1..7 {
+            let qag = Qag {
+                key,
+                limit,
+                points: vec![0.0; 0],
+                more_info: true,
+            };
+
+            let f = |x: f64| vec![x.sin(), x.cos()];
+            let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+
+            assert!(
+                res.result[0] - correct_result[0] < epsabs
+                    && res.result[1] - correct_result[1] < epsabs
+            );
+        }
+    }
+    #[test]
+    fn semi_infinite() {
+        let a = 0.0;
+        let b = f64::INFINITY;
+        let c = f64::NEG_INFINITY;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-12;
+        let limit = 10000;
+        let key = 6;
+        let correct_result = [0.4, 0.6];
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| {
+            vec![
+                x.sin().powi(2) / x.abs().exp(),
+                x.cos().powi(2) / x.abs().exp(),
+            ]
+        };
+        let res1 = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        let res2 = qag.integrate(&f, c, a, epsabs, epsrel).unwrap();
+
+        assert!(
+            res1.result[0] - correct_result[0] < epsabs
+                && res1.result[1] - correct_result[1] < epsabs
+        );
+        assert!(
+            res2.result[0] - correct_result[0] < epsabs
+                && res2.result[1] - correct_result[1] < epsabs
+        );
+    }
+    #[test]
+    fn double_infinite() {
+        let a = f64::NEG_INFINITY;
+        let b = f64::INFINITY;
+        let epsrel = 0.0;
+        let epsabs = 1.0e-10;
+        let limit = 10000;
+        let key = 6;
+        let correct_result = [1.2879903316984565533522585284072106913, 1.5974];
+
+        let qag = Qag {
+            key,
+            limit,
+            points: vec![0.0; 0],
+            more_info: true,
+        };
+
+        let f = |x: f64| {
+            vec![
+                x.sin().powi(2) / x.abs().exp2(),
+                x.cos().powi(2) / x.abs().exp2(),
+            ]
+        };
+        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        assert!(
+            res.result[0] - correct_result[0] < epsabs
+                && res.result[1] - correct_result[1] < epsabs
+        );
+    }
+    #[test]
+    fn additional_points() {
+        let a = 0.0;
+        let b = 1.0;
+        let epsrel = 0.0;
+        let epsabs = 1.0;
+        let limit = 10000;
+        let key = 6;
+        let points = vec![0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+
+        let qag = Qag {
+            key,
+            limit,
+            points: points.clone(),
+            more_info: true,
+        };
+
+        let f = |x: f64| vec![x.cos(), x.sin()];
+        let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
+        let mut res_hash = res.more_info.unwrap().hash.clone();
+        assert_eq!(res_hash.len(), qag.points.len() - 1);
+        for k in 0..points.len() - 1 {
+            res_hash.remove(&((Myf64 { x: points[k] }, Myf64 { x: points[k + 1] })));
+        }
+        assert_eq!(res_hash.len(), 0);
     }
 }

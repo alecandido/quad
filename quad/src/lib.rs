@@ -1,21 +1,21 @@
 pub mod constants;
+pub mod errors;
 pub mod qag;
-mod qag_integration_result;
-mod qag_integrator_result;
-mod qag_par;
-mod qk;
+pub mod qag_integration_result;
+pub mod qag_par;
+pub mod qk;
 pub mod qk15;
 pub mod qk21;
 pub mod qk31;
 pub mod qk41;
 pub mod qk51;
 pub mod qk61;
-pub mod result_state;
 pub mod semi_infinite_function;
 
 use crate::constants::FnVec;
+use crate::errors::QagError;
 use crate::qag::Qag;
-use crate::qag_integrator_result::QagIntegratorResult;
+use crate::qag_integration_result::QagIntegrationResult;
 use crate::qag_par::QagPar;
 
 pub fn integrate<F>(
@@ -28,7 +28,7 @@ pub fn integrate<F>(
     limit: usize,
     points: Vec<f64>,
     more_info: bool,
-) -> QagIntegratorResult
+) -> Result<QagIntegrationResult, QagError>
 where
     F: Fn(f64) -> Vec<f64>,
 {
@@ -52,7 +52,7 @@ pub fn integrate_par(
     points: Vec<f64>,
     number_of_thread: usize,
     more_info: bool,
-) -> QagIntegratorResult {
+) -> Result<QagIntegrationResult, QagError> {
     let qag = QagPar {
         key,
         limit,
