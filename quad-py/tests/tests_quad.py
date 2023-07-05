@@ -2,6 +2,7 @@ import unittest
 import quad
 import math
 import pytest
+import numpy
 
 
 class MyTestCase(unittest.TestCase):
@@ -79,7 +80,21 @@ class MyTestCase(unittest.TestCase):
         assert res1.result[0] - correct_result[0] < epsabs and res1.result[1] - correct_result[1] < epsabs
         assert res2.result[0] - correct_result[0] < epsabs and res2.result[1] - correct_result[1] < epsabs
 
+    def test_double_infinite(self):
+        a = - math.inf
+        b = math.inf
+        limit = 10000
+        epsabs = 1.0e-10
+        epsrel = 0.0
+        key = 6
+        correct_result = (1.2879903316984565533522585284072106913, 1.5974)
 
+        f = lambda x: (math.sin(x) * math.sin(x) / numpy.exp2(abs(x)), math.cos(x) * math.cos(x) / numpy.exp2(abs(x))) \
+            if math.fabs(x) <= 300.0 else (0.0, 0.0)
+
+        res = quad.qag_vec(f, a, b, epsabs, epsrel, key, limit)
+
+        assert res.result[0] - correct_result[0] < epsabs and res.result[1] - correct_result[1] < epsabs
 
 if __name__ == '__main__':
     unittest.main()
