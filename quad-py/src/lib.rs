@@ -1,4 +1,4 @@
-use pyo3::exceptions::PyTypeError;
+use pyo3::exceptions::{PyException, PyTypeError};
 use pyo3::prelude::*;
 use std::sync::Arc;
 
@@ -72,17 +72,17 @@ fn qag_vec(
     let res = qag.qintegrate(&f, a, b, epsabss, epsrell);
     if res.is_err() {
         match res.unwrap_err() {
-            QagError::Invalid => return Err(PyErr::new::<PyTypeError, _>(INVALID_ERROR_MESSAGE)),
+            QagError::Invalid => return Err(PyErr::new::<PyException, _>(INVALID_ERROR_MESSAGE)),
             QagError::MaxIteration => {
-                return Err(PyErr::new::<PyTypeError, _>(MAX_ITERATION_ERROR_MESSAGE))
+                return Err(PyErr::new::<PyException, _>(MAX_ITERATION_ERROR_MESSAGE))
             }
             QagError::BadTolerance => {
-                return Err(PyErr::new::<PyTypeError, _>(BAD_TOLERANCE_ERROR_MESSAGE))
+                return Err(PyErr::new::<PyException, _>(BAD_TOLERANCE_ERROR_MESSAGE))
             }
             QagError::BadFunction => {
-                return Err(PyErr::new::<PyTypeError, _>(BAD_FUNCTION_ERROR_MESSAGE))
+                return Err(PyErr::new::<PyException, _>(BAD_FUNCTION_ERROR_MESSAGE))
             }
-            QagError::Diverge => return Err(PyErr::new::<PyTypeError, _>(DIVERGE_ERROR_MESSAGE)),
+            QagError::Diverge => return Err(PyErr::new::<PyException, _>(DIVERGE_ERROR_MESSAGE)),
         }
     }
     let res = res.unwrap();
@@ -213,19 +213,19 @@ fn qag_par(
         if res.is_err() {
             match res.unwrap_err() {
                 QagError::Invalid => {
-                    return Err(PyErr::new::<PyTypeError, _>(INVALID_ERROR_MESSAGE))
+                    return Err(PyErr::new::<PyException, _>(INVALID_ERROR_MESSAGE))
                 }
                 QagError::MaxIteration => {
-                    return Err(PyErr::new::<PyTypeError, _>(MAX_ITERATION_ERROR_MESSAGE))
+                    return Err(PyErr::new::<PyException, _>(MAX_ITERATION_ERROR_MESSAGE))
                 }
                 QagError::BadTolerance => {
-                    return Err(PyErr::new::<PyTypeError, _>(BAD_TOLERANCE_ERROR_MESSAGE))
+                    return Err(PyErr::new::<PyException, _>(BAD_TOLERANCE_ERROR_MESSAGE))
                 }
                 QagError::BadFunction => {
-                    return Err(PyErr::new::<PyTypeError, _>(BAD_FUNCTION_ERROR_MESSAGE))
+                    return Err(PyErr::new::<PyException, _>(BAD_FUNCTION_ERROR_MESSAGE))
                 }
                 QagError::Diverge => {
-                    return Err(PyErr::new::<PyTypeError, _>(DIVERGE_ERROR_MESSAGE))
+                    return Err(PyErr::new::<PyException, _>(DIVERGE_ERROR_MESSAGE))
                 }
             }
         }
