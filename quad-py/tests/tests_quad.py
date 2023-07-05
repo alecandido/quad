@@ -96,5 +96,33 @@ class MyTestCase(unittest.TestCase):
 
         assert res.result[0] - correct_result[0] < epsabs and res.result[1] - correct_result[1] < epsabs
 
+    def test_additional_points(self):
+        a = 0.0
+        b = 1.0
+        limit = 10000
+        epsabs = 1.0
+        epsrel = 0.0
+        key = 6
+        points = (0.0,0.2,0.4,0.6,0.8,1.0)
+        sub_interval_expected = [(0.0,0.2),(0.2,0.4),(0.4,0.6),(0.6,0.8),(0.8,1.0)]
+        more_info = True
+
+        f = lambda x: (math.cos(x),math.sin(x))
+
+        res = quad.qag_vec(f, a, b, epsabs, epsrel, key, limit,points,more_info)
+        alist = []
+        blist = []
+        for i in range(5):
+            alist.append(res.more_info[2][i][0])
+            blist.append(res.more_info[2][i][1])
+        alist.sort()
+        blist.sort()
+        sub_interval = []
+        for i in range(5):
+            sub_interval.append((alist[i],blist[i]))
+
+        assert sub_interval == sub_interval_expected
+
+
 if __name__ == '__main__':
     unittest.main()
