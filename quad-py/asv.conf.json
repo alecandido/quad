@@ -30,7 +30,7 @@
 
     // List of branches to benchmark. If not provided, defaults to "master"
     // (for git) or "default" (for mercurial).
-     "branches": ["main"], // for git
+     "branches": ["asv_setup"], // for git
     // "branches": ["default"],    // for mercurial
 
     // The DVCS being used.  If not set, it will be automatically
@@ -86,7 +86,7 @@
     //
     "matrix": {
          "req": {
-	       "maturin": ["0.13.4"], 
+	       "maturin": ["1.1.0"],
     //         "numpy": ["1.6", "1.7"],
     //         "six": ["", null],  // test with and without six installed
     //         "pip+emcee": [""]   // emcee is only available for install with pip.
