@@ -47,7 +47,18 @@ class MyTestCase(unittest.TestCase):
         error_message = "Maximum number of subdivisions allowed has been achieved. One can allow more subdivisions by increasing the value of limit. However, if this yields no improvement it is rather advised to analyze the integrand in order to determine the integration difficulties. If the position of a local difficulty can be determined(e.g. singularity, discontinuity within the interval) one will probably gain from splitting up the interval at this point and calling the integrator on the subranges. If possible, an appropriate special-purpose integrator should be used which is designed for handling the type of difficulty involved."
         assert exception_raised.args[0] == error_message
 
+    def test_key(self):
+        a = 0.0
+        b = 10000.0
+        limit = 10000
+        epsabs = 1.0e-3
+        epsrel = 0.0
+        correct_result = (1.0 - math.cos(10000.0), math.sin(10000.0))
+        f = lambda x: (math.sin(x), math.cos(x))
 
+        for key in range(1,6):
+            res = quad.qag_vec(f,a,b,epsabs,epsrel,key,limit)
+            assert res.result[0] - correct_result[0] < epsabs and res.result[1] - correct_result[1] < epsabs
 
 if __name__ == '__main__':
     unittest.main()
