@@ -101,7 +101,7 @@ fn fn_lenght(c: &mut Criterion) {
             };
             let f = |x: f64| {
                 let mut v = vec![];
-                for i in 0..z {
+                for _i in 0..z {
                     v.push(g(x))
                 }
                 v
@@ -130,7 +130,7 @@ fn fn_lenght(c: &mut Criterion) {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
                     let mut v = vec![];
-                    for i in 0..z {
+                    for _i in 0..z {
                         v.push(g(x))
                     }
                     v

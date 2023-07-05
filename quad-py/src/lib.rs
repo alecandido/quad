@@ -1,4 +1,4 @@
-use pyo3::exceptions::{PyException, PyTypeError};
+use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use std::sync::Arc;
 

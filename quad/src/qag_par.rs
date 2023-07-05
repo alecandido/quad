@@ -526,7 +526,7 @@ mod tests {
         let limit = 10000;
         let correct_result = [1.0 - 10000.0_f64.cos(), 10000.0_f64.sin()];
 
-        for key in 1..7{
+        for key in 1..7 {
             let qag = QagPar {
                 key,
                 limit,
@@ -545,7 +545,6 @@ mod tests {
                     && res.result[1] - correct_result[1] < epsabs
             );
         }
-
     }
     #[test]
     fn semi_infinite() {
@@ -556,7 +555,7 @@ mod tests {
         let epsabs = 1.0e-12;
         let limit = 10000;
         let key = 6;
-        let correct_result = [0.4,0.6];
+        let correct_result = [0.4, 0.6];
 
         let qag = QagPar {
             key,
@@ -567,7 +566,12 @@ mod tests {
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin().powi(2)/x.abs().exp(), x.cos().powi(2)/x.abs().exp()]),
+            components: Arc::new(|x: f64| {
+                vec![
+                    x.sin().powi(2) / x.abs().exp(),
+                    x.cos().powi(2) / x.abs().exp(),
+                ]
+            }),
         };
 
         let res1 = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
@@ -590,7 +594,7 @@ mod tests {
         let epsabs = 1.0e-10;
         let limit = 10000;
         let key = 6;
-        let correct_result = [1.2879903316984565533522585284072106913,1.5974];
+        let correct_result = [1.2879903316984565533522585284072106913, 1.5974];
 
         let qag = QagPar {
             key,
@@ -601,7 +605,12 @@ mod tests {
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin().powi(2)/x.abs().exp2(), x.cos().powi(2)/x.abs().exp2()]),
+            components: Arc::new(|x: f64| {
+                vec![
+                    x.sin().powi(2) / x.abs().exp2(),
+                    x.cos().powi(2) / x.abs().exp2(),
+                ]
+            }),
         };
 
         let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
@@ -618,7 +627,7 @@ mod tests {
         let epsabs = 1.0;
         let limit = 10000;
         let key = 6;
-        let points = vec![0.0,0.2,0.4,0.6,0.8,1.0];
+        let points = vec![0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
 
         let qag = QagPar {
             key,
@@ -628,14 +637,14 @@ mod tests {
             more_info: true,
         };
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.cos(),x.sin()]),
+            components: Arc::new(|x: f64| vec![x.cos(), x.sin()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
         let mut res_hash = res.more_info.unwrap().hash.clone();
-        assert_eq!(res_hash.len(),qag.points.len()-1 );
-        for k in 0..points.len()-1{
-            res_hash.remove(&((Myf64{x : points[k]},Myf64{x : points[k+1]})));
+        assert_eq!(res_hash.len(), qag.points.len() - 1);
+        for k in 0..points.len() - 1 {
+            res_hash.remove(&((Myf64 { x: points[k] }, Myf64 { x: points[k + 1] })));
         }
-        assert_eq!(res_hash.len(), 0 );
+        assert_eq!(res_hash.len(), 0);
     }
 }
