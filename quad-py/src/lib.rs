@@ -69,7 +69,7 @@ fn qag_vec(
         more_info: more_infoo,
     };
     let f = |x: f64| lambda_eval(ob, x);
-    let res = qag.qintegrate(&f, a, b, epsabss, epsrell);
+    let res = qag.integrate(&f, a, b, epsabss, epsrell);
     if res.is_err() {
         match res.unwrap_err() {
             QagError::Invalid => return Err(PyErr::new::<PyException, _>(INVALID_ERROR_MESSAGE)),
@@ -209,7 +209,7 @@ fn qag_par(
     };
 
     py.allow_threads(|| {
-        let res = qag.qintegrate(&fun, a, b, epsabss, epsrell);
+        let res = qag.integrate(&fun, a, b, epsabss, epsrell);
         if res.is_err() {
             match res.unwrap_err() {
                 QagError::Invalid => {
