@@ -126,6 +126,7 @@ def test_vs_scipy_quad():
     print(f"\nratio: {scipy_time / quad_time * 100:.2f}%")
     print("distances:", (scipy_res - quad_res) / (scipy_err + quad_err))
 
+
 def test_qag_par():
     number = 10
     a = 0.0
@@ -152,10 +153,18 @@ def test_qag_par():
         return min(times), np.array(res.result), res.abserr
 
     quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_vec(f, a, b, limit=limit, key=key, epsabs = epsabs)
+        lambda: quad.qag_vec(f, a, b, limit=limit, key=key, epsabs=epsabs)
     )
     scipy_time, scipy_res, scipy_err = bench(
-        lambda: quad.qag_par(f, a, b, limit=limit,key=key, number_of_thread = number_of_thread, epsabs = epsabs)
+        lambda: quad.qag_par(
+            f,
+            a,
+            b,
+            limit=limit,
+            key=key,
+            number_of_thread=number_of_thread,
+            epsabs=epsabs,
+        )
     )
 
     print(f"\nratio: {scipy_time / quad_time * 100:.2f}%")

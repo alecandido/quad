@@ -1,31 +1,74 @@
-# Write the benchmarking functions here.
-# See "Writing benchmarks" in the asv docs for more information.
+import timeit
+import numpy as np
+import quad
+import time
+import math
+from scipy.integrate import quad_vec
+
+
+def f1(x, delay):
+    time.sleep(delay)
+    return math.cos(x)
+
+
+def f2(x, delay):
+    time.sleep(delay)
+    return math.sin(x)
+
+
+def bench(test_call, number, flag: bool = False):
+    times = timeit.repeat(test_call, number=number)
+    res = test_call()
+    if flag:
+        return min(times), np.array(res[0]), res[1]
+    return min(times), np.array(res.result), res.abserr
 
 
 class TimeSuite:
-    """
-    An example benchmark that times the performance of various kinds
-    of iterating over dictionaries in Python.
-    """
     def setup(self):
-        self.d = {}
-        for x in range(500):
-            self.d[x] = None
+        self.number = 10
+        self.a = 0.0
+        self.b = 1000.0
+        self.limit = 1000000
+        self.delay = 0.0
+        self.key = 2
 
-    def time_keys(self):
-        for key in self.d.keys():
-            pass
+        def f(x):
+            return (
+                f1(x, self.delay),
+                f2(x, self.delay),
+                f1(x, self.delay),
+                f1(x, self.delay),
+                f2(x, self.delay),
+                f1(x, self.delay),
+            )
 
-    def time_values(self):
-        for value in self.d.values():
-            pass
+        def g(x):
+            return np.array(
+                [
+                    f1(x, self.delay),
+                    f2(x, self.delay),
+                    f1(x, self.delay),
+                    f1(x, self.delay),
+                    f2(x, self.delay),
+                    f1(x, self.delay),
+                ]
+            )
 
-    def time_range(self):
-        d = self.d
-        for key in range(500):
-            x = d[key]
+        self.f = lambda x: f(x)
+        self.g = lambda x: g(x)
 
+    def time_qag_vec(self):
+        bench(
+            lambda: quad.qag_vec(
+                self.f, self.a, self.b, limit=self.limit, key=self.key
+            ),
+            self.number,
+        )
 
-class MemSuite:
-    def mem_list(self):
-        return [0] * 256
+    def time_scipy_quad_vec(self):
+        bench(
+            lambda: quad_vec(self.g, self.a, self.b, limit=self.limit),
+            self.number,
+            True,
+        )
