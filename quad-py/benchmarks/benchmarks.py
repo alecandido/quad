@@ -32,6 +32,7 @@ class TimeSuite:
         self.limit = 1000000
         self.delay = 0.0
         self.key = 2
+        self.number_of_thread = 1
 
         def f(x):
             return (
@@ -62,6 +63,19 @@ class TimeSuite:
         bench(
             lambda: quad.qag_vec(
                 self.f, self.a, self.b, limit=self.limit, key=self.key
+            ),
+            self.number,
+        )
+
+    def time_qag_par(self):
+        bench(
+            lambda: quad.qag_par(
+                self.f,
+                self.a,
+                self.b,
+                limit=self.limit,
+                key=self.key,
+                number_of_thread=self.number_of_thread,
             ),
             self.number,
         )
