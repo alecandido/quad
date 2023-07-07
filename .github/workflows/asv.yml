@@ -10,7 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Requirements
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install requirements
         run: pip install -r requirements.txt
 
       - name: Run asv
