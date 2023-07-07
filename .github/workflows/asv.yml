@@ -1,0 +1,19 @@
+name: Run asv
+
+on:
+  push:
+    branches: [asv_bench]
+  pull_request:
+    branches: [asv_bench]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Requirements
+        run: pip install -r ./.github/workflows/requirements.txt
+
+      - name: Run asv
+        run: |
+          cd quad-py
+          asv run -vvv
