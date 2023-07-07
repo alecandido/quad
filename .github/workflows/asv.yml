@@ -19,4 +19,5 @@ jobs:
       - name: Run asv
         run: |
           cd quad-py
+          asv machine --machine ubuntu-latest --yes
           asv run -vvv
