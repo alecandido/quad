@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install Requirements
-        run: pip install -r ./.github/workflows/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Run asv
         run: |
