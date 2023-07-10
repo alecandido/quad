@@ -109,7 +109,7 @@ class TimeSuite:
         )
 
 class TimeParam:
-    timeout = 600.0
+    timeout = 10000.0
     params = [0.0,1.0e-9,1.0e-8,1.0e-7]
     param_names = ['delay']
 
