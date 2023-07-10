@@ -20,4 +20,4 @@ jobs:
         run: |
           cd quad-py
           asv machine --machine ubuntu-latest --yes
-          asv run -vvv --show-stderr
+          asv run --show-stderr
