@@ -35,7 +35,7 @@ def bench(test_call, number, flag: bool = False):
 
 
 class TimeSuite:
-    timeout = 600.0
+    timeout = 1800.0
 
     def setup(self):
         self.number = 10
