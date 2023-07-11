@@ -2,9 +2,9 @@ name: Benchmarks
 
 on:
   push:
-    branches: [unify_qag_and_qagpar]
+    branches: [main]
   pull_request:
-    branches: [unify_qag_and_qagpar]
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
