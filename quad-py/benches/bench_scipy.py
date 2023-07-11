@@ -24,7 +24,6 @@ def test_vs_scipy_quad_vec():
     b = 1000.0
     limit = 1000000
     delay = 1.0e-9
-    # key is used only in quad.qag_vec not in quad_vec
     key = 2
 
     def f(x):
@@ -58,7 +57,7 @@ def test_vs_scipy_quad_vec():
         return min(times), np.array(res.result), res.abserr
 
     quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_vec(f, a, b, limit=limit, key=key)
+        lambda: quad.qag_par(f, a, b, limit=limit, key=key)
     )
     scipy_time, scipy_res, scipy_err = bench(
         lambda: quad_vec(g, a, b, limit=limit), True
@@ -109,7 +108,7 @@ def test_vs_scipy_quad():
         return min(times), np.array(res.result), res.abserr
 
     quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_vec(f, a, b, limit=limit, key=key)
+        lambda: quad.qag_par(f, a, b, limit=limit, key=key)
     )
     scipy_time, scipy_res, scipy_err = bench(
         lambda: (
@@ -127,45 +126,3 @@ def test_vs_scipy_quad():
     print("distances:", (scipy_res - quad_res) / (scipy_err + quad_err))
 
 
-def test_qag_par():
-    number = 10
-    a = 0.0
-    b = 10000.0
-    limit = 1000000
-    delay = 1.0e-9
-    # key is used only in quad.qag_vec not in quad_vec
-    key = 2
-    number_of_thread = 1
-    epsabs = 1.0e-4
-
-    def f(x):
-        return (
-            f1(x, delay),
-            f2(x, delay),
-        )
-
-    def bench(test_call, flag: bool = False):
-        times = timeit.repeat(test_call, number=number)
-        print(times)
-        res = test_call()
-        if flag:
-            return min(times), np.array(res[0]), res[1]
-        return min(times), np.array(res.result), res.abserr
-
-    quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_vec(f, a, b, limit=limit, key=key, epsabs=epsabs)
-    )
-    scipy_time, scipy_res, scipy_err = bench(
-        lambda: quad.qag_par(
-            f,
-            a,
-            b,
-            limit=limit,
-            key=key,
-            number_of_thread=number_of_thread,
-            epsabs=epsabs,
-        )
-    )
-
-    print(f"\nratio: {scipy_time / quad_time * 100:.2f}%")
-    print("distances:", (scipy_res - quad_res) / (scipy_err + quad_err))
