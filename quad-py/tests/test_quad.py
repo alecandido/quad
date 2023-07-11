@@ -139,7 +139,7 @@ class MyTestCase(unittest.TestCase):
 
         f = lambda x: (math.cos(x), math.sin(x))
 
-        res = quad.qag(f, a, b, epsabs, epsrel, key, limit, points, more_info)
+        res = quad.qag(f, a, b, epsabs, epsrel, key, limit, points, more_info=more_info)
         alist = []
         blist = []
         for i in range(5):
