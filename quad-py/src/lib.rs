@@ -6,7 +6,7 @@ use quad::constants::{FnVec, Myf64};
 use quad::errors::*;
 use quad::qag_par::QagPar;
 
-fn lambda_eval_par(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
+fn lambda_eval(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
     Python::with_gil(|py| {
         let f = |x: f64| {
             let y = (x,);
@@ -17,7 +17,7 @@ fn lambda_eval_par(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
 }
 
 #[pyfunction]
-fn qag_par(
+fn qag(
     py: Python,
     ob: Py<PyAny>,
     a: f64,
@@ -88,7 +88,7 @@ fn qag_par(
         more_info: more_infoo,
     };
 
-    let f = |x: f64| lambda_eval_par(&ob, x);
+    let f = |x: f64| lambda_eval(&ob, x);
 
     let fun = FnVec {
         components: Arc::new(f),
@@ -155,6 +155,6 @@ struct QagsResult {
 
 #[pymodule]
 fn quad(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(qag_par, m)?)?;
+    m.add_function(wrap_pyfunction!(qag, m)?)?;
     Ok(())
 }

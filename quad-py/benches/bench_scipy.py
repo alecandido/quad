@@ -57,7 +57,7 @@ def test_vs_scipy_quad_vec():
         return min(times), np.array(res.result), res.abserr
 
     quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_par(f, a, b, limit=limit, key=key)
+        lambda: quad.qag(f, a, b, limit=limit, key=key)
     )
     scipy_time, scipy_res, scipy_err = bench(
         lambda: quad_vec(g, a, b, limit=limit), True
@@ -108,7 +108,7 @@ def test_vs_scipy_quad():
         return min(times), np.array(res.result), res.abserr
 
     quad_time, quad_res, quad_err = bench(
-        lambda: quad.qag_par(f, a, b, limit=limit, key=key)
+        lambda: quad.qag(f, a, b, limit=limit, key=key)
     )
     scipy_time, scipy_res, scipy_err = bench(
         lambda: (

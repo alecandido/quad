@@ -58,7 +58,7 @@ class QagVecVsQagPar:
         self.f2_scipy = lambda x: f2(x, delay)
 
     def time_qag_par(self, delay, b):
-        quad.qag_par(
+        quad.qag(
             self.f,
             self.a,
             b,
