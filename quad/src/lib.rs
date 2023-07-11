@@ -1,6 +1,5 @@
 pub mod constants;
 pub mod errors;
-pub mod qag;
 pub mod qag_integration_result;
 pub mod qag_par;
 pub mod qk;
