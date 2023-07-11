@@ -14,7 +14,7 @@ use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
 
 #[derive(Clone)]
-pub struct QagPar {
+pub struct Qag {
     pub key: i32,
     pub limit: usize,
     pub points: Vec<f64>,
@@ -123,7 +123,7 @@ pub struct QagPar {
 ///
 ///
 
-impl QagPar {
+impl Qag {
     pub fn integrate(
         &self,
         fun: &FnVec,
@@ -138,7 +138,7 @@ impl QagPar {
             || a == f64::NEG_INFINITY && b == f64::INFINITY
         {
             let points = points_transformed(self.points.clone(), a, b);
-            let qag = QagPar {
+            let qag = Qag {
                 key: self.key,
                 limit: self.limit,
                 points,
@@ -437,7 +437,7 @@ impl QagPar {
 mod tests {
     use crate::constants::{FnVec, Myf64};
     use crate::errors::QagError;
-    use crate::qag_par::QagPar;
+    use crate::qag::Qag;
     use std::sync::Arc;
 
     #[test]
@@ -449,7 +449,7 @@ mod tests {
         let limit = 1;
         let key = 6;
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: vec![0.0; 0],
@@ -474,7 +474,7 @@ mod tests {
         let limit = 30;
         let key = 6;
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: vec![0.0; 0],
@@ -500,7 +500,7 @@ mod tests {
         let limit = 30;
         let key = 6;
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: vec![0.0; 0],
@@ -527,7 +527,7 @@ mod tests {
         let correct_result = [1.0 - 10000.0_f64.cos(), 10000.0_f64.sin()];
 
         for key in 1..7 {
-            let qag = QagPar {
+            let qag = Qag {
                 key,
                 limit,
                 points: vec![0.0; 0],
@@ -557,7 +557,7 @@ mod tests {
         let key = 6;
         let correct_result = [0.4, 0.6];
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: vec![0.0; 0],
@@ -596,7 +596,7 @@ mod tests {
         let key = 6;
         let correct_result = [1.2879903316984565533522585284072106913, 1.5974];
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: vec![0.0; 0],
@@ -629,7 +629,7 @@ mod tests {
         let key = 6;
         let points = vec![0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
 
-        let qag = QagPar {
+        let qag = Qag {
             key,
             limit,
             points: points.clone(),

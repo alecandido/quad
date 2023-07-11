@@ -35,7 +35,7 @@ fn qag_delay(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,
@@ -89,7 +89,7 @@ fn fn_lenght(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,
@@ -134,7 +134,7 @@ fn number_of_interval_subdivision(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     z,
@@ -187,7 +187,7 @@ fn key(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use quad::constants::{FnVec, Myf64};
 use quad::errors::*;
-use quad::qag_par::QagPar;
+use quad::qag::Qag;
 
 fn lambda_eval(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
     Python::with_gil(|py| {
@@ -80,7 +80,7 @@ fn qag(
         }
     };
 
-    let qag = QagPar {
+    let qag = Qag {
         key: keyy,
         limit: limitt,
         points: pointss,
