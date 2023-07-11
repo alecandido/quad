@@ -20,6 +20,7 @@ harness = false
 
 [lib]
 bench = false
+crate-type = ["cdylib"]
 
 [dependencies]
 rayon = "1.6"
