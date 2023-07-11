@@ -2,9 +2,9 @@ name: Python bindings
 
 on:
   push:
-    branches: [main]
+    branches: [unify_qag_and_qagpar]
   pull_request:
-    branches: [main]
+    branches: [unify_qag_and_qagpar]
 
 jobs:
   build:
