@@ -38,7 +38,7 @@ def f_ln6(x, delay, i):
             ]
         )
     else:
-        return [[f1(x, delay),4],[f2(x, delay),2]]
+        return [[f1(x, delay), 4], [f2(x, delay), 2]]
 
 
 def f_ln2(x, delay, i):
@@ -47,7 +47,7 @@ def f_ln2(x, delay, i):
             f1(x, delay),
             f2(x, delay),
         )
-    elif i ==1:
+    elif i == 1:
         return np.array(
             [
                 f1(x, delay),
@@ -55,7 +55,7 @@ def f_ln2(x, delay, i):
             ]
         )
     else:
-        return [[f1(x,delay),1],[f2(x, delay),1]]
+        return [[f1(x, delay), 1], [f2(x, delay), 1]]
 
 
 class QagBench:
@@ -80,26 +80,34 @@ class QagBench:
             b,
             limit=self.limit,
             key=self.key,
-            epsabs = self.epsabs,
-            epsrel = self.epsrel
+            epsabs=self.epsabs,
+            epsrel=self.epsrel,
         )
 
     def time_scipy_vec(self, delay, b, fun):
         f = lambda x: fun(x, delay, 1)
-        quad_vec(f, self.a, b, limit=self.limit,
-                 epsabs = self.epsabs,
-                 epsrel = self.epsrel)
+        quad_vec(f, self.a, b, limit=self.limit, epsabs=self.epsabs, epsrel=self.epsrel)
 
     def time_scipy_1d(self, delay, b, fun):
         f_comp1 = lambda x: fun(x, delay, 2)[0][0]
         f_comp2 = lambda x: fun(x, delay, 2)[1][0]
-        k1 = fun(1.0,delay, 2)[0][1]
-        k2 = fun(1.0,delay, 2)[1][1]
+        k1 = fun(1.0, delay, 2)[0][1]
+        k2 = fun(1.0, delay, 2)[1][1]
         for k in range(k1):
-            q(f_comp1, self.a, b, limit=self.limit,
-              epsabs = self.epsabs,
-              epsrel = self.epsrel)
+            q(
+                f_comp1,
+                self.a,
+                b,
+                limit=self.limit,
+                epsabs=self.epsabs,
+                epsrel=self.epsrel,
+            )
         for k in range(k2):
-            q(f_comp2, self.a, b, limit=self.limit,
-              epsabs = self.epsabs,
-              epsrel = self.epsrel)
+            q(
+                f_comp2,
+                self.a,
+                b,
+                limit=self.limit,
+                epsabs=self.epsabs,
+                epsrel=self.epsrel,
+            )
