@@ -62,17 +62,17 @@ class QagBench:
         self.f1_scipy = lambda x: f1(x, delay)
         self.f2_scipy = lambda x: f2(x, delay)
 
-    def time_qag_par(self, delay, b, fun):
-        f = lambda x: fun(x, delay)
-        quad.qag(
-            f,
+    def time_qag(self, delay, b):
+        #f = lambda x: fun(x, delay)
+        quad.qag_par(
+            self.f,
             self.a,
             b,
             limit=self.limit,
             key=self.key,
         )
-    time_qag_par.params = [f_1,f_2]
-    time_qag_par.param_names = ["fun"]
+    #time_qag_par.params = [f_1,f_2]
+    #time_qag_par.param_names = ["fun"]
 
     def time_scipy_vec(self, delay, b):
         quad_vec(self.f_scipy, self.a, b, limit=self.limit)

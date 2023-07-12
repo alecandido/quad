@@ -17,7 +17,7 @@ fn lambda_eval(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
 }
 
 #[pyfunction]
-fn qag(
+fn qag_par(
     py: Python,
     ob: Py<PyAny>,
     a: f64,
@@ -147,6 +147,6 @@ struct QagsResult {
 
 #[pymodule]
 fn quad(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(qag, m)?)?;
+    m.add_function(wrap_pyfunction!(qag_par, m)?)?;
     Ok(())
 }
