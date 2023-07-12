@@ -16,71 +16,90 @@ def f2(x, delay):
     return math.sin(x)
 
 
-def f_1(x, delay):
-    return (
-        f1(x, delay),
-        f2(x, delay),
-        f1(x, delay),
-        f1(x, delay),
-        f2(x, delay),
-        f1(x, delay),
-    )
-
-def f_2(x, delay):
-    return (
-        f1(x, delay),
-        f2(x, delay),
-    )
-
-def f_scipy(x, delay):
-    return np.array(
-        [
+def f_ln6(x, delay, i):
+    if i == 0:
+        return (
             f1(x, delay),
             f2(x, delay),
             f1(x, delay),
             f1(x, delay),
             f2(x, delay),
             f1(x, delay),
-        ]
-    )
+        )
+    elif i == 1:
+        return np.array(
+            [
+                f1(x, delay),
+                f2(x, delay),
+                f1(x, delay),
+                f1(x, delay),
+                f2(x, delay),
+                f1(x, delay),
+            ]
+        )
+    else:
+        return [[f1(x, delay),4],[f2(x, delay),2]]
+
+
+def f_ln2(x, delay, i):
+    if i == 0:
+        return (
+            f1(x, delay),
+            f2(x, delay),
+        )
+    elif i ==1:
+        return np.array(
+            [
+                f1(x, delay),
+                f2(x, delay),
+            ]
+        )
+    else:
+        return [[f1(x,delay),1],[f2(x, delay),1]]
 
 
 class QagBench:
     timeout = 10000.0
-    warmup_time = 3.0
+    warmup_time = 5.0
     repeat = (1, 10, 1200.0)
-    params = ([0.0], [100.0])
-    param_names = ["delay", "b"]
+    params = ([0.0, 1.0e-7, 1.0e-4], [100.0, 1000.0, 10000.0], [f_ln6, f_ln2])
+    param_names = ["delay", "b", "fun"]
 
-
-    def setup(self, delay, b):
+    def setup(self, delay, b, fun):
         self.a = 0.0
         self.limit = 1000000
         self.key = 2
-        self.f = lambda x: f_1(x, delay)
-        self.f_scipy = lambda x: f_scipy(x, delay)
-        self.f1_scipy = lambda x: f1(x, delay)
-        self.f2_scipy = lambda x: f2(x, delay)
+        self.epsabs = 1.0e-6
+        self.epsrel = 0.0
 
-    def time_qag(self, delay, b):
-        #f = lambda x: fun(x, delay)
+    def time_qag(self, delay, b, fun):
+        f = lambda x: fun(x, delay, 0)
         quad.qag(
-            self.f,
+            f,
             self.a,
             b,
             limit=self.limit,
             key=self.key,
+            epsabs = self.epsabs,
+            epsrel = self.epsrel
         )
-    #time_qag_par.params = [f_1,f_2]
-    #time_qag_par.param_names = ["fun"]
 
-    def time_scipy_vec(self, delay, b):
-        quad_vec(self.f_scipy, self.a, b, limit=self.limit)
+    def time_scipy_vec(self, delay, b, fun):
+        f = lambda x: fun(x, delay, 1)
+        quad_vec(f, self.a, b, limit=self.limit,
+                 epsabs = self.epsabs,
+                 epsrel = self.epsrel)
 
-    def time_scipy_1d(self, delay, b):
-        q(self.f1_scipy, self.a, b, limit=self.limit)
-        q(self.f2_scipy, self.a, b, limit=self.limit)
-        q(self.f1_scipy, self.a, b, limit=self.limit)
-        q(self.f1_scipy, self.a, b, limit=self.limit)
-        q(self.f2_scipy, self.a, b, limit=self.limit)
-        q(self.f1_scipy, self.a, b, limit=self.limit)
+    def time_scipy_1d(self, delay, b, fun):
+        f_comp1 = lambda x: fun(x, delay, 2)[0][0]
+        f_comp2 = lambda x: fun(x, delay, 2)[1][0]
+        k1 = fun(1.0,delay, 2)[0][1]
+        k2 = fun(1.0,delay, 2)[1][1]
+        for k in range(k1):
+            q(f_comp1, self.a, b, limit=self.limit,
+              epsabs = self.epsabs,
+              epsrel = self.epsrel)
+        for k in range(k2):
+            q(f_comp2, self.a, b, limit=self.limit,
+              epsabs = self.epsabs,
+              epsrel = self.epsrel)
