@@ -49,7 +49,7 @@ class QagBench:
     timeout = 10000.0
     warmup_time = 3.0
     repeat = (1, 10, 1200.0)
-    params = ([0.0, 1.0e-7, 1.0e-4], [100.0, 1000.0, 10000.0])
+    params = ([0.0], [100.0])
     param_names = ["delay", "b"]
 
 
@@ -64,7 +64,7 @@ class QagBench:
 
     def time_qag(self, delay, b):
         #f = lambda x: fun(x, delay)
-        quad.qag_par(
+        quad.qag(
             self.f,
             self.a,
             b,
