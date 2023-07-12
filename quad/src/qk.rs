@@ -15,9 +15,6 @@ where
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
     let centr: f64 = 0.5 * (b + a);
-
-    //let start = Instant::now();
-
     let fc = f(centr);
     let dim = fc.len();
     let mut fv1 = Vec::with_capacity(dim * M);
@@ -26,23 +23,18 @@ where
     let mut resk: Vec<f64> = fc.clone();
     let mut resabs = Vec::with_capacity(dim);
 
-    //println!("First initialization : {:?}",start.elapsed());
-
     if M % 2 == 1 {
         resg.extend(&fc);
     } else {
         resg.extend(&vec![0.0; dim]);
     }
     for k in 0..dim {
-        //resk.push( fc[k] * wgk[M]);
         resk[k] *= wgk[M];
         resabs.push(resk[k].abs());
         if M % 2 == 1 {
             resg[k] *= wg[(M + 1) / 2 - 1];
         }
     }
-
-    //println!("Second initialization : {:?}",start.elapsed());
 
     for j in 1..M / 2 + 1 {
         let jtw1 = 2 * j - 1;
@@ -56,17 +48,10 @@ where
         fv2.append(&mut f(centr + absc1));
         fv2.append(&mut f(centr + absc2));
 
-        //  let mut fsum1 : Vec<f64> = Vec::with_capacity(dim);
-        //  let mut fsum2 : Vec<f64> = Vec::with_capacity(dim);
-        //  fsum1.extend(&fv1[(jtw1-1) * dim..jtw1 * dim]);
-        //  fsum2.extend(&fv1[(jtw2-1) * dim..jtw2 * dim]);
-
         let mut fsum1 = fv1[(jtw1 - 1) * dim..jtw1 * dim].to_vec();
         let mut fsum2 = fv1[(jtw2 - 1) * dim..jtw2 * dim].to_vec();
 
         for k in 0..dim {
-            //fsum1.push(fv1[(jtw1-1) * dim + k] + fv2[(jtw1-1) * dim + k]);
-            //fsum2.push(fv1[(jtw2-1) * dim + k] + fv2[(jtw2-1) * dim + k]);
             fsum1[k] += fv2[(jtw1 - 1) * dim + k];
             fsum2[k] += fv2[(jtw2 - 1) * dim + k];
         }
@@ -99,9 +84,8 @@ where
         }
     }
 
-    //println!("Only for : {:?}",start.elapsed());
-
     let mut reskh = resk.clone();
+
     for k in 0..dim {
         reskh[k] *= 0.5;
     }
@@ -150,8 +134,6 @@ where
     if round_error > UFLOW {
         abserr = abserr.max(round_error);
     }
-
-    //println!("Return : {:?}",start.elapsed());
 
     (result, abserr, round_error)
 }
