@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [unify_qag_and_qagpar]
+    branches: [asv_bench]
   pull_request:
-    branches: [unify_qag_and_qagpar]
+    branches: [asv_bench]
 
 env:
   CARGO_TERM_COLOR: always
