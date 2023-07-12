@@ -51,7 +51,6 @@ class QagVecVsQagPar:
         self.a = 0.0
         self.limit = 1000000
         self.key = 2
-        self.number_of_thread = 1
         self.f = lambda x: f3(x, delay)
         self.f_scipy = lambda x: f_scipy(x, delay)
         self.f1_scipy = lambda x: f1(x, delay)
@@ -64,7 +63,6 @@ class QagVecVsQagPar:
             b,
             limit=self.limit,
             key=self.key,
-            number_of_thread=self.number_of_thread,
         )
 
     def time_scipy_vec(self, delay, b):

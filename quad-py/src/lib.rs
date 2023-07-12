@@ -27,7 +27,6 @@ fn qag(
     key: Option<i32>,
     limit: Option<usize>,
     points: Option<Vec<f64>>,
-    number_of_thread: Option<usize>,
     more_info: Option<bool>,
 ) -> PyResult<QagsResult> {
     let pointss = {
@@ -65,13 +64,6 @@ fn qag(
             1.49e-8
         }
     };
-    let number_of_threadd = {
-        if number_of_thread.is_some() {
-            number_of_thread.unwrap()
-        } else {
-            1
-        }
-    };
     let more_infoo = {
         if more_info.is_some() {
             more_info.unwrap()
@@ -84,7 +76,7 @@ fn qag(
         key: keyy,
         limit: limitt,
         points: pointss,
-        number_of_thread: number_of_threadd,
+        number_of_thread: 1,
         more_info: more_infoo,
     };
 
