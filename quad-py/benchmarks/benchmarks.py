@@ -146,7 +146,7 @@ class QagCheck:
         self.f1 = lambda x: f1(x, 1.0e-4)
         self.f2 = lambda x: f2(x, 1.0e-4)
 
-    def time_qag(self, delay, b, fun):
+    def time_qag(self):
         quad.qag(
             self.f,
             self.a,
