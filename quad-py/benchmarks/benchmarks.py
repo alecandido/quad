@@ -38,7 +38,7 @@ def f_ln6(x, delay, i):
             ]
         )
     else:
-        return [[f1(x, delay), 4], [f2(x, delay), 2]]
+        return [4,2]
 
 
 def f_ln2(x, delay, i):
@@ -55,7 +55,7 @@ def f_ln2(x, delay, i):
             ]
         )
     else:
-        return [[f1(x, delay), 1], [f2(x, delay), 1]]
+        return [1,1]
 
 
 class QagBench:
@@ -89,10 +89,10 @@ class QagBench:
         quad_vec(f, self.a, b, limit=self.limit, epsabs=self.epsabs, epsrel=self.epsrel)
 
     def time_scipy_1d(self, delay, b, fun):
-        f_comp1 = lambda x: fun(x, delay, 2)[0][0]
-        f_comp2 = lambda x: fun(x, delay, 2)[1][0]
-        k1 = fun(1.0, delay, 2)[0][1]
-        k2 = fun(1.0, delay, 2)[1][1]
+        f_comp1 = lambda x: f1(x, delay)
+        f_comp2 = lambda x: f2(x, delay)
+        k1 = fun(1.0, delay, 2)[0]
+        k2 = fun(1.0, delay, 2)[1]
         for k in range(k1):
             q(
                 f_comp1,
