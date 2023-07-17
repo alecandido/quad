@@ -21,4 +21,3 @@ jobs:
           cd quad-py
           asv machine --machine ubuntu-latest --yes
           asv run --show-stderr
-          asv gh-pages -v
