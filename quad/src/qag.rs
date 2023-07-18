@@ -1,3 +1,5 @@
+use ::rayon::prelude::*;
+
 use crate::constants::*;
 use crate::errors::QagError;
 use crate::qag_integration_result::QagIntegrationResult;
@@ -9,12 +11,14 @@ use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
 use std::collections::{BinaryHeap, HashMap};
+use std::sync::Arc;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Qag {
     pub key: i32,
     pub limit: usize,
     pub points: Vec<f64>,
+    pub number_of_thread: usize,
     pub more_info: bool,
 }
 
@@ -120,17 +124,15 @@ pub struct Qag {
 ///
 
 impl Qag {
-    pub fn integrate<F>(
+    pub fn integrate(
         &self,
-        f: &F,
+        fun: &FnVec,
         a: f64,
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult, QagError>
-    where
-        F: Fn(f64) -> Vec<f64>,
-    {
+    ) -> Result<QagIntegrationResult, QagError> {
+        let f = &fun.components;
         if b == f64::INFINITY && a.is_finite()
             || a == f64::NEG_INFINITY && b.is_finite()
             || a == f64::NEG_INFINITY && b == f64::INFINITY
@@ -140,37 +142,48 @@ impl Qag {
                 key: self.key,
                 limit: self.limit,
                 points,
+                number_of_thread: self.number_of_thread,
                 more_info: self.more_info,
             };
 
             if b == f64::INFINITY && a.is_finite() {
-                let f2 = |x: f64| semi_infinite_function(&f, x, a, b);
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, a, b)),
+                };
                 return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
             } else if a == f64::NEG_INFINITY && b.is_finite() {
-                let f2 = |x: f64| semi_infinite_function(&f, x, b, a);
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| semi_infinite_function(&**f, x, b, a)),
+                };
                 return qag.qintegrate(&f2, 0.0, 1.0, epsabs, epsrel);
             } else if a == f64::NEG_INFINITY && b == f64::INFINITY {
-                let f2 = |x: f64| double_infinite_function(&f, x);
+                let f2 = FnVec {
+                    components: Arc::new(|x: f64| double_infinite_function(&**f, x)),
+                };
                 return qag.qintegrate(&f2, -1.0, 1.0, epsabs, epsrel);
             };
         }
-        self.qintegrate(&f, a, b, epsabs, epsrel)
+
+        self.qintegrate(&fun, a, b, epsabs, epsrel)
     }
 
-    pub fn qintegrate<F>(
+    pub fn qintegrate(
         &self,
-        f: &F,
+        fun: &FnVec,
         a: f64,
         b: f64,
         epsabs: f64,
         epsrel: f64,
-    ) -> Result<QagIntegrationResult, QagError>
-    where
-        F: Fn(f64) -> Vec<f64>,
-    {
+    ) -> Result<QagIntegrationResult, QagError> {
         if epsabs <= 0.0 && epsrel < 0.5e-28_f64.max(50.0 * EPMACH) {
             return Err(QagError::Invalid);
         }
+
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(self.number_of_thread)
+            .build()
+            .unwrap();
+
         let mut initial_intervals = vec![];
         let mut points = self.points.clone();
         points.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -188,6 +201,7 @@ impl Qag {
             initial_intervals.push((prev, b));
         }
 
+        let f = &fun.components;
         let n: usize = f(0.0).len();
         let mut neval = 0;
         let mut last = 1;
@@ -208,12 +222,12 @@ impl Qag {
 
         for comp in initial_intervals {
             let (result_temp, abserr_temp, rounderr_temp) = match keyf {
-                1 => qk15_quadrature(f, comp.0, comp.1),
-                2 => qk21_quadrature(f, comp.0, comp.1),
-                3 => qk31_quadrature(f, comp.0, comp.1),
-                4 => qk41_quadrature(f, comp.0, comp.1),
-                5 => qk51_quadrature(f, comp.0, comp.1),
-                6 => qk61_quadrature(f, comp.0, comp.1),
+                1 => qk15_quadrature(&**f, comp.0, comp.1),
+                2 => qk21_quadrature(&**f, comp.0, comp.1),
+                3 => qk31_quadrature(&**f, comp.0, comp.1),
+                4 => qk41_quadrature(&**f, comp.0, comp.1),
+                5 => qk51_quadrature(&**f, comp.0, comp.1),
+                6 => qk61_quadrature(&**f, comp.0, comp.1),
                 _ => (vec![0.0; n], 0.0, 0.0),
             };
             add_res(&mut result, &result_temp);
@@ -279,53 +293,58 @@ impl Qag {
             }
 
             last += to_process.len();
-            let mut new_result: (Vec<_>, Vec<_>) = (vec![], vec![]);
 
-            for comp in to_process {
-                let mut result1 = vec![0.0; n];
-                let mut abserr1 = 0.0;
-                let mut rounderr1 = 0.0;
+            let new_result: (Vec<_>, Vec<_>) = pool.install(|| {
+                to_process
+                    .par_iter()
+                    .map(|comp| {
+                        let mut result1 = vec![0.0; n];
+                        let mut abserr1 = 0.0;
+                        let mut rounderr1 = 0.0;
 
-                let mut result2 = vec![0.0; n];
-                let mut abserr2 = 0.0;
-                let mut rounderr2 = 0.0;
+                        let mut result2 = vec![0.0; n];
+                        let mut abserr2 = 0.0;
+                        let mut rounderr2 = 0.0;
 
-                let a1 = comp.0;
-                let b1 = 0.5 * (comp.0 + comp.1);
-                let a2 = b1;
-                let b2 = comp.1;
+                        let a1 = comp.0;
+                        let b1 = 0.5 * (comp.0 + comp.1);
+                        let a2 = b1;
+                        let b2 = comp.1;
 
-                match keyf {
-                    1 => {
-                        (result1, abserr1, rounderr1) = qk15_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk15_quadrature(f, a2, b2);
-                    }
-                    2 => {
-                        (result1, abserr1, rounderr1) = qk21_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk21_quadrature(f, a2, b2);
-                    }
-                    3 => {
-                        (result1, abserr1, rounderr1) = qk31_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk31_quadrature(f, a2, b2);
-                    }
-                    4 => {
-                        (result1, abserr1, rounderr1) = qk41_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk41_quadrature(f, a2, b2);
-                    }
-                    5 => {
-                        (result1, abserr1, rounderr1) = qk51_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk51_quadrature(f, a2, b2);
-                    }
-                    6 => {
-                        (result1, abserr1, rounderr1) = qk61_quadrature(f, a1, b1);
-                        (result2, abserr2, rounderr2) = qk61_quadrature(f, a2, b2);
-                    }
-                    _ => (),
-                }
-
-                new_result.0.push((a1, b1, result1, abserr1, rounderr1));
-                new_result.1.push((a2, b2, result2, abserr2, rounderr2));
-            }
+                        match keyf {
+                            1 => {
+                                (result1, abserr1, rounderr1) = qk15_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk15_quadrature(&**f, a2, b2);
+                            }
+                            2 => {
+                                (result1, abserr1, rounderr1) = qk21_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk21_quadrature(&**f, a2, b2);
+                            }
+                            3 => {
+                                (result1, abserr1, rounderr1) = qk31_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk31_quadrature(&**f, a2, b2);
+                            }
+                            4 => {
+                                (result1, abserr1, rounderr1) = qk41_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk41_quadrature(&**f, a2, b2);
+                            }
+                            5 => {
+                                (result1, abserr1, rounderr1) = qk51_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk51_quadrature(&**f, a2, b2);
+                            }
+                            6 => {
+                                (result1, abserr1, rounderr1) = qk61_quadrature(&**f, a1, b1);
+                                (result2, abserr2, rounderr2) = qk61_quadrature(&**f, a2, b2);
+                            }
+                            _ => (),
+                        }
+                        (
+                            (a1, b1, result1, abserr1, rounderr1),
+                            (a2, b2, result2, abserr2, rounderr2),
+                        )
+                    })
+                    .collect()
+            });
 
             let mut new_res = vec![0.0; n];
             let mut new_abserr = 0.0;
@@ -416,9 +435,10 @@ impl Qag {
 
 #[cfg(test)]
 mod tests {
-    use crate::constants::Myf64;
+    use crate::constants::{FnVec, Myf64};
     use crate::errors::QagError;
     use crate::qag::Qag;
+    use std::sync::Arc;
 
     #[test]
     fn max_iteration1() {
@@ -433,10 +453,13 @@ mod tests {
             key,
             limit,
             points: vec![0.0; 0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(), x.cos()];
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+        };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
 
@@ -455,10 +478,13 @@ mod tests {
             key,
             limit,
             points: vec![0.0; 0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(), x.cos()];
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+        };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
 
@@ -478,15 +504,19 @@ mod tests {
             key,
             limit,
             points: vec![0.0; 0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f = |x: f64| vec![x.sin(), x.cos()];
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+        };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
 
         assert_eq!(error, QagError::Invalid);
     }
+
     #[test]
     fn key() {
         let a = 0.0;
@@ -501,10 +531,13 @@ mod tests {
                 key,
                 limit,
                 points: vec![0.0; 0],
+                number_of_thread: 8,
                 more_info: true,
             };
 
-            let f = |x: f64| vec![x.sin(), x.cos()];
+            let f = FnVec {
+                components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+            };
             let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
 
             assert!(
@@ -528,15 +561,19 @@ mod tests {
             key,
             limit,
             points: vec![0.0; 0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f = |x: f64| {
-            vec![
-                x.sin().powi(2) / x.abs().exp(),
-                x.cos().powi(2) / x.abs().exp(),
-            ]
+        let f = FnVec {
+            components: Arc::new(|x: f64| {
+                vec![
+                    x.sin().powi(2) / x.abs().exp(),
+                    x.cos().powi(2) / x.abs().exp(),
+                ]
+            }),
         };
+
         let res1 = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
         let res2 = qag.integrate(&f, c, a, epsabs, epsrel).unwrap();
 
@@ -563,15 +600,19 @@ mod tests {
             key,
             limit,
             points: vec![0.0; 0],
+            number_of_thread: 8,
             more_info: true,
         };
 
-        let f = |x: f64| {
-            vec![
-                x.sin().powi(2) / x.abs().exp2(),
-                x.cos().powi(2) / x.abs().exp2(),
-            ]
+        let f = FnVec {
+            components: Arc::new(|x: f64| {
+                vec![
+                    x.sin().powi(2) / x.abs().exp2(),
+                    x.cos().powi(2) / x.abs().exp2(),
+                ]
+            }),
         };
+
         let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
         assert!(
             res.result[0] - correct_result[0] < epsabs
@@ -592,10 +633,12 @@ mod tests {
             key,
             limit,
             points: points.clone(),
+            number_of_thread: 8,
             more_info: true,
         };
-
-        let f = |x: f64| vec![x.cos(), x.sin()];
+        let f = FnVec {
+            components: Arc::new(|x: f64| vec![x.cos(), x.sin()]),
+        };
         let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
         let mut res_hash = res.more_info.unwrap().hash.clone();
         assert_eq!(res_hash.len(), qag.points.len() - 1);

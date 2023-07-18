@@ -27,26 +27,6 @@ fn qag_delay(c: &mut Criterion) {
         });
 
         let input = (0.0, 500.0, 1.0e-2, 0.0, 6, 1000000, false);
-        group.bench_with_input(BenchmarkId::new("My_qag", z), &input, |b, &inp| {
-            let f = |x: f64| {
-                thread::sleep(time::Duration::from_nanos(10_i32.pow(z) as u64));
-                vec![x.cos()]
-            };
-            b.iter(|| {
-                integrate(
-                    &f,
-                    inp.0,
-                    inp.1,
-                    inp.2,
-                    inp.3,
-                    inp.4,
-                    inp.5,
-                    [0.0; 0].to_vec(),
-                    inp.6,
-                )
-            });
-        });
-
         group.bench_with_input(BenchmarkId::new("My_qag_par", z), &input, |b, &inp| {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
@@ -55,7 +35,7 @@ fn qag_delay(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,
@@ -94,34 +74,6 @@ fn fn_lenght(c: &mut Criterion) {
         });
 
         let input = (0.0, 500.0, 1.0e-2, 0.0, 6, 1000000, false);
-        group.bench_with_input(BenchmarkId::new("My_qag", z), &input, |b, &inp| {
-            let g = |x: f64| {
-                thread::sleep(time::Duration::from_nanos(10000));
-                x.cos()
-            };
-            let f = |x: f64| {
-                let mut v = vec![];
-                for _i in 0..z {
-                    v.push(g(x))
-                }
-                v
-            };
-
-            b.iter(|| {
-                integrate(
-                    &f,
-                    inp.0,
-                    inp.1,
-                    inp.2,
-                    inp.3,
-                    inp.4,
-                    inp.5,
-                    [0.0; 0].to_vec(),
-                    inp.6,
-                )
-            });
-        });
-
         group.bench_with_input(BenchmarkId::new("My_qag_par", z), &input, |b, &inp| {
             let g = |x: f64| {
                 thread::sleep(time::Duration::from_nanos(10000));
@@ -137,7 +89,7 @@ fn fn_lenght(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,
@@ -174,27 +126,6 @@ fn number_of_interval_subdivision(c: &mut Criterion) {
         });
 
         let input = (0.0, 500.0, 1.0e-2, 0.0, 6, 1000000, false);
-        group.bench_with_input(BenchmarkId::new("My_qag", z), &input, |b, &inp| {
-            let f = |x: f64| {
-                thread::sleep(time::Duration::from_nanos(10));
-                vec![x.cos()]
-            };
-
-            b.iter(|| {
-                integrate(
-                    &f,
-                    inp.0,
-                    z,
-                    inp.2,
-                    inp.3,
-                    inp.4,
-                    inp.5,
-                    [0.0; 0].to_vec(),
-                    inp.6,
-                )
-            });
-        });
-
         group.bench_with_input(BenchmarkId::new("My_qag_par", z), &input, |b, &inp| {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
@@ -203,7 +134,7 @@ fn number_of_interval_subdivision(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     z,
@@ -248,26 +179,6 @@ fn key(c: &mut Criterion) {
         });
 
         let input = (0.0, 2500.0, 1.0e-2, 0.0, 6, 1000000, false);
-        group.bench_with_input(BenchmarkId::new("My_qag", z), &input, |b, &inp| {
-            let f = |x: f64| {
-                thread::sleep(time::Duration::from_nanos(10));
-                vec![x.cos()]
-            };
-            b.iter(|| {
-                integrate(
-                    &f,
-                    inp.0,
-                    inp.1,
-                    inp.2,
-                    inp.3,
-                    z,
-                    inp.5,
-                    [0.0; 0].to_vec(),
-                    inp.6,
-                )
-            });
-        });
-
         group.bench_with_input(BenchmarkId::new("My_qag_par", z), &input, |b, &inp| {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
@@ -276,7 +187,7 @@ fn key(c: &mut Criterion) {
                 }),
             };
             b.iter(|| {
-                integrate_par(
+                integrate(
                     &f,
                     inp.0,
                     inp.1,

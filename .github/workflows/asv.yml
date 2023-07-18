@@ -1,0 +1,23 @@
+name: Run asv
+
+on:
+  push:
+    branches: [asv_bench]
+  pull_request:
+    branches: [asv_bench]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Run asv
+        run: |
+          cd quad-py
+          asv machine --machine ubuntu-latest --yes
+          asv run --show-stderr
