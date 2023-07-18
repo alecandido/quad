@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [asv_bench]
+    branches: [main]
   pull_request:
-    branches: [asv_bench]
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
