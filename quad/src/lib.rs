@@ -10,6 +10,7 @@ pub mod qk31;
 pub mod qk41;
 pub mod qk51;
 pub mod qk61;
+pub mod qk_ndarray;
 pub mod semi_infinite_function;
 
 use crate::constants::FnVec;

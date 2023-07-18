@@ -1,13 +1,13 @@
 use crate::constants::*;
 
-pub fn qk_quadrature<const M: usize, F>(
+pub fn qk_quadrature_ndarray<const M: usize, F>(
     f: F,
     a: f64,
     b: f64,
     xgk: &[f64; M],
     wgk: &[f64],
     wg: &[f64],
-) -> (Vec<f64>, f64, f64)
+) -> (ndarray::Array1::<f64>, f64, f64)
 where
     F: Fn(f64) -> Vec<f64>,
 {
@@ -18,22 +18,21 @@ where
     let dim = fc.len();
     let mut fv1 = Vec::with_capacity(dim * M);
     let mut fv2 = Vec::with_capacity(dim * M);
-    let mut resg: Vec<f64> = Vec::with_capacity(dim);
-    let mut resk: Vec<f64> = fc.clone();
+    let mut resg = {
+        if M % 2 == 1 {
+            ndarray::Array1::<f64>::from(fc.clone()) * wg[(M + 1) / 2 - 1]
+        } else {
+            ndarray::Array1::<f64>::zeros(dim)
+        }
+    };
+    let mut resk = ndarray::Array1::<f64>::from(fc.clone()) * wgk[M];
     let mut resabs = Vec::with_capacity(dim);
 
-    if M % 2 == 1 {
-        resg.extend(&fc);
-    } else {
-        resg.extend(&vec![0.0; dim]);
-    }
     for k in 0..dim {
-        resk[k] *= wgk[M];
         resabs.push(resk[k].abs());
-        if M % 2 == 1 {
-            resg[k] *= wg[(M + 1) / 2 - 1];
-        }
     }
+
+    let mut resabs = ndarray::Array1::<f64>::from(resabs);
 
     for j in 1..M / 2 + 1 {
         let jtw1 = 2 * j - 1;
@@ -55,9 +54,14 @@ where
             fsum2[k] += fv2[(jtw2 - 1) * dim + k];
         }
 
+        let fsum1 = ndarray::Array1::<f64>::from(fsum1);
+        let fsum2 = ndarray::Array1::<f64>::from(fsum2);
+
+        resg += &(fsum2.clone() * wg[j - 1]);
+        resk += &(fsum1 * wgk[jtw1 - 1]);
+        resk += &(fsum2 * wgk[jtw2 - 1]);
+
         for k in 0..dim {
-            resg[k] += wg[j - 1] * fsum2[k];
-            resk[k] += wgk[jtw1 - 1] * fsum1[k] + wgk[jtw2 - 1] * fsum2[k];
             resabs[k] += wgk[jtw1 - 1]
                 * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs())
                 + wgk[jtw2 - 1]
@@ -76,8 +80,11 @@ where
         for k in 0..dim {
             fsum[k] += fv2[(jtw1 - 1) * dim + k];
         }
+
+        let mut fsum = ndarray::Array1::<f64>::from(fsum);
+        resk += &(fsum * wgk[jtw1 - 1]);
+
         for k in 0..dim {
-            resk[k] += wgk[jtw1 - 1] * fsum[k];
             resabs[k] +=
                 wgk[jtw1 - 1] * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs());
         }
@@ -103,9 +110,9 @@ where
     }
 
     let mut result = resk.clone();
+    result *= hlgth;
 
     for k in 0..dim {
-        result[k] *= hlgth;
         resabs[k] *= dhlgth;
         resasc[k] *= dhlgth;
     }
