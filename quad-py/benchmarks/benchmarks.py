@@ -38,7 +38,7 @@ def f_ln6(x, delay, i):
             ]
         )
     else:
-        return [4,2]
+        return [4, 2]
 
 
 def f_ln2(x, delay, i):
@@ -55,7 +55,7 @@ def f_ln2(x, delay, i):
             ]
         )
     else:
-        return [1,1]
+        return [1, 1]
 
 
 class QagBench:
@@ -111,101 +111,3 @@ class QagBench:
                 epsabs=self.epsabs,
                 epsrel=self.epsrel,
             )
-
-
-class QagCheck:
-    timeout = 10000.0
-    warmup_time = 5.0
-    repeat = (1, 10, 1200.0)
-
-    def setup(self):
-        self.a = 0.0
-        self.b = 10000.0
-        self.limit = 1000000
-        self.key = 2
-        self.epsabs = 1.0e-6
-        self.epsrel = 0.0
-        self.f = lambda x: (
-            f1(x, 1.0e-4),
-            f2(x, 1.0e-4),
-            f1(x, 1.0e-4),
-            f1(x, 1.0e-4),
-            f2(x, 1.0e-4),
-            f1(x, 1.0e-4),
-        )
-        self.f_vec = lambda x: np.array(
-            [
-                f1(x, 1.0e-4),
-                f2(x, 1.0e-4),
-                f1(x, 1.0e-4),
-                f1(x, 1.0e-4),
-                f2(x, 1.0e-4),
-                f1(x, 1.0e-4),
-            ]
-        )
-        self.f1 = lambda x: f1(x, 1.0e-4)
-        self.f2 = lambda x: f2(x, 1.0e-4)
-
-    def time_qag(self):
-        quad.qag(
-            self.f,
-            self.a,
-            self.b,
-            limit=self.limit,
-            key=self.key,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-
-    def time_scipy_vec(self):
-        quad_vec(self.f_vec, self.a, self.b, limit=self.limit, epsabs=self.epsabs, epsrel=self.epsrel)
-
-    def time_scipy_1d(self):
-        q(
-            self.f1,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-        q(
-            self.f2,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-        q(
-            self.f1,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-        q(
-            self.f1,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-        q(
-            self.f2,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
-        q(
-            self.f1,
-            self.a,
-            self.b,
-            limit=self.limit,
-            epsabs=self.epsabs,
-            epsrel=self.epsrel,
-        )
