@@ -25,10 +25,13 @@ pub fn norm_vec(v: &[f64]) -> f64 {
     norm
 }
 
-pub fn res_update(v: &mut [f64], w: &[f64], z: &[f64], y: &[f64]) {
-    for k in 0..v.len() {
-        v[k] += w[k] + z[k] - y[k];
+pub fn norm_ndarray(v: &ndarray::Array1<f64>) -> f64 {
+    let mut norm = 0.0;
+    for comp in v {
+        norm += comp.powi(2);
     }
+    norm = norm.sqrt();
+    norm
 }
 
 pub fn add_res(v: &mut [f64], w: &[f64]) {
