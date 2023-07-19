@@ -1,5 +1,5 @@
-use ndarray::Axis;
 use crate::constants::*;
+use ndarray::Axis;
 
 pub fn qk_quadrature_ndarray<const M: usize, F>(
     f: F,
@@ -8,9 +8,9 @@ pub fn qk_quadrature_ndarray<const M: usize, F>(
     xgk: &[f64; M],
     wgk: &[f64],
     wg: &[f64],
-) -> (ndarray::Array1::<f64>, f64, f64)
+) -> (ndarray::Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> ndarray::Array1::<f64>,
+    F: Fn(f64) -> ndarray::Array1<f64>,
 {
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
@@ -43,7 +43,7 @@ where
         let f21 = f(centr + absc1);
         let f22 = f(centr + absc2);
 
-        fv1.append(Axis(0),f11.view());
+        fv1.append(Axis(0), f11.view());
         fv1.append(Axis(0), f12.view());
         fv2.append(Axis(0), f21.view());
         fv2.append(Axis(0), f22.view());
@@ -52,8 +52,8 @@ where
         //resabs += &(&(f12.map(|x| x.abs()) + &(f22.map(|x| x.abs()) ) ) * wgk[jtw1 -1]);
 
         for k in 0..dim {
-            resabs[k] += wgk[jtw1 - 1] * (f11[k].abs() + f21[k].abs()) +
-                wgk[jtw2 - 1] * (f12[k].abs() + f22[k].abs());
+            resabs[k] += wgk[jtw1 - 1] * (f11[k].abs() + f21[k].abs())
+                + wgk[jtw2 - 1] * (f12[k].abs() + f22[k].abs());
         }
 
         let fsum1 = f11 + f21;
@@ -62,7 +62,6 @@ where
         resg += &(&fsum2 * wg[j - 1]);
         resk += &(fsum1 * wgk[jtw1 - 1]);
         resk += &(fsum2 * wgk[jtw2 - 1]);
-
     }
 
     if M / 2 != (M + 1) / 2 {
@@ -70,7 +69,7 @@ where
         let absc = hlgth * xgk[jtw1 - 1];
         let f1 = f(centr - absc);
         let f2 = f(centr + absc);
-        fv1.append(Axis(0),f1.view());
+        fv1.append(Axis(0), f1.view());
         fv2.append(Axis(0), f2.view());
 
         for k in 0..dim {
@@ -78,12 +77,11 @@ where
         }
 
         resk += &((&f1 + &f2) * wgk[jtw1 - 1]);
-
     }
 
     let reskh = &resk * 0.5;
 
-    let mut resasc = (&fc - &reskh).map(|x| x.abs() * wgk[M] );
+    let mut resasc = (&fc - &reskh).map(|x| x.abs() * wgk[M]);
 
     for j in 1..M + 1 {
         for k in 0..dim {
