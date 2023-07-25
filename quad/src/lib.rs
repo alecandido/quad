@@ -2,7 +2,6 @@ pub mod constants;
 pub mod errors;
 pub mod qag;
 pub mod qag_integration_result;
-pub mod qag_ndarray;
 pub mod qk;
 pub mod qk15;
 pub mod qk21;
@@ -10,7 +9,6 @@ pub mod qk31;
 pub mod qk41;
 pub mod qk51;
 pub mod qk61;
-pub mod qk_ndarray;
 pub mod semi_infinite_function;
 
 use crate::constants::FnVec;

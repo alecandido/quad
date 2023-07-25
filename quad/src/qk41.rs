@@ -1,8 +1,8 @@
 use crate::qk::qk_quadrature;
 
-pub fn qk41_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+pub fn qk41_quadrature<F>(f: F, a: f64, b: f64) -> (ndarray::Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> Vec<f64>,
+    F: Fn(f64) -> ndarray::Array1<f64>,
 {
     qk_quadrature(f, a, b, &XGK41, &WGK41, &WG41)
 }

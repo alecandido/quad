@@ -1,4 +1,5 @@
 use crate::constants::{HeapItem, Myf64};
+use ndarray::Array1;
 use std::collections::{BinaryHeap, HashMap};
 
 #[derive(Debug, Clone)]
@@ -14,7 +15,7 @@ impl QagIntegrationResult {
         abserr: f64,
         neval: i32,
         last: usize,
-        hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+        hash: HashMap<(Myf64, Myf64), Array1<f64>>,
         heap: BinaryHeap<HeapItem>,
     ) -> Self {
         Self {
@@ -45,7 +46,7 @@ impl QagIntegrationResult {
 pub struct MoreInfo {
     pub neval: i32,
     pub last: usize,
-    pub hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+    pub hash: HashMap<(Myf64, Myf64), Array1<f64>>,
     pub heap: BinaryHeap<HeapItem>,
 }
 
@@ -53,7 +54,7 @@ impl MoreInfo {
     pub fn new(
         neval: i32,
         last: usize,
-        hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+        hash: HashMap<(Myf64, Myf64), Array1<f64>>,
         heap: BinaryHeap<HeapItem>,
     ) -> Self {
         Self {

@@ -1,18 +1,10 @@
 use crate::qk::qk_quadrature;
-use crate::qk_ndarray::qk_quadrature_ndarray;
 
-pub fn qk15_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
-where
-    F: Fn(f64) -> Vec<f64>,
-{
-    qk_quadrature(f, a, b, &XGK15, &WGK15, &WG15)
-}
-
-pub fn qk15_quadrature_ndarray<F>(f: F, a: f64, b: f64) -> (ndarray::Array1<f64>, f64, f64)
+pub fn qk15_quadrature<F>(f: F, a: f64, b: f64) -> (ndarray::Array1<f64>, f64, f64)
 where
     F: Fn(f64) -> ndarray::Array1<f64>,
 {
-    qk_quadrature_ndarray(f, a, b, &XGK15, &WGK15, &WG15)
+    qk_quadrature(f, a, b, &XGK15, &WGK15, &WG15)
 }
 
 const XGK15: [f64; 7] = [
@@ -42,36 +34,3 @@ const WG15: [f64; 4] = [
     0.381830050505118944950369775488975,
     0.417959183673469387755102040816327,
 ];
-
-#[cfg(test)]
-mod tests {
-    use crate::qk15::{qk15_quadrature, qk15_quadrature_ndarray};
-    use ndarray::array;
-    use std::time::Instant;
-
-    #[test]
-    fn vec_vs_ndarray() {
-        let a = 0.0;
-        let b = 10000.0;
-
-        let f_vec = |x: f64| vec![x.sin(), x.cos()];
-        let f_nd = |x: f64| array![x.sin(), x.cos()];
-
-        for k in 0..25000 {
-            let start = Instant::now();
-            let res_vec = qk15_quadrature(&f_vec, a, b);
-            let time_vec = start.elapsed().as_secs_f64();
-            let start = Instant::now();
-            let res_nd = qk15_quadrature_ndarray(&f_nd, a, b);
-            let time_nd = start.elapsed().as_secs_f64();
-
-            if k == 24999 {
-                println!("{:?}", res_vec);
-                println!("{:?}", res_nd);
-            }
-
-            println!("{:?}", time_vec);
-            println!("{:?}", time_nd);
-        }
-    }
-}

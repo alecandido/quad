@@ -1,4 +1,5 @@
 use crate::constants::*;
+use ndarray::Axis;
 
 pub fn qk_quadrature<const M: usize, F>(
     f: F,
@@ -7,33 +8,26 @@ pub fn qk_quadrature<const M: usize, F>(
     xgk: &[f64; M],
     wgk: &[f64],
     wg: &[f64],
-) -> (Vec<f64>, f64, f64)
+) -> (ndarray::Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> Vec<f64>,
+    F: Fn(f64) -> ndarray::Array1<f64>,
 {
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
     let centr: f64 = 0.5 * (b + a);
     let fc = f(centr);
     let dim = fc.len();
-    let mut fv1 = Vec::with_capacity(dim * M);
-    let mut fv2 = Vec::with_capacity(dim * M);
-    let mut resg: Vec<f64> = Vec::with_capacity(dim);
-    let mut resk: Vec<f64> = fc.clone();
-    let mut resabs = Vec::with_capacity(dim);
-
-    if M % 2 == 1 {
-        resg.extend(&fc);
-    } else {
-        resg.extend(&vec![0.0; dim]);
-    }
-    for k in 0..dim {
-        resk[k] *= wgk[M];
-        resabs.push(resk[k].abs());
+    let mut fv1 = ndarray::Array1::<f64>::zeros(0);
+    let mut fv2 = ndarray::Array1::<f64>::zeros(0);
+    let mut resg = {
         if M % 2 == 1 {
-            resg[k] *= wg[(M + 1) / 2 - 1];
+            &fc * wg[(M + 1) / 2 - 1]
+        } else {
+            ndarray::Array1::<f64>::zeros(dim)
         }
-    }
+    };
+    let mut resk = &fc * wgk[M];
+    let mut resabs = resk.map(|x| x.abs());
 
     for j in 1..M / 2 + 1 {
         let jtw1 = 2 * j - 1;
@@ -42,57 +36,50 @@ where
         let absc1 = hlgth * xgk[jtw1 - 1];
         let absc2 = hlgth * xgk[jtw2 - 1];
 
-        fv1.append(&mut f(centr - absc1));
-        fv1.append(&mut f(centr - absc2));
-        fv2.append(&mut f(centr + absc1));
-        fv2.append(&mut f(centr + absc2));
+        let f11 = f(centr - absc1);
+        let f12 = f(centr - absc2);
+        let f21 = f(centr + absc1);
+        let f22 = f(centr + absc2);
 
-        let mut fsum1 = fv1[(jtw1 - 1) * dim..jtw1 * dim].to_vec();
-        let mut fsum2 = fv1[(jtw2 - 1) * dim..jtw2 * dim].to_vec();
+        fv1.append(Axis(0), f11.view());
+        fv1.append(Axis(0), f12.view());
+        fv2.append(Axis(0), f21.view());
+        fv2.append(Axis(0), f22.view());
+
+        //resabs += &(&(f11.map(|x| x.abs()) + &(f21.map(|x| x.abs()) ) ) * wgk[jtw1 -1]);
+        //resabs += &(&(f12.map(|x| x.abs()) + &(f22.map(|x| x.abs()) ) ) * wgk[jtw1 -1]);
 
         for k in 0..dim {
-            fsum1[k] += fv2[(jtw1 - 1) * dim + k];
-            fsum2[k] += fv2[(jtw2 - 1) * dim + k];
+            resabs[k] += wgk[jtw1 - 1] * (f11[k].abs() + f21[k].abs())
+                + wgk[jtw2 - 1] * (f12[k].abs() + f22[k].abs());
         }
 
-        for k in 0..dim {
-            resg[k] += wg[j - 1] * fsum2[k];
-            resk[k] += wgk[jtw1 - 1] * fsum1[k] + wgk[jtw2 - 1] * fsum2[k];
-            resabs[k] += wgk[jtw1 - 1]
-                * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs())
-                + wgk[jtw2 - 1]
-                    * (fv1[(jtw2 - 1) * dim + k].abs() + fv2[(jtw2 - 1) * dim + k].abs());
-        }
+        let fsum1 = f11 + f21;
+        let fsum2 = f12 + f22;
+
+        resg += &(&fsum2 * wg[j - 1]);
+        resk += &(fsum1 * wgk[jtw1 - 1]);
+        resk += &(fsum2 * wgk[jtw2 - 1]);
     }
 
     if M / 2 != (M + 1) / 2 {
         let jtw1 = M;
         let absc = hlgth * xgk[jtw1 - 1];
-        fv1.append(&mut f(centr - absc));
-        fv2.append(&mut f(centr + absc));
-
-        let mut fsum = fv1[(jtw1 - 1) * dim..jtw1 * dim].to_vec();
+        let f1 = f(centr - absc);
+        let f2 = f(centr + absc);
+        fv1.append(Axis(0), f1.view());
+        fv2.append(Axis(0), f2.view());
 
         for k in 0..dim {
-            fsum[k] += fv2[(jtw1 - 1) * dim + k];
+            resabs[k] += wgk[jtw1 - 1] * (f1[k].abs() + f2[k].abs());
         }
-        for k in 0..dim {
-            resk[k] += wgk[jtw1 - 1] * fsum[k];
-            resabs[k] +=
-                wgk[jtw1 - 1] * (fv1[(jtw1 - 1) * dim + k].abs() + fv2[(jtw1 - 1) * dim + k].abs());
-        }
+
+        resk += &((&f1 + &f2) * wgk[jtw1 - 1]);
     }
 
-    let mut reskh = resk.clone();
+    let reskh = &resk * 0.5;
 
-    for k in 0..dim {
-        reskh[k] *= 0.5;
-    }
-
-    let mut resasc = vec![0.0; dim];
-    for k in 0..dim {
-        resasc[k] = wgk[M] * (fc[k] - reskh[k]).abs();
-    }
+    let mut resasc = (&fc - &reskh).map(|x| x.abs() * wgk[M]);
 
     for j in 1..M + 1 {
         for k in 0..dim {
@@ -102,13 +89,10 @@ where
         }
     }
 
-    let mut result = resk.clone();
+    let result = &resk * hlgth;
 
-    for k in 0..dim {
-        result[k] *= hlgth;
-        resabs[k] *= dhlgth;
-        resasc[k] *= dhlgth;
-    }
+    resabs *= dhlgth;
+    resasc *= dhlgth;
 
     let mut abserr = 0.0;
     let mut resabs_scalar = 0.0;

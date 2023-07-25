@@ -1,10 +1,11 @@
+use ndarray::Array1;
 use std::cmp::Ordering;
 use std::hash;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FnVec<'a> {
-    pub components: Arc<dyn Fn(f64) -> Vec<f64> + Send + Sync + 'a>,
+    pub components: Arc<dyn Fn(f64) -> Array1<f64> + Send + Sync + 'a>,
 }
 
 pub const EPMACH: f64 = f64::EPSILON; // the largest relative spacing.

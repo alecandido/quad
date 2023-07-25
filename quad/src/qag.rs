@@ -10,6 +10,7 @@ use crate::qk41::qk41_quadrature;
 use crate::qk51::qk51_quadrature;
 use crate::qk61::qk61_quadrature;
 use crate::semi_infinite_function::{double_infinite_function, semi_infinite_function};
+use ndarray::Array1;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
 
@@ -207,7 +208,8 @@ impl Qag {
         let mut last = 1;
         let mut interval_cache = HashMap::new();
         let mut heap = BinaryHeap::new();
-        let mut result = vec![0.0; n];
+        //let mut result = vec![0.0; n];
+        let mut result = ndarray::Array1::<f64>::zeros(n);
         let mut abserr = 0.0;
         let mut rounderr = 0.0;
         let mut iroff1 = 0;
@@ -228,16 +230,17 @@ impl Qag {
                 4 => qk41_quadrature(&**f, comp.0, comp.1),
                 5 => qk51_quadrature(&**f, comp.0, comp.1),
                 6 => qk61_quadrature(&**f, comp.0, comp.1),
-                _ => (vec![0.0; n], 0.0, 0.0),
+                _ => (Array1::<f64>::from_vec(vec![0.0; f(0.0).len()]), 0.0, 0.0),
             };
-            add_res(&mut result, &result_temp);
+            result += &(ndarray::Array1::<f64>::from(result_temp.clone()));
+            //add_res(&mut result, &result_temp);
             abserr += abserr_temp;
             rounderr += rounderr_temp;
             heap.push(HeapItem::new((comp.0, comp.1), abserr_temp));
             interval_cache.insert((Myf64 { x: comp.0 }, Myf64 { x: comp.1 }), result_temp);
         }
 
-        let mut errbnd = epsabs.max(epsrel * norm_vec(&result));
+        let mut errbnd = epsabs.max(epsrel * norm_ndarray(&result));
 
         if abserr + rounderr <= errbnd {
             if keyf != 1 {
@@ -249,7 +252,7 @@ impl Qag {
             abserr = abserr + rounderr;
             if self.more_info {
                 return Ok(QagIntegrationResult::new_more_info(
-                    result,
+                    result.to_vec(),
                     abserr,
                     neval,
                     last,
@@ -257,7 +260,7 @@ impl Qag {
                     heap,
                 ));
             } else {
-                return Ok(QagIntegrationResult::new(result, abserr));
+                return Ok(QagIntegrationResult::new(result.to_vec(), abserr));
             }
         }
 
@@ -272,7 +275,8 @@ impl Qag {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
-            let mut old_result = vec![0.0; n];
+            //let mut old_result = vec![0.0; n];
+            let mut old_result = ndarray::Array1::<f64>::zeros(n);
             let max_new_divison = self.limit - last;
 
             while to_process.len() < 128.min(max_new_divison) && heap.len() != 0 {
@@ -285,7 +289,8 @@ impl Qag {
                     .remove(&(Myf64 { x }, Myf64 { x: y }))
                     .unwrap();
                 err_sum += old_err;
-                add_vec(&mut old_result, &old_res);
+                old_result += &ndarray::Array1::<f64>::from(old_res);
+                //add_vec(&mut old_result, &old_res);
                 to_process.push((x, y));
                 if err_sum > abserr - errbnd / 8.0 {
                     break;
@@ -298,11 +303,11 @@ impl Qag {
                 to_process
                     .par_iter()
                     .map(|comp| {
-                        let mut result1 = vec![0.0; n];
+                        let mut result1 = Array1::<f64>::from_elem(1, 0.0);
                         let mut abserr1 = 0.0;
                         let mut rounderr1 = 0.0;
 
-                        let mut result2 = vec![0.0; n];
+                        let mut result2 = Array1::<f64>::from_elem(1, 0.0);
                         let mut abserr2 = 0.0;
                         let mut rounderr2 = 0.0;
 
@@ -346,12 +351,15 @@ impl Qag {
                     .collect()
             });
 
-            let mut new_res = vec![0.0; n];
+            //let mut new_res = vec![0.0; n];
+            let mut new_res = ndarray::Array1::<f64>::zeros(n);
             let mut new_abserr = 0.0;
 
             for k in 0..new_result.0.len() {
-                add_vec(&mut new_res, &new_result.0[k].2);
-                add_vec(&mut new_res, &new_result.1[k].2);
+                new_res += &(ndarray::Array1::<f64>::from(new_result.0[k].2.clone()));
+                new_res += &(ndarray::Array1::<f64>::from(new_result.1[k].2.clone()));
+                //add_vec(&mut new_res, &new_result.0[k].2);
+                //add_vec(&mut new_res, &new_result.1[k].2);
                 new_abserr += new_result.0[k].3 + new_result.1[k].3;
                 rounderr += new_result.0[k].4 + new_result.1[k].4;
                 interval_cache.insert(
@@ -385,17 +393,19 @@ impl Qag {
                     new_result.1[k].3,
                 ));
             }
-            if iroff1_flag(&old_result, &new_res, new_abserr, err_sum) {
+            if iroff1_flag(&old_result.to_vec(), &new_res.to_vec(), new_abserr, err_sum) {
                 iroff1 += 1;
             }
             if last > 10 && new_abserr > err_sum {
                 iroff2 += 1;
             }
-            sub_vec(&mut result, &old_result);
-            add_vec(&mut result, &new_res);
+            result += &new_res;
+            result -= &old_result;
+            //sub_vec(&mut result, &old_result);
+            //add_vec(&mut result, &new_res);
             abserr += new_abserr - err_sum;
 
-            errbnd = epsabs.max(epsrel * norm_vec(&result));
+            errbnd = epsabs.max(epsrel * norm_ndarray(&result));
 
             if abserr <= errbnd / 8.0 {
                 break;
@@ -420,7 +430,7 @@ impl Qag {
 
         if self.more_info {
             return Ok(QagIntegrationResult::new_more_info(
-                result,
+                result.to_vec(),
                 abserr,
                 neval,
                 last,
@@ -428,7 +438,7 @@ impl Qag {
                 heap,
             ));
         } else {
-            return Ok(QagIntegrationResult::new(result, abserr));
+            return Ok(QagIntegrationResult::new(result.to_vec(), abserr));
         }
     }
 }
@@ -438,6 +448,7 @@ mod tests {
     use crate::constants::{FnVec, Myf64};
     use crate::errors::QagError;
     use crate::qag::Qag;
+    use ndarray::array;
     use std::sync::Arc;
 
     #[test]
@@ -458,7 +469,7 @@ mod tests {
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+            components: Arc::new(|x: f64| array![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
@@ -483,7 +494,7 @@ mod tests {
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+            components: Arc::new(|x: f64| array![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
@@ -509,7 +520,7 @@ mod tests {
         };
 
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+            components: Arc::new(|x: f64| array![x.sin(), x.cos()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel);
         let error = res.unwrap_err();
@@ -536,7 +547,7 @@ mod tests {
             };
 
             let f = FnVec {
-                components: Arc::new(|x: f64| vec![x.sin(), x.cos()]),
+                components: Arc::new(|x: f64| array![x.sin(), x.cos()]),
             };
             let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
 
@@ -567,7 +578,7 @@ mod tests {
 
         let f = FnVec {
             components: Arc::new(|x: f64| {
-                vec![
+                array![
                     x.sin().powi(2) / x.abs().exp(),
                     x.cos().powi(2) / x.abs().exp(),
                 ]
@@ -606,7 +617,7 @@ mod tests {
 
         let f = FnVec {
             components: Arc::new(|x: f64| {
-                vec![
+                array![
                     x.sin().powi(2) / x.abs().exp2(),
                     x.cos().powi(2) / x.abs().exp2(),
                 ]
@@ -637,7 +648,7 @@ mod tests {
             more_info: true,
         };
         let f = FnVec {
-            components: Arc::new(|x: f64| vec![x.cos(), x.sin()]),
+            components: Arc::new(|x: f64| array![x.cos(), x.sin()]),
         };
         let res = qag.integrate(&f, a, b, epsabs, epsrel).unwrap();
         let mut res_hash = res.more_info.unwrap().hash.clone();
