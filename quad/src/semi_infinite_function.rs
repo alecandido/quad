@@ -10,7 +10,7 @@ where
     }
     let sgn = if infty.is_sign_positive() { 1.0 } else { -1.0 };
     let z = start + sgn * (1.0 - x) / x;
-    let mut res: Array1<f64> = f(z);
+    let res: Array1<f64> = f(z);
     res / (sgn * x * x)
 }
 
@@ -22,6 +22,6 @@ where
         return Array1::<f64>::zeros(f(0.0).len());
     }
     let z = (1.0 - x.abs()) / x;
-    let mut res: Array1<f64> = f(z);
+    let res: Array1<f64> = f(z);
     res / (x * x)
 }

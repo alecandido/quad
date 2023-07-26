@@ -1,16 +1,16 @@
+use ndarray::Array1;
 use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
-use std::sync::Arc;
-
 use quad::constants::{FnVec, Myf64};
 use quad::errors::*;
 use quad::qag::Qag;
+use std::sync::Arc;
 
-fn lambda_eval(ob: &Py<PyAny>, z: f64) -> Vec<f64> {
+fn lambda_eval(ob: &Py<PyAny>, z: f64) -> Array1<f64> {
     Python::with_gil(|py| {
         let f = |x: f64| {
             let y = (x,);
-            ob.call1(py, y).unwrap().extract::<Vec<f64>>(py).unwrap()
+            Array1::<f64>::from_vec(ob.call1(py, y).unwrap().extract::<Vec<f64>>(py).unwrap())
         };
         f(z)
     })
@@ -111,7 +111,7 @@ fn qag(
         let (result, abserr, more_inf) = (res.result, res.abserr, res.more_info);
         if more_inf.is_none() {
             Ok(QagsResult {
-                result,
+                result: result.to_vec(),
                 abserr,
                 more_info: None,
             })
@@ -124,10 +124,10 @@ fn qag(
                 let old_interval = heap.pop().unwrap();
                 let ((x, y), old_err) = (old_interval.interval, old_interval.err);
                 let old_res = hash.remove(&(Myf64 { x }, Myf64 { x: y })).unwrap();
-                more_inf_py.push((x, y, old_err, old_res));
+                more_inf_py.push((x, y, old_err, old_res.to_vec()));
             }
             Ok(QagsResult {
-                result,
+                result: result.to_vec(),
                 abserr,
                 more_info: Some((neval, last, more_inf_py)),
             })
