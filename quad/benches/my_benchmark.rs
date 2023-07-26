@@ -1,6 +1,7 @@
 use criterion::BenchmarkId;
 use criterion::Criterion;
 use criterion::{criterion_group, criterion_main};
+use ndarray::{array, Array1};
 use quad::constants::FnVec;
 use quad::*;
 use rgsl::*;
@@ -31,7 +32,7 @@ fn qag_delay(c: &mut Criterion) {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
                     thread::sleep(time::Duration::from_nanos(10_i32.pow(z) as u64));
-                    vec![x.cos()]
+                    array![x.cos()]
                 }),
             };
             b.iter(|| {
@@ -85,7 +86,7 @@ fn fn_lenght(c: &mut Criterion) {
                     for _i in 0..z {
                         v.push(g(x))
                     }
-                    v
+                    Array1::<f64>::from_vec(v)
                 }),
             };
             b.iter(|| {
@@ -130,7 +131,7 @@ fn number_of_interval_subdivision(c: &mut Criterion) {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
                     thread::sleep(time::Duration::from_nanos(10));
-                    vec![x.cos()]
+                    array![x.cos()]
                 }),
             };
             b.iter(|| {
@@ -183,7 +184,7 @@ fn key(c: &mut Criterion) {
             let f = FnVec {
                 components: Arc::new(|x: f64| {
                     thread::sleep(time::Duration::from_nanos(10));
-                    vec![x.cos()]
+                    array![x.cos()]
                 }),
             };
             b.iter(|| {
