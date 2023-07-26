@@ -232,14 +232,13 @@ impl Qag {
                 _ => (Array1::<f64>::from_vec(vec![0.0; f(0.0).len()]), 0.0, 0.0),
             };
             result += &(Array1::<f64>::from(result_temp.clone()));
-            //add_res(&mut result, &result_temp);
             abserr += abserr_temp;
             rounderr += rounderr_temp;
             heap.push(HeapItem::new((comp.0, comp.1), abserr_temp));
             interval_cache.insert((Myf64 { x: comp.0 }, Myf64 { x: comp.1 }), result_temp);
         }
 
-        let mut errbnd = epsabs.max(epsrel * norm_ndarray(&result));
+        let mut errbnd = epsabs.max(epsrel * norm_ar(&result));
 
         if abserr + rounderr <= errbnd {
             if keyf != 1 {
@@ -274,7 +273,6 @@ impl Qag {
         while last < self.limit {
             let mut to_process = vec![];
             let mut err_sum = 0.0;
-            //let mut old_result = vec![0.0; n];
             let mut old_result = Array1::<f64>::zeros(n);
             let max_new_divison = self.limit - last;
 
@@ -289,7 +287,6 @@ impl Qag {
                     .unwrap();
                 err_sum += old_err;
                 old_result += &Array1::<f64>::from(old_res);
-                //add_vec(&mut old_result, &old_res);
                 to_process.push((x, y));
                 if err_sum > abserr - errbnd / 8.0 {
                     break;
@@ -350,15 +347,12 @@ impl Qag {
                     .collect()
             });
 
-            //let mut new_res = vec![0.0; n];
             let mut new_res = Array1::<f64>::zeros(n);
             let mut new_abserr = 0.0;
 
             for k in 0..new_result.0.len() {
                 new_res += &(Array1::<f64>::from(new_result.0[k].2.clone()));
                 new_res += &(Array1::<f64>::from(new_result.1[k].2.clone()));
-                //add_vec(&mut new_res, &new_result.0[k].2);
-                //add_vec(&mut new_res, &new_result.1[k].2);
                 new_abserr += new_result.0[k].3 + new_result.1[k].3;
                 rounderr += new_result.0[k].4 + new_result.1[k].4;
                 interval_cache.insert(
@@ -392,7 +386,7 @@ impl Qag {
                     new_result.1[k].3,
                 ));
             }
-            if iroff1_flag(&old_result.to_vec(), &new_res.to_vec(), new_abserr, err_sum) {
+            if iroff1_flag(&old_result, &new_res, new_abserr, err_sum) {
                 iroff1 += 1;
             }
             if last > 10 && new_abserr > err_sum {
@@ -402,7 +396,7 @@ impl Qag {
             result -= &old_result;
             abserr += new_abserr - err_sum;
 
-            errbnd = epsabs.max(epsrel * norm_ndarray(&result));
+            errbnd = epsabs.max(epsrel * norm_ar(&result));
 
             if abserr <= errbnd / 8.0 {
                 break;

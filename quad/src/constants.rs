@@ -17,10 +17,9 @@ pub const IROFF2_THRESHOLD: i32 = 20;
 pub const BAD_FUNCTION_PARAMETER1: f64 = 100.0;
 pub const BAD_FUNCTION_PARAMETER2: f64 = 1000.0;
 
-pub fn norm_ndarray(ar: &Array1<f64>) -> f64 {
+pub fn norm_ar(ar: &Array1<f64>) -> f64 {
     ar.iter().map(|x| x.powi(2)).sum::<f64>().sqrt()
 }
-
 
 pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -38,7 +37,12 @@ pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points_transformed
 }
 
-pub fn iroff1_flag(old_res: &[f64], new_res: &[f64], new_abserr: f64, old_abserr: f64) -> bool {
+pub fn iroff1_flag(
+    old_res: &Array1<f64>,
+    new_res: &Array1<f64>,
+    new_abserr: f64,
+    old_abserr: f64,
+) -> bool {
     for k in 0..old_res.len() {
         if !((old_res[k] - new_res[k]).abs() <= IROFF_PARAMETER1 * new_res[k].abs()
             && new_abserr >= IROFF_PARAMETER2 * old_abserr)
@@ -58,7 +62,6 @@ pub fn bad_function_flag(x: f64, y: f64) -> bool {
     }
     false
 }
-
 
 #[derive(Debug, Clone)]
 pub struct HeapItem {
