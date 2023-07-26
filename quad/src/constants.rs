@@ -17,22 +17,8 @@ pub const IROFF2_THRESHOLD: i32 = 20;
 pub const BAD_FUNCTION_PARAMETER1: f64 = 100.0;
 pub const BAD_FUNCTION_PARAMETER2: f64 = 1000.0;
 
-pub fn norm_vec(v: &[f64]) -> f64 {
-    let mut norm = 0.0;
-    for comp in v {
-        norm += comp.powi(2);
-    }
-    norm = norm.sqrt();
-    norm
-}
-
-pub fn norm_ndarray(v: &ndarray::Array1<f64>) -> f64 {
-    let mut norm = 0.0;
-    for comp in v {
-        norm += comp.powi(2);
-    }
-    norm = norm.sqrt();
-    norm
+pub fn norm_ndarray(ar: &Array1<f64>) -> f64 {
+    ar.iter().map(|x| x.powi(2)).sum::<f64>().sqrt()
 }
 
 pub fn add_res(v: &mut [f64], w: &[f64]) {

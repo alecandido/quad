@@ -1,5 +1,5 @@
 use crate::constants::*;
-use ndarray::Axis;
+use ndarray::{Array1, Axis};
 
 pub fn qk_quadrature<const M: usize, F>(
     f: F,
@@ -8,22 +8,22 @@ pub fn qk_quadrature<const M: usize, F>(
     xgk: &[f64; M],
     wgk: &[f64],
     wg: &[f64],
-) -> (ndarray::Array1<f64>, f64, f64)
+) -> (Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> ndarray::Array1<f64>,
+    F: Fn(f64) -> Array1<f64>,
 {
     let hlgth: f64 = 0.5 * (b - a);
     let dhlgth: f64 = hlgth.abs();
     let centr: f64 = 0.5 * (b + a);
     let fc = f(centr);
     let dim = fc.len();
-    let mut fv1 = ndarray::Array1::<f64>::zeros(0);
-    let mut fv2 = ndarray::Array1::<f64>::zeros(0);
+    let mut fv1 = Array1::<f64>::zeros(0);
+    let mut fv2 = Array1::<f64>::zeros(0);
     let mut resg = {
         if M % 2 == 1 {
             &fc * wg[(M + 1) / 2 - 1]
         } else {
-            ndarray::Array1::<f64>::zeros(dim)
+            Array1::<f64>::zeros(dim)
         }
     };
     let mut resk = &fc * wgk[M];
