@@ -1,17 +1,17 @@
 use crate::constants::{HeapItem, Myf64};
-use ndarray::Array1;
+use ndarray::{array, Array1};
 use std::collections::{BinaryHeap, HashMap};
 
 #[derive(Debug, Clone)]
 pub struct QagIntegrationResult {
-    pub result: Vec<f64>,
+    pub result: Array1<f64>,
     pub abserr: f64,
     pub more_info: Option<MoreInfo>,
 }
 
 impl QagIntegrationResult {
     pub fn new_more_info(
-        result: Vec<f64>,
+        result: Array1<f64>,
         abserr: f64,
         neval: i32,
         last: usize,
@@ -25,7 +25,7 @@ impl QagIntegrationResult {
         }
     }
 
-    pub fn new(result: Vec<f64>, abserr: f64) -> Self {
+    pub fn new(result: Array1<f64>, abserr: f64) -> Self {
         Self {
             result,
             abserr,
@@ -35,7 +35,7 @@ impl QagIntegrationResult {
 
     pub fn new_error() -> Self {
         Self {
-            result: vec![0.0],
+            result: array![0.0],
             abserr: 0.0,
             more_info: None,
         }

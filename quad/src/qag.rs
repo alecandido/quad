@@ -208,7 +208,6 @@ impl Qag {
         let mut last = 1;
         let mut interval_cache = HashMap::new();
         let mut heap = BinaryHeap::new();
-        //let mut result = vec![0.0; n];
         let mut result = Array1::<f64>::zeros(n);
         let mut abserr = 0.0;
         let mut rounderr = 0.0;
@@ -252,7 +251,7 @@ impl Qag {
             abserr = abserr + rounderr;
             if self.more_info {
                 return Ok(QagIntegrationResult::new_more_info(
-                    result.to_vec(),
+                    result,
                     abserr,
                     neval,
                     last,
@@ -260,7 +259,7 @@ impl Qag {
                     heap,
                 ));
             } else {
-                return Ok(QagIntegrationResult::new(result.to_vec(), abserr));
+                return Ok(QagIntegrationResult::new(result, abserr));
             }
         }
 
@@ -401,8 +400,6 @@ impl Qag {
             }
             result += &new_res;
             result -= &old_result;
-            //sub_vec(&mut result, &old_result);
-            //add_vec(&mut result, &new_res);
             abserr += new_abserr - err_sum;
 
             errbnd = epsabs.max(epsrel * norm_ndarray(&result));
@@ -430,7 +427,7 @@ impl Qag {
 
         if self.more_info {
             return Ok(QagIntegrationResult::new_more_info(
-                result.to_vec(),
+                result,
                 abserr,
                 neval,
                 last,
@@ -438,7 +435,7 @@ impl Qag {
                 heap,
             ));
         } else {
-            return Ok(QagIntegrationResult::new(result.to_vec(), abserr));
+            return Ok(QagIntegrationResult::new(result, abserr));
         }
     }
 }
