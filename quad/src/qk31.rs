@@ -1,8 +1,9 @@
+use ndarray::Array1;
 use crate::qk::qk_quadrature;
 
-pub fn qk31_quadrature<F>(f: F, a: f64, b: f64) -> (ndarray::Array1<f64>, f64, f64)
+pub fn qk31_quadrature<F>(f: F, a: f64, b: f64) -> (Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> ndarray::Array1<f64>,
+    F: Fn(f64) -> Array1<f64>,
 {
     qk_quadrature(f, a, b, &XGK31, &WGK31, &WG31)
 }

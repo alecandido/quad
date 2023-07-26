@@ -21,11 +21,6 @@ pub fn norm_ndarray(ar: &Array1<f64>) -> f64 {
     ar.iter().map(|x| x.powi(2)).sum::<f64>().sqrt()
 }
 
-pub fn add_res(v: &mut [f64], w: &[f64]) {
-    for k in 0..v.len() {
-        v[k] += w[k];
-    }
-}
 
 pub fn points_transformed(mut points: Vec<f64>, a: f64, b: f64) -> Vec<f64> {
     points.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -64,17 +59,6 @@ pub fn bad_function_flag(x: f64, y: f64) -> bool {
     false
 }
 
-pub fn sub_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] -= b[k];
-    }
-}
-
-pub fn add_vec(a: &mut [f64], b: &[f64]) {
-    for k in 0..a.len() {
-        a[k] += b[k];
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct HeapItem {
