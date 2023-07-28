@@ -1,3 +1,4 @@
+//! Adaptive integration of a vector-valued function.
 pub mod constants;
 pub mod errors;
 pub mod qag;
@@ -35,5 +36,5 @@ pub fn integrate(
         number_of_thread,
         more_info,
     };
-    qag.qintegrate(&f, a, b, epsabs, epsrel)
+    qag.integrate(&f, a, b, epsabs, epsrel)
 }
