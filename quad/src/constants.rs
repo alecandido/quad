@@ -7,14 +7,23 @@ use std::sync::Arc;
 pub struct FnVec<'a> {
     pub components: Arc<dyn Fn(f64) -> Array1<f64> + Send + Sync + 'a>,
 }
-
-pub const EPMACH: f64 = f64::EPSILON; // the largest relative spacing.
-pub const UFLOW: f64 = f64::MIN_POSITIVE; // the smallest positive magnitude.
+/// [Machine epsilon] value for `f64`.
+///
+/// This is the difference between `1.0` and the next larger representable number.
+pub const EPMACH: f64 = f64::EPSILON;
+/// Smallest positive normal `f64` value.
+pub const UFLOW: f64 = f64::MIN_POSITIVE;
+/// Parameter of [iroff1_flag].
 pub const IROFF_PARAMETER1: f64 = 0.00001;
+/// Parameter of [iroff1_flag].
 pub const IROFF_PARAMETER2: f64 = 0.99;
+/// Threshold for 'iroff1' beyond which the error [BadTolerance] is set.
 pub const IROFF1_THRESHOLD: i32 = 6;
+/// Threshold for 'iroff2' beyond which the error [BadTolerance] is set.
 pub const IROFF2_THRESHOLD: i32 = 20;
+/// Parameter of [bad_function_flag].
 pub const BAD_FUNCTION_PARAMETER1: f64 = 100.0;
+/// Parameter of [bad_function_flag].
 pub const BAD_FUNCTION_PARAMETER2: f64 = 1000.0;
 
 pub fn norm_ar(ar: &Array1<f64>) -> f64 {
