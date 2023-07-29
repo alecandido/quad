@@ -1,10 +1,10 @@
 [build-system]
-requires = ["maturin>=0.13.4"]
+requires = ["maturin>=1.1.0"]
 build-backend = "maturin"
 
 [project]
 name = "quadrature"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
