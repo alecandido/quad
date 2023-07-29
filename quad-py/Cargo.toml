@@ -19,7 +19,7 @@ name = "quadrature"
 crate-type = ["cdylib"]
 
 [dependencies]
-quad = { path = "../quad", version = "0.1.0" }
+quad = { path = "../quad" }
 
 [dependencies.pyo3]
 version = "0.19.1"
