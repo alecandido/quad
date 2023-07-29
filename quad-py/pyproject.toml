@@ -24,8 +24,8 @@ dependencies = ["numpy~=1.23"]
 test = ["pytest~=7.3", "scipy~=1.10"]
 
 [project.urls]
-homepage = ""
-documentation = ""
+homepage = "https://github.com/AleCandido/quad"
+documentation = "https://github.com/AleCandido/quad"
 
 [tool.maturin]
 bindings = "pyo3"
