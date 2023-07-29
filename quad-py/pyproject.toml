@@ -5,6 +5,7 @@ build-backend = "maturin"
 [project]
 name = "quadrature"
 requires-python = ">=3.8"
+readme = "README.md"
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
