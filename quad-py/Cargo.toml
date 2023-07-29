@@ -1,5 +1,5 @@
 [package]
-name = "quad-py"
+name = "quadrature"
 description = "Quad python bindings"
 authors = [
   "Alessandro Candido <candido.ale@gmail.com>",
