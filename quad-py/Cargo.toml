@@ -15,7 +15,7 @@ repository.workspace = true
 version.workspace = true
 
 [lib]
-name = "quad"
+name = "quadrature"
 crate-type = ["cdylib"]
 
 [dependencies]
