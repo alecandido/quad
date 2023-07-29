@@ -1,6 +1,6 @@
 use crate::qk::qk_quadrature;
 use ndarray::Array1;
-/// Gauss-Kronrod 61 quadrature with error estimate.
+/// Gauss-Kronrod 30-61 points quadrature with error estimate.
 pub fn qk61_quadrature<F>(f: F, a: f64, b: f64) -> (Array1<f64>, f64, f64)
 where
     F: Fn(f64) -> Array1<f64>,

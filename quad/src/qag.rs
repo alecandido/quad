@@ -1,3 +1,6 @@
+#[cfg(doc)]
+use crate::qag_integration_result::MoreInfo;
+
 use ::rayon::prelude::*;
 
 use crate::constants::*;
@@ -16,10 +19,29 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Qag {
+    /// Correspond to the Gauss-Kronrod rule used.
+    ///
+    /// The following are the correspondence between i32 and Gauss-Kronrod rule:
+    /// - 1 -> 7-15 points
+    /// - 2 -> 10-21 points
+    /// - 3 -> 15-31 points
+    /// - 4 -> 20-41 points
+    /// - 5 -> 25-51 points
+    /// - 6 -> 30-61 points
     pub key: i32,
+    /// Maximum number of subdivision allowed.
     pub limit: usize,
+    /// List of additional breakpoints.
     pub points: Vec<f64>,
+    /// Number of thread used.
+    ///
+    /// If you specify a non-zero number of threads then the resulting thread-pools used are
+    /// guaranteed to start at most this number of threads.
+    /// If number_of_thread is 0 then the Rayon runtime will select the number of threads
+    /// automatically.
     pub number_of_thread: usize,
+    /// If more_info is set to true [integrate](Qag::integrate) will return a [QagIntegrationResult]
+    /// containing [MoreInfo].
     pub more_info: bool,
 }
 
