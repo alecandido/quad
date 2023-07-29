@@ -1,6 +1,6 @@
 use crate::constants::*;
 use ndarray::Array1;
-
+/// Transform the function in case of semi-infinite interval.
 pub fn semi_infinite_function<F>(f: &F, x: f64, start: f64, infty: f64) -> Array1<f64>
 where
     F: Fn(f64) -> Array1<f64> + ?Sized,
@@ -13,7 +13,7 @@ where
     let res: Array1<f64> = f(z);
     res / (sgn * x * x)
 }
-
+/// Transform the function in case of infinite interval.
 pub fn double_infinite_function<F>(f: &F, x: f64) -> Array1<f64>
 where
     F: Fn(f64) -> Array1<f64> + ?Sized,
