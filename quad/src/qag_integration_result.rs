@@ -46,7 +46,7 @@ impl QagIntegrationResult {
         }
     }
 }
-/// Optional additional information result of [integrate](Qag::integrate).
+/// Optional additional information for the result of [integrate](Qag::integrate).
 ///
 /// It contains the number of function evaluation 'neval', the number of interval subdivision
 /// 'last', the [HashMap] with the integration result for every sub-interval 'hash' and the [BinaryHeap]

@@ -2,7 +2,7 @@
 use crate::qag::Qag;
 
 use std::fmt;
-/// Errors used in [qintegrate](Qag::qintegrate).
+/// Errors used in [integrate](Qag::integrate).
 #[derive(Clone, Debug, PartialEq)]
 pub enum QagError {
     Invalid,
