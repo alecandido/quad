@@ -1,5 +1,8 @@
-use std::fmt;
+#[cfg(doc)]
+use crate::qag::Qag;
 
+use std::fmt;
+/// Errors used in [qintegrate](Qag::qintegrate).
 #[derive(Clone, Debug, PartialEq)]
 pub enum QagError {
     Invalid,
@@ -22,7 +25,7 @@ impl fmt::Display for QagError {
         write!(f, "{}", error_message)
     }
 }
-
+/// Error message about exceeding the max_iteration [limit](Qag::limit).
 pub const MAX_ITERATION_ERROR_MESSAGE: &str =
     "Maximum number of subdivisions allowed has been achieved. One can allow more subdivisions by \
     increasing the value of limit. However, if this yields no improvement it is rather advised to \
@@ -31,12 +34,16 @@ pub const MAX_ITERATION_ERROR_MESSAGE: &str =
     will probably gain from splitting up the interval at this point and calling the integrator on \
     the subranges. If possible, an appropriate special-purpose integrator should be used which is \
     designed for handling the type of difficulty involved.";
+/// Error message about detecting a roundoff error.
 pub const BAD_TOLERANCE_ERROR_MESSAGE: &str =
     "The occurrence of roundoff error is detected, which prevents the requested tolerance from \
     being achieved.";
+/// Error message about an invalid epsrel.
 pub const INVALID_ERROR_MESSAGE: &str =
     "The input is invalid, because epsabs <= 0 and epsrel < max(50 * rel.mach.acc.,0.5d-28)";
+/// Error message about bad integrand behaviour.
 pub const BAD_FUNCTION_ERROR_MESSAGE: &str =
     "Extremely bad integrand behaviour occurs at some points of the integration interval.";
+/// Error message about probably divergent integrand.
 pub const DIVERGE_ERROR_MESSAGE: &str = "The integral is probably divergent, or slowly convergent.\
     It must be noted that divergence can occur with any other value of ResultState.";

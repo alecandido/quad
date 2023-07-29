@@ -76,7 +76,7 @@ pub fn bad_function_flag(x: f64, y: f64) -> bool {
     }
     false
 }
-/// Heap used in [Qag::qintegrate] to store the sub-intervals and their errors.
+/// Heap used in [qintegrate](Qag::qintegrate) to store the sub-intervals and their errors.
 #[derive(Debug, Clone)]
 pub struct HeapItem {
     pub interval: (f64, f64),
