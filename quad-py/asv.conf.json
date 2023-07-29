@@ -1,23 +1,23 @@
 {
-    "version": 1,
-    "project": "quad",
-    "project_url": "http://project-homepage.org/",
-    "repo": "https://github.com/AleCandido/quad.git",
-    "repo_subdir": "quad-py",
-    "install_command": ["in-dir={env_dir} python -mpip install {wheel_file}"],
-    "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
-    "build_command": [
-         "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
-     ],
-     "branches": ["main"],
-    "environment_type": "virtualenv",
-    "matrix": {
-         "req": {
-	       "maturin": ["1.1.0"],
-           "scipy": ["1.11.1"]
-         }
-     },
-    "env_dir": ".asv/env",
-    "results_dir": ".asv/results",
-    "html_dir": ".asv/html"
+  "version": 1,
+  "project": "quadrature",
+  "project_url": "http://project-homepage.org/",
+  "repo": "https://github.com/AleCandido/quad.git",
+  "repo_subdir": "quad-py",
+  "install_command": ["in-dir={env_dir} python -mpip install {wheel_file}"],
+  "uninstall_command": ["return-code=any python -mpip uninstall -y {project}"],
+  "build_command": [
+    "PIP_NO_BUILD_ISOLATION=false python -mpip wheel --no-deps --no-index -w {build_cache_dir} {build_dir}"
+  ],
+  "branches": ["main"],
+  "environment_type": "virtualenv",
+  "matrix": {
+    "req": {
+      "maturin": ["1.1.0"],
+      "scipy": ["1.11.1"]
+    }
+  },
+  "env_dir": ".asv/env",
+  "results_dir": ".asv/results",
+  "html_dir": ".asv/html"
 }
