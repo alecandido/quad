@@ -1,5 +1,5 @@
 import numpy as np
-import quad
+import quadrature as quad
 import time
 import math
 from scipy.integrate import quad_vec
