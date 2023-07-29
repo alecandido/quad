@@ -108,7 +108,7 @@ impl PartialOrd for HeapItem {
         Some(self.cmp(other))
     }
 }
-/// 'f64' implementing Hash.
+/// `f64` implementing Hash.
 ///
 /// Needed to used an interval as key in a [HashMap](std::collections::HashMap).
 #[derive(Debug, Clone)]

@@ -25,7 +25,7 @@ impl fmt::Display for QagError {
         write!(f, "{}", error_message)
     }
 }
-/// Error message about exceeding the max_iteration [limit](Qag::limit).
+/// Error message about reaching the max iteration [limit](Qag::limit).
 pub const MAX_ITERATION_ERROR_MESSAGE: &str =
     "Maximum number of subdivisions allowed has been achieved. One can allow more subdivisions by \
     increasing the value of limit. However, if this yields no improvement it is rather advised to \
