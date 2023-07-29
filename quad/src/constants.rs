@@ -1,5 +1,6 @@
 #[cfg(doc)]
 use crate::errors::QagError;
+use crate::qag::Qag;
 
 use ndarray::Array1;
 use std::cmp::Ordering;
@@ -22,15 +23,15 @@ pub const UFLOW: f64 = f64::MIN_POSITIVE;
 pub const IROFF_PARAMETER1: f64 = 0.00001;
 /// Parameter of [iroff1_flag].
 pub const IROFF_PARAMETER2: f64 = 0.99;
-/// Threshold for 'iroff1' beyond which the [QagError] 'BadTolerance' is set.
+/// Threshold for 'iroff1' beyond which the [BadTolerance](QagError::BadTolerance) is set.
 pub const IROFF1_THRESHOLD: i32 = 6;
-/// Threshold for 'iroff2' beyond which the [QagError] 'BadTolerance' is set.
+/// Threshold for 'iroff1' beyond which the [BadTolerance](QagError::BadTolerance) is set.
 pub const IROFF2_THRESHOLD: i32 = 20;
 /// Parameter of [bad_function_flag].
 pub const BAD_FUNCTION_PARAMETER1: f64 = 100.0;
 /// Parameter of [bad_function_flag].
 pub const BAD_FUNCTION_PARAMETER2: f64 = 1000.0;
-/// Norm of an Array1.
+/// Norm of an [Array1].
 pub fn norm_ar(ar: &Array1<f64>) -> f64 {
     ar.iter().map(|x| x.powi(2)).sum::<f64>().sqrt()
 }
@@ -65,7 +66,7 @@ pub fn iroff1_flag(
     }
     return true;
 }
-/// Condition to return a [QagError] 'BadFunction'.
+/// Condition to return a [BadFunction](QagError::BadFunction) .
 pub fn bad_function_flag(x: f64, y: f64) -> bool {
     if x.abs().max(y.abs())
         <= (1.0 + BAD_FUNCTION_PARAMETER1 * EPMACH)
@@ -75,7 +76,7 @@ pub fn bad_function_flag(x: f64, y: f64) -> bool {
     }
     false
 }
-
+/// Heap used in [Qag::qintegrate] to store the sub-intervals and their errors.
 #[derive(Debug, Clone)]
 pub struct HeapItem {
     pub interval: (f64, f64),
@@ -107,7 +108,9 @@ impl PartialOrd for HeapItem {
         Some(self.cmp(other))
     }
 }
-
+/// 'f64' implementing Hash.
+///
+/// Needed to used an interval as key in a [HashMap](std::collections::HashMap).
 #[derive(Debug, Clone)]
 pub struct Myf64 {
     pub x: f64,
