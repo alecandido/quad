@@ -1,20 +1,26 @@
-use crate::constants::{HeapItem, Myf64};
-use std::collections::{BinaryHeap, HashMap};
+#[cfg(doc)]
+use crate::qag::Qag;
 
+use crate::constants::{HeapItem, Myf64};
+use ndarray::{array, Array1};
+use std::collections::{BinaryHeap, HashMap};
+/// Result of [integrate](Qag::integrate).
+///
+/// It contains the result [Array1], the error and optionally a [MoreInfo].
 #[derive(Debug, Clone)]
 pub struct QagIntegrationResult {
-    pub result: Vec<f64>,
+    pub result: Array1<f64>,
     pub abserr: f64,
     pub more_info: Option<MoreInfo>,
 }
 
 impl QagIntegrationResult {
     pub fn new_more_info(
-        result: Vec<f64>,
+        result: Array1<f64>,
         abserr: f64,
         neval: i32,
         last: usize,
-        hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+        hash: HashMap<(Myf64, Myf64), Array1<f64>>,
         heap: BinaryHeap<HeapItem>,
     ) -> Self {
         Self {
@@ -24,7 +30,7 @@ impl QagIntegrationResult {
         }
     }
 
-    pub fn new(result: Vec<f64>, abserr: f64) -> Self {
+    pub fn new(result: Array1<f64>, abserr: f64) -> Self {
         Self {
             result,
             abserr,
@@ -34,18 +40,22 @@ impl QagIntegrationResult {
 
     pub fn new_error() -> Self {
         Self {
-            result: vec![0.0],
+            result: array![0.0],
             abserr: 0.0,
             more_info: None,
         }
     }
 }
-
+/// Optional additional information for the result of [integrate](Qag::integrate).
+///
+/// It contains the number of function evaluation 'neval', the number of interval subdivision
+/// 'last', the [HashMap] with the integration result for every sub-interval 'hash' and the [BinaryHeap]
+/// with the error for every sub-interval 'heap'.
 #[derive(Debug, Clone)]
 pub struct MoreInfo {
     pub neval: i32,
     pub last: usize,
-    pub hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+    pub hash: HashMap<(Myf64, Myf64), Array1<f64>>,
     pub heap: BinaryHeap<HeapItem>,
 }
 
@@ -53,7 +63,7 @@ impl MoreInfo {
     pub fn new(
         neval: i32,
         last: usize,
-        hash: HashMap<(Myf64, Myf64), Vec<f64>>,
+        hash: HashMap<(Myf64, Myf64), Array1<f64>>,
         heap: BinaryHeap<HeapItem>,
     ) -> Self {
         Self {

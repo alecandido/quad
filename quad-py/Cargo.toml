@@ -20,6 +20,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 quad = { path = "../quad" }
+ndarray = "0.15.6"
 
 [dependencies.pyo3]
 version = "0.19.1"

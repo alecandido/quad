@@ -1,8 +1,9 @@
 use crate::qk::qk_quadrature;
-
-pub fn qk21_quadrature<F>(f: F, a: f64, b: f64) -> (Vec<f64>, f64, f64)
+use ndarray::Array1;
+/// Gauss-Kronrod 10-21 points quadrature with error estimate.
+pub fn qk21_quadrature<F>(f: F, a: f64, b: f64) -> (Array1<f64>, f64, f64)
 where
-    F: Fn(f64) -> Vec<f64>,
+    F: Fn(f64) -> Array1<f64>,
 {
     qk_quadrature(f, a, b, &XGK21, &WGK21, &WG21)
 }

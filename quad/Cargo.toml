@@ -23,6 +23,7 @@ bench = false
 
 [dependencies]
 rayon = "1.6"
+ndarray = "0.15.6"
 
 [dev-dependencies]
 GSL = "6.0.0"
