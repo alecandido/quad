@@ -8,20 +8,3 @@ points between each of the abscissae to give a higher order Kronrod rule of orde
 The Kronrod rule is efficient because it reuses existing function evaluations from the Gaussian rule."
 
 At every step of the algorithm up to 128 sub-interval could be bisected, thus allowing parallelization.
-
-## Usage
-
-The primary function is the method 'integrate' of the struct Qag.
-In order to use it the Qag struct need to be initialized.
-
-E.g:
-
-```
-let qag = Qag {
-    key: 1,
-    limit: 50,
-    points: vec![0.0; 0],
-    number_of_thread: 8,
-    more_info: false,
-};
-```
