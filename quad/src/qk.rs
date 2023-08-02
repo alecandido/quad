@@ -1,6 +1,7 @@
 use crate::constants::*;
 use ndarray::{Array1, Axis};
-
+/// Generates the various Gauss-Kronrod quadratures by giving their respective nodes 'xgk'
+/// and weights 'wgk' and 'wg'.
 pub fn qk_quadrature<const M: usize, F>(
     f: F,
     a: f64,

@@ -1,7 +1,12 @@
+#[cfg(doc)]
+use crate::qag::Qag;
+
 use crate::constants::{HeapItem, Myf64};
 use ndarray::{array, Array1};
 use std::collections::{BinaryHeap, HashMap};
-
+/// Result of [integrate](Qag::integrate).
+///
+/// It contains the result [Array1], the error and optionally a [MoreInfo].
 #[derive(Debug, Clone)]
 pub struct QagIntegrationResult {
     pub result: Array1<f64>,
@@ -41,7 +46,11 @@ impl QagIntegrationResult {
         }
     }
 }
-
+/// Optional additional information for the result of [integrate](Qag::integrate).
+///
+/// It contains the number of function evaluation 'neval', the number of interval subdivision
+/// 'last', the [HashMap] with the integration result for every sub-interval 'hash' and the [BinaryHeap]
+/// with the error for every sub-interval 'heap'.
 #[derive(Debug, Clone)]
 pub struct MoreInfo {
     pub neval: i32,
