@@ -1,10 +1,11 @@
 [build-system]
-requires = ["maturin>=0.13.4"]
+requires = ["maturin>=1.1.0"]
 build-backend = "maturin"
 
 [project]
-name = "quad"
-requires-python = ">=3.7"
+name = "quadrature"
+requires-python = ">=3.8"
+readme = "README.md"
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
@@ -24,8 +25,8 @@ dependencies = ["numpy~=1.23"]
 test = ["pytest~=7.3", "scipy~=1.10"]
 
 [project.urls]
-homepage = ""
-documentation = ""
+homepage = "https://github.com/AleCandido/quad"
+documentation = "https://github.com/AleCandido/quad"
 
 [tool.maturin]
 bindings = "pyo3"

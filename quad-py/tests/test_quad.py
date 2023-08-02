@@ -1,5 +1,5 @@
 import unittest
-import quad
+import quadrature as quad
 import math
 import pytest
 import numpy

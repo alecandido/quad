@@ -1,4 +1,4 @@
-import quad
+import quadrature as quad
 import math
 import time
 import timeit
