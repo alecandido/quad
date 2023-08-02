@@ -16,7 +16,7 @@ use crate::semi_infinite_function::{double_infinite_function, semi_infinite_func
 use ndarray::Array1;
 use std::collections::{BinaryHeap, HashMap};
 use std::sync::Arc;
-
+/// Struct with the primary function 'integrate' as method.
 #[derive(Clone)]
 pub struct Qag {
     /// Correspond to the Gauss-Kronrod rule used.
